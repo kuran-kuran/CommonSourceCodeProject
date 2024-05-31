@@ -38,6 +38,7 @@
 #include "mz1r13.h"
 #include "printer.h"
 #include "timer.h"
+#include "mz2000sd.h"
 
 #ifdef SUPPORT_QUICK_DISK
 #include "../z80sio.h"
@@ -85,7 +86,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	mz1r13 = new MZ1R13(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
-	
+	mz2000sd = new MZ2000SD(this, emu);
+
 #ifdef SUPPORT_QUICK_DISK
 	sio = new Z80SIO(this, emu);
 	qd = new QUICKDISK(this, emu);
@@ -243,7 +245,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_w(0xf4, 0xf7, memory);
 	io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
-	
+	io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
+	io->set_iomap_range_rw(0xf8, 0xf9, mz2000sd);
+
 	io->set_iowait_range_rw(0xd8, 0xdf, 1);
 	io->set_iowait_range_rw(0xe8, 0xeb, 1);
 	

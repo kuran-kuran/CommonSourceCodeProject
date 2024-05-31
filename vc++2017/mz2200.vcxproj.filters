@@ -170,6 +170,9 @@
     <ClCompile Include="..\src\vm\mz2500\timer.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
@@ -291,6 +294,9 @@
     </ClInclude>
     <ClInclude Include="..\src\res\resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz2500\mz2000sd.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

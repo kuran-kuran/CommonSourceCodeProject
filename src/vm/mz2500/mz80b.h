@@ -100,6 +100,7 @@ class MZ1R12;
 class MZ1R13;
 class PRINTER;
 class TIMER;
+class MZ2000SD;
 
 #ifdef SUPPORT_QUICK_DISK
 class Z80SIO;
@@ -137,6 +138,7 @@ protected:
 	MZ1R13* mz1r13;
 	PRINTER* printer;
 	TIMER* timer;
+	MZ2000SD* mz2000sd;
 	
 #ifdef SUPPORT_QUICK_DISK
 	Z80SIO* sio;

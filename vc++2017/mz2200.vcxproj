@@ -345,6 +345,7 @@
     <ClCompile Include="..\src\vm\mz2500\mz1m01.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz80b.cpp" />
     <ClCompile Include="..\src\vm\mz2500\printer.cpp" />
     <ClCompile Include="..\src\vm\mz2500\timer.cpp" />
@@ -390,6 +391,7 @@
     <ClInclude Include="..\src\vm\mz2500\mz1m01.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r12.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
+    <ClInclude Include="..\src\vm\mz2500\mz2000sd.h" />
     <ClInclude Include="..\src\vm\mz2500\mz80b.h" />
     <ClInclude Include="..\src\vm\mz2500\printer.h" />
     <ClInclude Include="..\src\vm\mz2500\timer.h" />
