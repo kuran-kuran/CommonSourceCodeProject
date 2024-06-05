@@ -173,7 +173,7 @@
     <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\MZ-80K_SD.cpp">
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -300,6 +300,9 @@
     </ClInclude>
     <ClInclude Include="..\src\vm\mz2500\mz2000sd.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz80k_sd.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -337,7 +337,6 @@
     <ClCompile Include="..\src\vm\i86.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
-    <ClCompile Include="..\src\vm\MZ-80K_SD.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz2500\cmt.cpp" />
     <ClCompile Include="..\src\vm\mz2500\floppy.cpp" />
@@ -351,6 +350,7 @@
     <ClCompile Include="..\src\vm\mz2500\printer.cpp" />
     <ClCompile Include="..\src\vm\mz2500\timer.cpp" />
     <ClCompile Include="..\src\vm\mz700\quickdisk.cpp" />
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
     <ClCompile Include="..\src\vm\prnfile.cpp" />
@@ -397,6 +397,7 @@
     <ClInclude Include="..\src\vm\mz2500\printer.h" />
     <ClInclude Include="..\src\vm\mz2500\timer.h" />
     <ClInclude Include="..\src\vm\mz700\quickdisk.h" />
+    <ClInclude Include="..\src\vm\mz80k_sd.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />
     <ClInclude Include="..\src\vm\prnfile.h" />
