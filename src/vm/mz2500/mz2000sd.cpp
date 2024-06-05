@@ -33,8 +33,10 @@ void MZ2000SD::write_io8(uint32_t addr, uint32_t data)
 {
 	switch(addr & 0xff) {
 	case 0xa2:
+		// b7 CHK handshake
 		break;
 	case 0xa3:
+		// 8255 setting
 		break;
 	case 0xf8:
 		address = (address & 0x00ff) | (data << 8);
@@ -50,10 +52,13 @@ uint32_t MZ2000SD::read_io8(uint32_t addr)
 	if(address >= 0x8000) {
 		switch(addr & 0xff) {
 		case 0xa0:
+			// send data (low 4bit) 
 			break;
 		case 0xa1:
+			// receive data (8bit) 
 			break;
 		case 0xa2:
+			// b2 FLG handshake
 			break;
 		case 0xf9:
 			return boot_rom[address & 0x7fff];
