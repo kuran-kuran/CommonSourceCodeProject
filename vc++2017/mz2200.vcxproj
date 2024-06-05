@@ -337,6 +337,7 @@
     <ClCompile Include="..\src\vm\i86.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
+    <ClCompile Include="..\src\vm\MZ-80K_SD.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz2500\cmt.cpp" />
     <ClCompile Include="..\src\vm\mz2500\floppy.cpp" />

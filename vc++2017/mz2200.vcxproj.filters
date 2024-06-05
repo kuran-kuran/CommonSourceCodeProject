@@ -173,6 +173,9 @@
     <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\MZ-80K_SD.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
