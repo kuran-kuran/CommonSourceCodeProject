@@ -25,6 +25,7 @@
 #include "../prnfile.h"
 #include "../z80.h"
 #include "../z80pio.h"
+#include "../mz80k_sd.h"
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -86,7 +87,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	mz1r13 = new MZ1R13(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
-	mz2000sd = new MZ2000SD(this, emu);
+	mz2000sd = new MZ2000_SD(this, emu);
 
 #ifdef SUPPORT_QUICK_DISK
 	sio = new Z80SIO(this, emu);
@@ -157,7 +158,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		printer->set_context_prn(dummy);
 	}
 	timer->set_context_pit(pit);
-	
+
+	MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
+	mz2000sd->set_context_mz80k_sd(mz80k_sd);
+
 #ifdef SUPPORT_QUICK_DISK
 	// Z80SIO:RTSA -> QD:WRGA
 	sio->set_context_rts(0, qd, QUICKDISK_SIO_RTSA, 1);

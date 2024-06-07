@@ -13,19 +13,19 @@ Date   : 2024.05.28-
 #include "../vm.h"
 #include "../../emu.h"
 #include "../device.h"
+#include "../mz80k_sd.h"
 
-class MZ2000SD : public DEVICE
+class MZ2000_SD : public DEVICE
 {
 private:
 	uint8_t boot_rom[0x8000];
 	uint16_t address;
 	uint8_t read_write_flag; // 0: not busy, 1: reading, 2: writeing
 	uint64_t file_position;
-	bool chk;
-	bool flg;
+	MZ80K_SD* d_mz80ksd;
 
 public:
-	MZ2000SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
+	MZ2000_SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		set_device_name(_T("MZ2000_SD (SD Card reader/writer)"));
 	}
@@ -36,6 +36,12 @@ public:
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
 	bool process_state(FILEIO* state_fio, bool loading);
+
+	// unique function
+	void set_context_mz80k_sd(DEVICE* device)
+	{
+		d_mz80ksd = (MZ80K_SD*)device;
+	}
 };
 
 #endif

@@ -16,19 +16,41 @@
 void MZ80K_SD::initialize()
 {
   setup();
+  terminate = false;
+  finalize = false;
+  hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
 }
 
 void MZ80K_SD::release()
 {
+  terminate = true;
+//  while(finalize) {
+//    Sleep(0);
+//  }
 }
-	
+
 void MZ80K_SD::digitalWrite(int pin, int data)
 {
+  unsigned int mask = ~(1 << pin);
+  unsigned int bit = (data & 1) << pin;
+  gpio &= mask;
+  gpio |= bit;
 }
 
 int MZ80K_SD::digitalRead(int pin)
 {
-    return 0;
+  unsigned int bit = (gpio >> pin) & 1;
+  return bit;
+}
+
+void MZ80K_SD::setFlg(bool flag)
+{
+  digitalWrite(CHKPIN, flag);
+}
+
+bool MZ80K_SD::getChk()
+{
+  return digitalRead(FLGPIN) == 1 ? true : false;
 }
 
 void MZ80K_SD::setup(){
@@ -56,6 +78,7 @@ void MZ80K_SD::setup(){
   pinMode( PA2PIN,INPUT_PULLUP); //受信データ 
   pinMode( PA3PIN,INPUT_PULLUP); //受信データ 
 */
+  gpio = 0;
 
   digitalWrite(PB0PIN,LOW);
   digitalWrite(PB1PIN,LOW);
@@ -1262,4 +1285,14 @@ void MZ80K_SD::loop()
 //状態コード送信(ERROR)
     snd1byte(0xF0);
   }
+}
+
+unsigned __stdcall MZ80K_SD::loop_thread(void* param)
+{
+  MZ80K_SD* mz80k_sd = (MZ80K_SD*)param;
+  while(!mz80k_sd->terminate) {
+      mz80k_sd->loop();
+  }
+  mz80k_sd->finalize = true;
+  return 0;
 }

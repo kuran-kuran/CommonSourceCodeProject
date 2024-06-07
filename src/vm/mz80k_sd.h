@@ -53,9 +53,11 @@ private:
 	unsigned long concatPos = 0;
 	unsigned long concatSize = 0;
 	boolean eflg;
+	unsigned int gpio;
 
-	void digitalWrite(int pin, int data);
-	int digitalRead(int pin);
+	// thread
+	HANDLE hMz80kSdThread;
+
 	void setup();
 	byte rcv4bit(void);
 	byte rcv1byte(void);
@@ -85,6 +87,7 @@ private:
 	void ConcatFileState(void);
 	void SendMidi(void);
 	void loop();
+	static unsigned __stdcall loop_thread(void* param);
 public:
 	MZ80K_SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
@@ -98,6 +101,12 @@ public:
 	void release();
 
 	// unique function
+	void digitalWrite(int pin, int data);
+	int digitalRead(int pin);
+	void setFlg(bool flag);
+	bool getChk();
+	bool terminate;
+	bool finalize;
 }
 ;
 #endif
