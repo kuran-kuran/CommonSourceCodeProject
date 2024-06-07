@@ -13,6 +13,15 @@
 #include <string>
 #include "mz80k_sd.h"
 
+void MZ80K_SD::initialize()
+{
+  setup();
+}
+
+void MZ80K_SD::release()
+{
+}
+	
 void MZ80K_SD::digitalWrite(int pin, int data)
 {
 }
@@ -32,20 +41,20 @@ void MZ80K_SD::setup(){
 /*
   pinMode(CABLESELECTPIN,OUTPUT);
   pinMode( CHKPIN,INPUT);  //CHK
-  pinMode( PB0PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB1PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB2PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB3PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB4PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB5PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB6PIN,OUTPUT); //‘—Mƒf[ƒ^
-  pinMode( PB7PIN,OUTPUT); //‘—Mƒf[ƒ^
+  pinMode( PB0PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB1PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB2PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB3PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB4PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB5PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB6PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PB7PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
   pinMode( FLGPIN,OUTPUT); //FLG
 
-  pinMode( PA0PIN,INPUT_PULLUP); //óMƒf[ƒ^
-  pinMode( PA1PIN,INPUT_PULLUP); //óMƒf[ƒ^
-  pinMode( PA2PIN,INPUT_PULLUP); //óMƒf[ƒ^
-  pinMode( PA3PIN,INPUT_PULLUP); //óMƒf[ƒ^
+  pinMode( PA0PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PA1PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PA2PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+  pinMode( PA3PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿ 
 */
 
   digitalWrite(PB0PIN,LOW);
@@ -58,10 +67,10 @@ void MZ80K_SD::setup(){
   digitalWrite(PB7PIN,LOW);
   digitalWrite(FLGPIN,LOW);
 
-// 2022. 2. 4 MZ-1200‘Îô
+// 2022. 2. 4 MZ-1200å¯¾ç­– 
 //  Sleep(1500);
 
-  // SD‰Šú‰»
+  // SDåˆæœŸåŒ– 
 //  if( !SD.begin(CABLESELECTPIN,8) )
   {
 ////    Serial.println("Failed : SD.begin");
@@ -73,24 +82,24 @@ void MZ80K_SD::setup(){
 ////  Serial.println("START");
 }
 
-//4BITóM
+//4BITå—ä¿¡ 
 byte MZ80K_SD::rcv4bit(void){
-//HIGH‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+//HIGHã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ— 
   while(digitalRead(CHKPIN) != HIGH){
   }
-//óM
+//å—ä¿¡ 
   byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2+digitalRead(PA2PIN)*4+digitalRead(PA3PIN)*8;
-//FLG‚ğƒZƒbƒg
+//FLGã‚’ã‚»ãƒƒãƒˆ 
   digitalWrite(FLGPIN,HIGH);
-//LOW‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+//LOWã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ— 
   while(digitalRead(CHKPIN) == HIGH){
   }
-//FLG‚ğƒŠƒZƒbƒg
+//FLGã‚’ãƒªã‚»ãƒƒãƒˆ 
   digitalWrite(FLGPIN,LOW);
   return(j_data);
 }
 
-//1BYTEóM
+//1BYTEå—ä¿¡ 
 byte MZ80K_SD::rcv1byte(void){
   byte i_data = 0;
   i_data=rcv4bit()*16;
@@ -98,9 +107,9 @@ byte MZ80K_SD::rcv1byte(void){
   return(i_data);
 }
 
-//1BYTE‘—M
+//1BYTEé€ä¿¡ 
 void MZ80K_SD::snd1byte(byte i_data){
-//‰ºˆÊƒrƒbƒg‚©‚ç8ƒrƒbƒg•ª‚ğƒZƒbƒg
+//ä¸‹ä½ãƒ“ãƒƒãƒˆã‹ã‚‰8ãƒ“ãƒƒãƒˆåˆ†ã‚’ã‚»ãƒƒãƒˆ 
   digitalWrite(PB0PIN,(i_data)&0x01);
   digitalWrite(PB1PIN,(i_data>>1)&0x01);
   digitalWrite(PB2PIN,(i_data>>2)&0x01);
@@ -110,16 +119,16 @@ void MZ80K_SD::snd1byte(byte i_data){
   digitalWrite(PB6PIN,(i_data>>6)&0x01);
   digitalWrite(PB7PIN,(i_data>>7)&0x01);
   digitalWrite(FLGPIN,HIGH);
-//HIGH‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+//HIGHã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ— 
   while(digitalRead(CHKPIN) != HIGH){
   }
   digitalWrite(FLGPIN,LOW);
-//LOW‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+//LOWã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ— 
   while(digitalRead(CHKPIN) == HIGH){
   }
 }
 
-//¬•¶š->‘å•¶š
+//å°æ–‡å­—->å¤§æ–‡å­— 
 char MZ80K_SD::upper(char c){
   if('a' <= c && c <= 'z'){
     c = c - ('a' - 'A');
@@ -127,7 +136,7 @@ char MZ80K_SD::upper(char c){
   return c;
 }
 
-//ƒtƒ@ƒCƒ‹–¼‚ÌÅŒã‚ªu.mztv‚Å‚È‚¯‚ê‚Î•t‰Á
+//ãƒ•ã‚¡ã‚¤ãƒ«åã®æœ€å¾ŒãŒã€Œ.mztã€ã§ãªã‘ã‚Œã°ä»˜åŠ  
 void MZ80K_SD::addmzt(char *f_name){
   unsigned int lp1=0;
   while (f_name[lp1] != 0x0D){
@@ -148,69 +157,69 @@ void MZ80K_SD::addmzt(char *f_name){
   f_name[lp1] = 0x00;
 }
 
-//SDƒJ[ƒh‚ÉSAVE
+//SDã‚«ãƒ¼ãƒ‰ã«SAVE 
 void MZ80K_SD::f_save(void){
 char p_name[20];
 
-//•Û‘¶ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ä¿å­˜ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
-//ƒvƒƒOƒ‰ƒ€ƒl[ƒ€æ“¾
+//ãƒ—ãƒ­ã‚°ãƒ©ãƒ ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 16;lp1++){
     p_name[lp1] = rcv1byte();
   }
   p_name[15] =0x0D;
   p_name[16] =0x00;
-//ƒXƒ^[ƒgƒAƒhƒŒƒXæ“¾
+//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
   int s_adrs1 = rcv1byte();
   int s_adrs2 = rcv1byte();
-//ƒXƒ^[ƒgƒAƒhƒŒƒXZo
+//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ç®—å‡º 
   unsigned int s_adrs = s_adrs1+s_adrs2*256;
-//ƒGƒ“ƒhƒAƒhƒŒƒXæ“¾
+//ã‚¨ãƒ³ãƒ‰ã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
   int e_adrs1 = rcv1byte();
   int e_adrs2 = rcv1byte();
-//ƒGƒ“ƒhƒAƒhƒŒƒXZo
+//ã‚¨ãƒ³ãƒ‰ã‚¢ãƒ‰ãƒ¬ã‚¹ç®—å‡º 
   unsigned int e_adrs = e_adrs1+e_adrs2*256;
-//ÀsƒAƒhƒŒƒXæ“¾
+//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
   int g_adrs1 = rcv1byte();
   int g_adrs2 = rcv1byte();
-//ÀsƒAƒhƒŒƒXZo
+//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹ç®—å‡º 
   unsigned int g_adrs = g_adrs1+g_adrs2*256;
-//ƒtƒ@ƒCƒ‹ƒTƒCƒYZo
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºç®—å‡º 
   unsigned int f_length = e_adrs - s_adrs + 1;
   unsigned int f_length1 = f_length % 256;
   unsigned int f_length2 = f_length / 256;
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚·‚ê‚Îdelete
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã™ã‚Œã°delete
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
       FILEIO::RemoveFile(create_local_path(f_name));
   }
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
   FILEIO* file = new FILEIO();
   bool result = file->Fopen( create_local_path(f_name), FILEIO_WRITE_BINARY );
   if( true == result ){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒ‚[ƒhİ’è(01)
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒ¢ãƒ¼ãƒ‰è¨­å®š(01)
     file->Fputc(char(0x01));
-//ƒvƒƒOƒ‰ƒ€ƒl[ƒ€
+//ãƒ—ãƒ­ã‚°ãƒ©ãƒ ãƒãƒ¼ãƒ  
     file->Fwrite(p_name, sizeof(p_name), 1);
     file->Fputc(char(0x00));
-//ƒtƒ@ƒCƒ‹ƒTƒCƒY
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚º 
     file->Fputc(f_length1);
     file->Fputc(f_length2);
-//ƒXƒ^[ƒgƒAƒhƒŒƒX
+//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ 
     file->Fputc(s_adrs1);
     file->Fputc(s_adrs2);
-//ÀsƒAƒhƒŒƒX
+//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹ 
     file->Fputc(g_adrs1);
     file->Fputc(g_adrs2);
-//7F‚Ü‚Å00–„‚ß
+//7Fã¾ã§00åŸ‹ã‚ 
     for (unsigned int lp1 = 0;lp1 <= 103;lp1++){
       file->Fputc(char(0x00));
     }
-//Àƒf[ƒ^
+//å®Ÿãƒ‡ãƒ¼ã‚¿ 
     long lp1 = 0;
     while (lp1 <= f_length-1){
       int i=0;
@@ -223,27 +232,27 @@ char p_name[20];
     }
     file->Fclose();
    } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
     snd1byte(0xF1);
   }
 }
 
-//SDƒJ[ƒh‚©‚ç“Ç
+//SDã‚«ãƒ¼ãƒ‰ã‹ã‚‰èª­è¾¼ 
 void MZ80K_SD::f_load(void){
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     FILEIO* file = new FILEIO();
     bool result = file->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
     if( true == result ){
-//ƒtƒ@ƒCƒ‹í—ŞƒR[ƒh‚Ì”»•Ê‚ğ“P”p
+//ãƒ•ã‚¡ã‚¤ãƒ«ç¨®é¡ã‚³ãƒ¼ãƒ‰ã®åˆ¤åˆ¥ã‚’æ’¤å»ƒ 
 //      if( file.read() == 0x01){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         int wk1 = 0;
         wk1 = file->Fgetc();
@@ -251,15 +260,15 @@ void MZ80K_SD::f_load(void){
           wk1 = file->Fgetc();
           snd1byte(wk1);
         }
-//ƒtƒ@ƒCƒ‹ƒTƒCƒYæ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºå–å¾— 
         int f_length2 = file->Fgetc();
         int f_length1 = file->Fgetc();
         unsigned int f_length = f_length1*256+f_length2;
-//ƒXƒ^[ƒgƒAƒhƒŒƒXæ“¾
+//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
         int s_adrs2 = file->Fgetc();
         int s_adrs1 = file->Fgetc();
         unsigned int s_adrs = s_adrs1*256+s_adrs2;
-//ÀsƒAƒhƒŒƒXæ“¾
+//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
         int g_adrs2 = file->Fgetc();
         int g_adrs1 = file->Fgetc();
         unsigned int g_adrs = g_adrs1*256+g_adrs2;
@@ -270,48 +279,48 @@ void MZ80K_SD::f_load(void){
         snd1byte(g_adrs2);
         snd1byte(g_adrs1);
         file->Fseek(128, FILEIO_SEEK_SET);
-//ƒf[ƒ^‘—M
+//ãƒ‡ãƒ¼ã‚¿é€ä¿¡ 
         for (unsigned int lp1 = 0;lp1 < f_length;lp1++){
             byte i_data = file->Fgetc();
             snd1byte(i_data);
         }
         file->Fclose();
 //       } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
 //        snd1byte(0xF2);
 //      }  
      } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xFF);
      }
    } else {
-//ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
     snd1byte(0xF1);
   }
 }
 
-//ASTART w’è‚³‚ê‚½ƒtƒ@ƒCƒ‹‚ğƒtƒ@ƒCƒ‹–¼u0000.mztv‚Æ‚µ‚ÄƒRƒs[
+//ASTART æŒ‡å®šã•ã‚ŒãŸãƒ•ã‚¡ã‚¤ãƒ«ã‚’ãƒ•ã‚¡ã‚¤ãƒ«åã€Œ0000.mztã€ã¨ã—ã¦ã‚³ãƒ”ãƒ¼ 
 void MZ80K_SD::astart(void){
 char w_name[]="0000.mzt";
 
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-//0000.mzt‚ª‘¶İ‚·‚ê‚Îdelete
+//0000.mztãŒå­˜åœ¨ã™ã‚Œã°delete
     if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
         FILEIO::RemoveFile(create_local_path(f_name));
     }
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     FILEIO* file_r = new FILEIO();
     FILEIO* file_w = new FILEIO();
     bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
     file_w->Fopen( create_local_path(w_name), FILEIO_WRITE_BINARY );
       if( true == result_r ){
-//Àƒf[ƒ^
+//å®Ÿãƒ‡ãƒ¼ã‚¿ 
         unsigned int f_length = file_r->FileLength();
         long lp1 = 0;
         while (lp1 <= f_length-1){
@@ -325,21 +334,21 @@ char w_name[]="0000.mzt";
         }
         file_w->Fclose();
         file_r->Fclose();
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
       } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xF1);
     }
   } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
     snd1byte(0xF1);
   }  
 }
 
-// SD-CARD‚ÌFILELIST
+// SD-CARDã®FILELIST
 void MZ80K_SD::dirlist(void){
-//”äŠr•¶š—ñæ“¾ 32+1•¶š‚Ü‚Å
+//æ¯”è¼ƒæ–‡å­—åˆ—å–å¾— 32+1æ–‡å­—ã¾ã§ 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     c_name[lp1] = rcv1byte();
 //  Serial.print(c_name[lp1],HEX);
@@ -351,14 +360,14 @@ void MZ80K_SD::dirlist(void){
   int cntl2 = 0;
   unsigned int br_chk =0;
   int page = 1;
-//‘SŒo—Í‚Ìê‡‚É‚Í20Œo—Í‚µ‚½‚Æ‚±‚ë‚Åˆê’â~AƒL[“ü—Í‚É‚æ‚èŒp‘±A‘Å‚¿Ø‚è‚ğ‘I‘ğ
+//å…¨ä»¶å‡ºåŠ›ã®å ´åˆã«ã¯20ä»¶å‡ºåŠ›ã—ãŸã¨ã“ã‚ã§ä¸€æ™‚åœæ­¢ã€ã‚­ãƒ¼å…¥åŠ›ã«ã‚ˆã‚Šç¶™ç¶šã€æ‰“ã¡åˆ‡ã‚Šã‚’é¸æŠ 
   while (br_chk == 0) {
     if(entry){
       const _TCHAR* name = file->FindFile();
       my_tcscpy_s(f_name, 36, name);
       unsigned int lp1=0;
-//ˆêŒ‘—M
-//”äŠr•¶š—ñ‚Åƒtƒ@ƒCƒ‹ƒl[ƒ€‚ğæ“ª10•¶š‚Ü‚Å”äŠr‚µ‚Äˆê’v‚·‚é‚à‚Ì‚¾‚¯‚ğo—Í
+//ä¸€ä»¶é€ä¿¡ 
+//æ¯”è¼ƒæ–‡å­—åˆ—ã§ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ã‚’å…ˆé ­10æ–‡å­—ã¾ã§æ¯”è¼ƒã—ã¦ä¸€è‡´ã™ã‚‹ã‚‚ã®ã ã‘ã‚’å‡ºåŠ› 
       if (f_match(f_name,c_name)){
         while (lp1<=36 && f_name[lp1]!=0x00){
         snd1byte(upper(f_name[lp1]));
@@ -370,24 +379,24 @@ void MZ80K_SD::dirlist(void){
       }
     }
     if (!entry || cntl2 > 19){
-//Œp‘±E‘Å‚¿Ø‚è‘I‘ğw¦—v‹
+//ç¶™ç¶šãƒ»æ‰“ã¡åˆ‡ã‚Šé¸æŠæŒ‡ç¤ºè¦æ±‚ 
       snd1byte(0xfe);
 
-//‘I‘ğw¦óM(0:Œp‘± B:‘Oƒy[ƒW ˆÈŠO:‘Å‚¿Ø‚è)
+//é¸æŠæŒ‡ç¤ºå—ä¿¡(0:ç¶™ç¶š B:å‰ãƒšãƒ¼ã‚¸ ä»¥å¤–:æ‰“ã¡åˆ‡ã‚Š)
       br_chk = rcv1byte();
-//‘Oƒy[ƒWˆ—
+//å‰ãƒšãƒ¼ã‚¸å‡¦ç† 
       if (br_chk==0x42){
-//æ“ªƒtƒ@ƒCƒ‹‚Ö
+//å…ˆé ­ãƒ•ã‚¡ã‚¤ãƒ«ã¸ 
         file->FindRrewind();
-//entry’lXV
+//entryå€¤æ›´æ–° 
         entry = file->FindNext();
-//‚à‚¤ˆê“xæ“ªƒtƒ@ƒCƒ‹‚Ö
+//ã‚‚ã†ä¸€åº¦å…ˆé ­ãƒ•ã‚¡ã‚¤ãƒ«ã¸ 
         file->FindRrewind();
         if(page <= 2){
-//Œ»İƒy[ƒW‚ª1ƒy[ƒW–”‚Í2ƒy[ƒW‚È‚ç1ƒy[ƒW–Ú‚É–ß‚éˆ—
+//ç¾åœ¨ãƒšãƒ¼ã‚¸ãŒ1ãƒšãƒ¼ã‚¸åˆã¯2ãƒšãƒ¼ã‚¸ãªã‚‰1ãƒšãƒ¼ã‚¸ç›®ã«æˆ»ã‚‹å‡¦ç† 
           page = 0;
         } else {
-//Œ»İƒy[ƒW‚ª3ƒy[ƒWˆÈ~‚È‚ç‘OXƒy[ƒW‚Ü‚Å‚Ìƒtƒ@ƒCƒ‹‚ğ“Ç‚İ”ò‚Î‚·
+//ç¾åœ¨ãƒšãƒ¼ã‚¸ãŒ3ãƒšãƒ¼ã‚¸ä»¥é™ãªã‚‰å‰ã€…ãƒšãƒ¼ã‚¸ã¾ã§ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿é£›ã°ã™ 
           page = page -2;
           cntl2=0;
           while(cntl2 < page*20){
@@ -403,24 +412,24 @@ void MZ80K_SD::dirlist(void){
       page++;
       cntl2 = 0;
     }
-//ƒtƒ@ƒCƒ‹‚ª‚Ü‚¾‚ ‚é‚È‚çŸ“Ç‚İ‚İA‚È‚¯‚ê‚Î‘Å‚¿Ø‚èw¦
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒã¾ã ã‚ã‚‹ãªã‚‰æ¬¡èª­ã¿è¾¼ã¿ã€ãªã‘ã‚Œã°æ‰“ã¡åˆ‡ã‚ŠæŒ‡ç¤º 
     if (entry){
       entry =  file->FindNext();
     }else{
       br_chk=1;
     }
-//FDL‚ÌŒ‹‰Ê‚ª20Œ–¢–‚È‚çŒp‘±w¦—v‹‚¹‚¸‚É‚»‚Ì‚Ü‚ÜI—¹
+//FDLã®çµæœãŒ20ä»¶æœªæº€ãªã‚‰ç¶™ç¶šæŒ‡ç¤ºè¦æ±‚ã›ãšã«ãã®ã¾ã¾çµ‚äº† 
     if (!entry && cntl2 < 20 && page ==1){
       break;
     }
   }
   file->FindClose();
-//ˆ—I—¹w¦
+//å‡¦ç†çµ‚äº†æŒ‡ç¤º 
   snd1byte(0xFF);
   snd1byte(0x00);
 }
 
-//f_name‚Æc_name‚ğc_name‚É0x00‚ªo‚é‚Ü‚Å”äŠr
+//f_nameã¨c_nameã‚’c_nameã«0x00ãŒå‡ºã‚‹ã¾ã§æ¯”è¼ƒ 
 //FILENAME COMPARE
 bool MZ80K_SD::f_match(char *f_name,char *c_name){
   bool flg1 = true;
@@ -453,32 +462,32 @@ bool MZ80K_SD::f_match(char *f_name,char *c_name){
 //FILE DELETE
 void MZ80K_SD::f_del(void){
 
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
 
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
 
-//ˆ—‘I‘ğ‚ğóM(0:Œp‘±‚µ‚ÄDELETE 0ˆÈŠO:CANSEL)
+//å‡¦ç†é¸æŠã‚’å—ä¿¡(0:ç¶™ç¶šã—ã¦DELETE 0ä»¥å¤–:CANSEL)
     if (rcv1byte() == 0x00){
       if (FILEIO::RemoveFile(create_local_path(f_name)) == true){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
       }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
         snd1byte(0xf1);
       }
     } else{
-//ó‘ÔƒR[ƒh‘—M(Cansel)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Cansel)
       snd1byte(0x01);
     }
   }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
         snd1byte(0xf1);
   }
 }
@@ -486,34 +495,34 @@ void MZ80K_SD::f_del(void){
 //FILE RENAME
 void MZ80K_SD::f_ren(void){
 
-//Œ»ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ç¾ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
 
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(f_name) == true){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
 
-//Vƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//æ–°ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
     for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
       new_name[lp1] = rcv1byte();
     }
     addmzt(new_name);
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
 
     if (FILEIO::RenameFile(f_name, new_name)){
- //ó‘ÔƒR[ƒh‘—M(OK)
+ //çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
      snd1byte(0x00);
     } else {
- //ó‘ÔƒR[ƒh‘—M(OK)
+ //çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
       snd1byte(0xff);
     }
   }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
       snd1byte(0xf1);
   }
 }
@@ -522,47 +531,47 @@ void MZ80K_SD::f_ren(void){
 void MZ80K_SD::f_dump(void){
 unsigned int br_chk =0;
 
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
 
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
 
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³
     FILEIO* file = new FILEIO();
     bool result = file->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
       if( true == result ){
-//Àƒf[ƒ^‘—M(1‰æ–Ê:128Byte)
+//å®Ÿãƒ‡ãƒ¼ã‚¿é€ä¿¡(1ç”»é¢:128Byte)
         unsigned int f_length = file->FileLength();
         long lp1 = 0;
         while (lp1 <= f_length-1){
-//‰æ–Êæ“ªADRS‚ğ‘—M
+//ç”»é¢å…ˆé ­ADRSã‚’é€ä¿¡ 
           snd1byte(lp1 % 256);
           snd1byte(lp1 / 256);
           int i=0;
-//Àƒf[ƒ^‚ğ‘—M
+//å®Ÿãƒ‡ãƒ¼ã‚¿ã‚’é€ä¿¡ 
           while(i<128 && lp1<=f_length-1){
             snd1byte(file->Fgetc());
             i++;
             lp1++;
           }
-//FILE END‚ª128Byte‚É–‚½‚È‚©‚Á‚½‚çc‚èByte‚É0x00‚ğ‘—M
+//FILE ENDãŒ128Byteã«æº€ãŸãªã‹ã£ãŸã‚‰æ®‹ã‚ŠByteã«0x00ã‚’é€ä¿¡ 
           while(i<128){
             snd1byte(0x00);
             i++;
           }
-//w¦‘Ò‚¿
+//æŒ‡ç¤ºå¾…ã¡ 
           br_chk=rcv1byte();
-//BREAK‚È‚çƒ|ƒCƒ“ƒ^‚ğFILE END‚Æ‚·‚é
+//BREAKãªã‚‰ãƒã‚¤ãƒ³ã‚¿ã‚’FILE ENDã¨ã™ã‚‹ 
           if (br_chk==0xff){
             lp1 = f_length; 
           }
-//B:BACK‚ğóM‚µ‚½‚çƒ|ƒCƒ“ƒ^‚ğ256Byte–ß‚·Bæ“ª‰æ–Ê‚È‚ç0‚É–ß‚µ‚Ä‚à‚¤ˆê“xæ“ª‰æ–Ê•\¦
+//B:BACKã‚’å—ä¿¡ã—ãŸã‚‰ãƒã‚¤ãƒ³ã‚¿ã‚’256Byteæˆ»ã™ã€‚å…ˆé ­ç”»é¢ãªã‚‰0ã«æˆ»ã—ã¦ã‚‚ã†ä¸€åº¦å…ˆé ­ç”»é¢è¡¨ç¤º 
           if (br_chk==0x42){
             if(lp1>255){
               if (lp1 % 128 == 0){
@@ -577,20 +586,20 @@ unsigned int br_chk =0;
             }
           }
         }
-//FILE END‚à‚µ‚­‚ÍBREAK‚È‚çADRS‚ÉI—¹ƒR[ƒh0FFFFH‚ğ‘—M
+//FILE ENDã‚‚ã—ãã¯BREAKãªã‚‰ADRSã«çµ‚äº†ã‚³ãƒ¼ãƒ‰0FFFFHã‚’é€ä¿¡ 
         if (lp1 > f_length-1){
           snd1byte(0xff);
           snd1byte(0xff);
         };
         file->Fclose();
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
       } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xF1);
     }
   }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
         snd1byte(0xf1);
   }
 }
@@ -598,32 +607,32 @@ unsigned int br_chk =0;
 //FILE COPY
 void MZ80K_SD::f_copy(void){
 
-//Œ»ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ç¾ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     f_name[lp1] = rcv1byte();
   }
   addmzt(f_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
 
-//Vƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//æ–°ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
     for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
       new_name[lp1] = rcv1byte();
     }
     addmzt(new_name);
-//Vƒtƒ@ƒCƒ‹ƒl[ƒ€‚Æ“¯‚¶ƒtƒ@ƒCƒ‹ƒl[ƒ€‚ª‘¶İ‚·‚ê‚ÎERROR
+//æ–°ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ã¨åŒã˜ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ãŒå­˜åœ¨ã™ã‚Œã°ERROR
     if (FILEIO::IsFileExisting(create_local_path(new_name)) == false){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     FILEIO* file_r = new FILEIO();
     FILEIO* file_w = new FILEIO();
     bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
     file_w->Fopen( new_name, FILEIO_WRITE_BINARY );
       if( true == result_r ){
-//Àƒf[ƒ^ƒRƒs[
+//å®Ÿãƒ‡ãƒ¼ã‚¿ã‚³ãƒ”ãƒ¼ 
         unsigned int f_length = file_r->FileLength();
         long lp1 = 0;
         while (lp1 <= f_length-1){
@@ -637,79 +646,79 @@ void MZ80K_SD::f_copy(void){
         }
         file_w->Fclose();
         file_r->Fclose();
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
       }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
       snd1byte(0xf1);
     }
       }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
         snd1byte(0xf3);
     }
   }else{
-//ó‘ÔƒR[ƒh‘—M(Error)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(Error)
       snd1byte(0xf1);
   }
 }
 
-//91h‚Å0436H MONITOR ƒ‰ƒCƒg ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“‘ã‘Öˆ—
+//91hã§0436H MONITOR ãƒ©ã‚¤ãƒˆ ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä»£æ›¿å‡¦ç† 
 void MZ80K_SD::mon_whead(void){
 char m_info[130];
-//ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“ƒuƒƒbƒNóM
+//ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ–ãƒ­ãƒƒã‚¯å—ä¿¡ 
   for (unsigned int lp1 = 0;lp1 < 128;lp1++){
     m_info[lp1] = rcv1byte();
   }
-//S-OS SWORD‚©‚ç‚ÍÅŒã‚ª20h‚Ìƒtƒ@ƒCƒ‹ƒl[ƒ€‚ª‘—‚ç‚ê‚Ä—ˆ‚é‚½‚ß0dh‚ğ•t‰Á
-//8080—pƒeƒLƒXƒgEƒGƒfƒBƒ^•ƒAƒZƒ“ƒuƒ‰‚©‚çƒtƒ@ƒCƒ‹ƒl[ƒ€‚ÌŒã‚ë‚É20h‚ª‘—‚ç‚ê‚Ä—ˆ‚é‚½‚ß0dh‚ÉC³
-//MZ-80K‘¤‚Å‘Îˆ
+//S-OS SWORDã‹ã‚‰ã¯æœ€å¾ŒãŒ20hã®ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ãŒé€ã‚‰ã‚Œã¦æ¥ã‚‹ãŸã‚0dhã‚’ä»˜åŠ  
+//8080ç”¨ãƒ†ã‚­ã‚¹ãƒˆãƒ»ã‚¨ãƒ‡ã‚£ã‚¿ï¼†ã‚¢ã‚»ãƒ³ãƒ–ãƒ©ã‹ã‚‰ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ã®å¾Œã‚ã«20hãŒé€ã‚‰ã‚Œã¦æ¥ã‚‹ãŸã‚0dhã«ä¿®æ­£ 
+//MZ-80Kå´ã§å¯¾å‡¦ 
 //  int lp2 = 17;
 //  while (lp2>0 && (m_info[lp2] ==0x20 || m_info[lp2] ==0x0d)){
 //    m_info[lp2]=0x0d;
 //    lp2--;
 //  }
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ‚èo‚µ
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–ã‚Šå‡ºã— 
   for (unsigned int lp1 = 0;lp1 < 17;lp1++){
     m_name[lp1] = m_info[lp1+1];
   }
-//DOSƒtƒ@ƒCƒ‹ƒl[ƒ€—p‚É.MZT‚ğ•t‰Á
+//DOSãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ç”¨ã«.MZTã‚’ä»˜åŠ  
   addmzt(m_name);
   m_info[16] = 0x0d;
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚·‚ê‚Îdelete
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã™ã‚Œã°delete
   if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
       FILEIO::RemoveFile(create_local_path(m_name));
   }
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
   FILEIO* file = new FILEIO();
   bool result = file->Fopen( create_local_path(m_name), FILEIO_WRITE_BINARY );
   if( true == result ){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
-//ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“ƒuƒƒbƒNwrite
+//ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ–ãƒ­ãƒƒã‚¯write
     for (unsigned int lp1 = 0;lp1 < 128;lp1++){
       file->Fputc(m_info[lp1]);
     }
     file->Fclose();
   } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
     snd1byte(0xF1);
   }
 }
 
-//92h‚Å0475H MONITOR ƒ‰ƒCƒg ƒf[ƒ^‘ã‘Öˆ—
+//92hã§0475H MONITOR ãƒ©ã‚¤ãƒˆ ãƒ‡ãƒ¼ã‚¿ä»£æ›¿å‡¦ç† 
 void MZ80K_SD::mon_wdata(void){
-//ƒtƒ@ƒCƒ‹ƒTƒCƒYæ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºå–å¾— 
   int f_length1 = rcv1byte();
   int f_length2 = rcv1byte();
-//ƒtƒ@ƒCƒ‹ƒTƒCƒYZo
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºç®—å‡º 
   unsigned int f_length = f_length1+f_length2*256;
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
   FILEIO* file = new FILEIO();
   bool result = file->Fopen( create_local_path(m_name), FILEIO_WRITE_BINARY );
   if( true == result ){
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
     snd1byte(0x00);
-//Àƒf[ƒ^
+//å®Ÿãƒ‡ãƒ¼ã‚¿
     long lp1 = 0;
     while (lp1 <= f_length-1){
       int i=0;
@@ -722,24 +731,24 @@ void MZ80K_SD::mon_wdata(void){
     }
     file->Fclose();
   } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
     snd1byte(0xF1);
   }
 }
 
-//04D8H MONITOR ƒŠ[ƒh ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“‘ã‘Öˆ—
+//04D8H MONITOR ãƒªãƒ¼ãƒ‰ ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä»£æ›¿å‡¦ç† 
 void MZ80K_SD::mon_lhead(void){
-//ƒŠ[ƒh ƒf[ƒ^ POINTƒNƒŠƒA
+//ãƒªãƒ¼ãƒ‰ ãƒ‡ãƒ¼ã‚¿ POINTã‚¯ãƒªã‚¢ 
   m_lop=128;
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     m_name[lp1] = rcv1byte();
   }
   addmzt(m_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
     snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³
     FILEIO* file = new FILEIO();
     bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
     if( true == result ){
@@ -751,28 +760,28 @@ void MZ80K_SD::mon_lhead(void){
       file->Fclose();
       snd1byte(0x00);
     } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xFF);
     }  
   } else {
-//ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
     snd1byte(0xF1);
   }
 }
 
-//04F8H MONITOR ƒŠ[ƒh ƒf[ƒ^‘ã‘Öˆ—
+//04F8H MONITOR ãƒªãƒ¼ãƒ‰ ãƒ‡ãƒ¼ã‚¿ä»£æ›¿å‡¦ç† 
 void MZ80K_SD::mon_ldata(void){
   addmzt(m_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
     snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     FILEIO* file = new FILEIO();
     bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
     if( true == result ){
       snd1byte(0x00);
       file->Fseek(m_lop, FILEIO_SEEK_SET);
-//“Ç‚İo‚µƒTƒCƒYæ“¾
+//èª­ã¿å‡ºã—ã‚µã‚¤ã‚ºå–å¾— 
       int f_length2 = rcv1byte();
       int f_length1 = rcv1byte();
       unsigned int f_length = f_length1*256+f_length2;
@@ -784,32 +793,32 @@ void MZ80K_SD::mon_ldata(void){
       m_lop=m_lop+f_length;
       snd1byte(0x00);
     } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xFF);
     }  
   } else {
-//ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
     snd1byte(0xF1);
   }
 }
 
-//BOOTˆ—(MZ-2000_SDê—p)
+//BOOTå‡¦ç†(MZ-2000_SDå°‚ç”¨)
 void MZ80K_SD::boot(void){
-//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾—
   for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
     m_name[lp1] = rcv1byte();
   }
 ////  Serial.print("m_name:");
 ////  Serial.println(m_name);
-//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
+//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
     snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     FILEIO* file = new FILEIO();
     bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
     if( true == result ){
     snd1byte(0x00);
-//ƒtƒ@ƒCƒ‹ƒTƒCƒY‘—M
+//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºé€ä¿¡ 
       unsigned long f_length = file->FileLength();
       unsigned int f_len1 = f_length / 256;
       unsigned int f_len2 = f_length % 256;
@@ -819,24 +828,24 @@ void MZ80K_SD::boot(void){
 ////  Serial.println(f_len2,HEX);
 ////  Serial.println(f_len1,HEX);
 
-//Àƒf[ƒ^‘—M
+//å®Ÿãƒ‡ãƒ¼ã‚¿é€ä¿¡ 
       for (unsigned long lp1 = 1;lp1 <= f_length;lp1++){
          byte i_data = file->Fgetc();
          snd1byte(i_data);
       }
 
     } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xFF);
     }  
   } else {
-//ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
     snd1byte(0xF1);
   }
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
-// 0xE0, ƒtƒ@ƒCƒ‹ƒl[ƒ€(33bytes)
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
+// 0xE0, ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ (33bytes)
 // Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ERROR
 void MZ80K_SD::ConcatFileOpen()
 {
@@ -844,44 +853,44 @@ void MZ80K_SD::ConcatFileOpen()
   {
     concatFile->Fclose();
   }
-  // ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
+  // ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾— 
   for (unsigned int lp1 = 0; lp1 <= 32; lp1 ++) {
     concatName[lp1] = rcv1byte();
   }
   addmzt(concatName);
-  // ƒtƒ@ƒCƒ‹‚ª‘¶İ‚·‚é‚©A‚µ‚È‚¯‚ê‚ÎERROR
+  // ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã™ã‚‹ã‹ã€ã—ãªã‘ã‚Œã°ERROR
   if (FILEIO::IsFileExisting(create_local_path(concatName)) == true) {
-    //ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+    //ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
     bool result = concatFile->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
     if ( true == result ) {
       concatSize = concatFile->FileLength();
-      //ó‘ÔƒR[ƒh‘—M(OK)
+      //çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
       snd1byte(0x00);
-      isConcatState = 1; // ƒI[ƒvƒ“‚µ‚Ä‚¢‚é
+      isConcatState = 1; // ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ã‚‹ 
       concatPos = 0;
     } else {
-      //ó‘ÔƒR[ƒh‘—M(ERROR)
+      //çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
       snd1byte(0xFF);
     }
   } else {
-    // ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
+    // çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
     snd1byte(0xF1);
   }
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹‚ğ1ƒuƒƒbƒN“Ç‚İ‚Ş
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚’1ãƒ–ãƒ­ãƒƒã‚¯èª­ã¿è¾¼ã‚€ 
 // 0xE1
-// Result:    17bytes: MZƒtƒ@ƒCƒ‹–¼
-//            2bytes:  “Ç‚İ‚İƒAƒhƒŒƒX
-//            2bytes:  ƒf[ƒ^ƒTƒCƒY
-//            2bytes:  ÀsƒAƒhƒŒƒX
-// ƒf[ƒ^ƒTƒCƒYbytes:  ƒf[ƒ^
-//            1byte:   ƒXƒe[ƒ^ƒX: 0xFE:Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é, 0x00Ÿ‚Ìƒf[ƒ^‚ª–³‚¢(I—¹)
+// Result:    17bytes: MZãƒ•ã‚¡ã‚¤ãƒ«å 
+//            2bytes:  èª­ã¿è¾¼ã¿ã‚¢ãƒ‰ãƒ¬ã‚¹ 
+//            2bytes:  ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚º 
+//            2bytes:  å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹ 
+// ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚ºbytes:  ãƒ‡ãƒ¼ã‚¿ 
+//            1byte:   ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹: 0xFE:æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹, 0x00æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„(çµ‚äº†)
 void MZ80K_SD::ConcatFileRead()
 {
   if(isConcatState == 0)
   {
-    // ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+    // ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
     for (unsigned int i = 0; i < 17; i ++) {
       snd1byte(0);
     }
@@ -891,22 +900,22 @@ void MZ80K_SD::ConcatFileRead()
     }
     return;
   }
-  // ƒ‚[ƒh“Ç‚İÌ‚Ä
+  // ãƒ¢ãƒ¼ãƒ‰èª­ã¿æ¨ã¦ 
   int wk1 = concatFile->Fgetc();
-  // ƒtƒ@ƒCƒ‹–¼
+  // ãƒ•ã‚¡ã‚¤ãƒ«å 
   for (unsigned int lp1 = 0;lp1 <= 16; lp1 ++) {
     wk1 = concatFile->Fgetc();
     snd1byte(wk1);
   }
-  //ƒf[ƒ^ƒTƒCƒYæ“¾
+  //ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚ºå–å¾— 
   int f_length2 = concatFile->Fgetc();
   int f_length1 = concatFile->Fgetc();
   unsigned int f_length = f_length1*256+f_length2;
-  //ƒXƒ^[ƒgƒAƒhƒŒƒXæ“¾
+  //ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
   int s_adrs2 = concatFile->Fgetc();
   int s_adrs1 = concatFile->Fgetc();
   unsigned int s_adrs = s_adrs1*256+s_adrs2;
-  //ÀsƒAƒhƒŒƒXæ“¾
+  //å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾— 
   int g_adrs2 = concatFile->Fgetc();
   int g_adrs1 = concatFile->Fgetc();
   unsigned int g_adrs = g_adrs1*256+g_adrs2;
@@ -918,56 +927,56 @@ void MZ80K_SD::ConcatFileRead()
   snd1byte(g_adrs1);
   concatPos += 128;
   concatFile->Fseek(concatPos, FILEIO_SEEK_SET);
-  //ƒf[ƒ^‘—M
+  //ãƒ‡ãƒ¼ã‚¿é€ä¿¡ 
   for (unsigned int lp1 = 0;lp1 < f_length; lp1 ++) {
     byte i_data = concatFile->Fgetc();
     snd1byte(i_data);
     ++ concatPos;
   }
   if (concatPos < concatSize) {
-    // Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ 
     snd1byte(0xFE);
   } else {
-    // Ÿ‚Ìƒf[ƒ^‚ª–³‚¢
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„ 
     snd1byte(0x00);
   }
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹‚ğ1ƒuƒƒbƒNƒXƒLƒbƒv
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚’1ãƒ–ãƒ­ãƒƒã‚¯ã‚¹ã‚­ãƒƒãƒ— 
 // 0xE2
-// Result: 0xFE:Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é, 0x00:Ÿ‚Ìƒf[ƒ^‚ª–³‚¢(I—¹), 0xFF:ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+// Result: 0xFE:æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹, 0x00:æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„(çµ‚äº†), 0xFF:ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
 void MZ80K_SD::ConcatFileSkip()
 {
   if(isConcatState == 0)
   {
-    // ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+    // ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
     snd1byte(0xFF);
     return;
   }
-  // ƒ‚[ƒh“Ç‚İÌ‚Ä
+  // ãƒ¢ãƒ¼ãƒ‰èª­ã¿æ¨ã¦ 
   int wk1 = concatFile->Fgetc();
-  // ƒtƒ@ƒCƒ‹–¼
+  // ãƒ•ã‚¡ã‚¤ãƒ«å 
   for(unsigned int lp1 = 0;lp1 <= 16; lp1 ++) {
     wk1 = concatFile->Fgetc();
   }
-  //ƒf[ƒ^ƒTƒCƒYæ“¾
+  //ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚ºå–å¾— 
   int f_length2 = concatFile->Fgetc();
   int f_length1 = concatFile->Fgetc();
   unsigned int f_length = f_length1*256+f_length2;
   concatPos += (128 + f_length);
   concatFile->Fseek(concatPos, FILEIO_SEEK_SET);
   if (concatPos < concatSize) {
-    // Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ 
     snd1byte(0xFE);
   } else {
-    // Ÿ‚Ìƒf[ƒ^‚ª–³‚¢
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„ 
     snd1byte(0x00);
   }
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹‚©‚çƒuƒƒbƒN‚ğ’T‚·
-// 0xE3, MZƒtƒ@ƒCƒ‹ƒl[ƒ€(17bytes)
-// Result: 0x00:OK, 0xF1:FILE NOT FIND, 0xFF:ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰ãƒ–ãƒ­ãƒƒã‚¯ã‚’æ¢ã™ 
+// 0xE3, MZãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ (17bytes)
+// Result: 0x00:OK, 0xF1:FILE NOT FIND, 0xFF:ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
 void MZ80K_SD::ConcatFileFind()
 {
   if(isConcatState == 0) {
@@ -975,7 +984,7 @@ void MZ80K_SD::ConcatFileFind()
     return;
   }
   unsigned long concatPosBackup = concatPos;
-  // ƒtƒ@ƒCƒ‹–¼
+  // ãƒ•ã‚¡ã‚¤ãƒ«å 
   for (unsigned int lp1 = 0;lp1 < 17; lp1 ++) {
     f_name[lp1] = rcv1byte();
     if(f_name[lp1] == 0x0D) {
@@ -984,11 +993,11 @@ void MZ80K_SD::ConcatFileFind()
   }
   f_name[17] = 0;
   snd1byte(0x00);
-  // ŒŸõ‚·‚é
+  // æ¤œç´¢ã™ã‚‹ 
   while(1) {
-    // ƒ‚[ƒh“Ç‚İÌ‚Ä
+    // ãƒ¢ãƒ¼ãƒ‰èª­ã¿æ¨ã¦ 
     int wk1 = concatFile->Fgetc();
-    // ƒtƒ@ƒCƒ‹–¼
+    // ãƒ•ã‚¡ã‚¤ãƒ«å 
     for (unsigned int lp1 = 0;lp1 < 17; lp1 ++) {
       m_name[lp1] = concatFile->Fgetc();
       if(m_name[lp1] == 0x0D) {
@@ -996,19 +1005,19 @@ void MZ80K_SD::ConcatFileFind()
       }
     }
     m_name[17] = 0;
-    //ƒf[ƒ^ƒTƒCƒYæ“¾
+    //ãƒ‡ãƒ¼ã‚¿ã‚µã‚¤ã‚ºå–å¾— 
     int f_length2 = concatFile->Fgetc();
     int f_length1 = concatFile->Fgetc();
     unsigned int f_length = f_length1*256+f_length2;
     if(std::string(f_name).compare(m_name) == 0) {
-      // Œ©‚Â‚¯‚½
+      // è¦‹ã¤ã‘ãŸ 
       concatFile->Fseek(concatPos, FILEIO_SEEK_SET);
       break;
     } else {
-      // Ÿ‚Ìƒtƒ@ƒCƒ‹
+      // æ¬¡ã®ãƒ•ã‚¡ã‚¤ãƒ« 
       concatPos += (128 + f_length);
       if (concatPos >= concatSize) {
-        // Œ©‚Â‚©‚ç‚È‚©‚Á‚½
+        // è¦‹ã¤ã‹ã‚‰ãªã‹ã£ãŸ 
         concatFile->Fseek(concatPosBackup, FILEIO_SEEK_SET);
         snd1byte(0xF1);
         return;
@@ -1019,9 +1028,9 @@ void MZ80K_SD::ConcatFileFind()
   snd1byte(0x00);
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹‚Ìƒgƒbƒv‚É–ß‚é
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒˆãƒƒãƒ—ã«æˆ»ã‚‹ 
 // 0xE4
-// Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+// Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
 void MZ80K_SD::ConcatFileTop()
 {
   if(isConcatState == 0) {
@@ -1033,9 +1042,9 @@ void MZ80K_SD::ConcatFileTop()
   snd1byte(0x00);
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹ƒNƒ[ƒY
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚¯ãƒ­ãƒ¼ã‚º 
 // 0xE5
-// Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+// Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
 void MZ80K_SD::ConcatFileClose()
 {
   if(isConcatState == 0) {
@@ -1048,26 +1057,26 @@ void MZ80K_SD::ConcatFileClose()
   snd1byte(0x00);
 }
 
-// ˜AŒ‹ƒtƒ@ƒCƒ‹‚ÌŸ‚Ìƒf[ƒ^‚ª‚ ‚é‚©
+// é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã®æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ 
 // 0xE6
-// Result: 0xFE:Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é, 0x00:Ÿ‚Ìƒf[ƒ^‚ª–³‚¢(I—¹) 0xFF:ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+// Result: 0xFE:æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹, 0x00:æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„(çµ‚äº†) 0xFF:ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
 void MZ80K_SD::ConcatFileState(void)
 {
   if(isConcatState == 0) {
-    // ƒI[ƒvƒ“‚µ‚Ä‚¢‚È‚¢
+    // ã‚ªãƒ¼ãƒ—ãƒ³ã—ã¦ã„ãªã„ 
     snd1byte(0xFF);
   } else if (concatPos < concatSize) {
-    // Ÿ‚Ìƒf[ƒ^‚ª‚ ‚é
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ 
     snd1byte(0xFE);
   } else {
-    // Ÿ‚Ìƒf[ƒ^‚ª–³‚¢
+    // æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒç„¡ã„ 
     snd1byte(0x00);
   }
 }
 
-// MIDIƒRƒ}ƒ“ƒh‘—M
-// 0xE7, ‘—MƒoƒCƒg”, ‘—Mƒf[ƒ^
-// Result:  0x00:ƒGƒ‰[–³‚µ, 0xFF:ƒGƒ‰[
+// MIDIã‚³ãƒãƒ³ãƒ‰é€ä¿¡ 
+// 0xE7, é€ä¿¡ãƒã‚¤ãƒˆæ•°, é€ä¿¡ãƒ‡ãƒ¼ã‚¿ 
+// Result:  0x00:ã‚¨ãƒ©ãƒ¼ç„¡ã—, 0xFF:ã‚¨ãƒ©ãƒ¼ 
 void MZ80K_SD::SendMidi(void)
 {
   byte length = rcv1byte();
@@ -1090,167 +1099,167 @@ void MZ80K_SD::loop()
   digitalWrite(PB6PIN,LOW);
   digitalWrite(PB7PIN,LOW);
   digitalWrite(FLGPIN,LOW);
-//ƒRƒ}ƒ“ƒhæ“¾‘Ò‚¿
+//ã‚³ãƒãƒ³ãƒ‰å–å¾—å¾…ã¡ 
 ////  Serial.print("cmd:");
   byte cmd = rcv1byte();
 ////  Serial.println(cmd,HEX);
   if((cmd < 0xE0) && (isConcatState == 1))
   {
-    // ˜AŒ‹ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“’†‚É’Êíƒtƒ@ƒCƒ‹ƒRƒ}ƒ“ƒh‚ª—ˆ‚½‚Ì‚Å˜AŒ‹ƒtƒ@ƒCƒ‹‚ÍƒNƒ[ƒY‚·‚é
+    // é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ä¸­ã«é€šå¸¸ãƒ•ã‚¡ã‚¤ãƒ«ã‚³ãƒãƒ³ãƒ‰ãŒæ¥ãŸã®ã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã¯ã‚¯ãƒ­ãƒ¼ã‚ºã™ã‚‹ 
     concatFile->Fclose();
     isConcatState = 0;
   }
   if (eflg == false){
     switch(cmd) {
-//80h‚ÅSDƒJ[ƒh‚Ésave
+//80hã§SDã‚«ãƒ¼ãƒ‰ã«save
       case 0x80:
 ////  Serial.println("SAVE START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_save();
         break;
-//81h‚ÅSDƒJ[ƒh‚©‚çload
+//81hã§SDã‚«ãƒ¼ãƒ‰ã‹ã‚‰load
       case 0x81:
 ////  Serial.println("LOAD START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_load();
         break;
-//82h‚Åw’èƒtƒ@ƒCƒ‹‚ğ0000.mzt‚Æ‚µ‚ÄƒŠƒl[ƒ€ƒRƒs[
+//82hã§æŒ‡å®šãƒ•ã‚¡ã‚¤ãƒ«ã‚’0000.mztã¨ã—ã¦ãƒªãƒãƒ¼ãƒ ã‚³ãƒ”ãƒ¼ 
       case 0x82:
 ////  Serial.println("ASTART START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         astart();
         break;
-//83h‚Åƒtƒ@ƒCƒ‹ƒŠƒXƒgo—Í
+//83hã§ãƒ•ã‚¡ã‚¤ãƒ«ãƒªã‚¹ãƒˆå‡ºåŠ› 
       case 0x83:
 ////  Serial.println("FILE LIST START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         dirlist();
         break;
-//84h‚Åƒtƒ@ƒCƒ‹Delete
+//84hã§ãƒ•ã‚¡ã‚¤ãƒ«Delete
       case 0x84:
 ////  Serial.println("FILE Delete START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_del();
         break;
-//85h‚Åƒtƒ@ƒCƒ‹ƒŠƒl[ƒ€
+//85hã§ãƒ•ã‚¡ã‚¤ãƒ«ãƒªãƒãƒ¼ãƒ  
       case 0x85:
 ////  Serial.println("FILE Rename START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_ren();
         break;
       case 0x86:  
-//86h‚Åƒtƒ@ƒCƒ‹ƒ_ƒ“ƒv
+//86hã§ãƒ•ã‚¡ã‚¤ãƒ«ãƒ€ãƒ³ãƒ— 
 ////  Serial.println("FILE Dump START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_dump();
         break;
       case 0x87:  
-//87h‚Åƒtƒ@ƒCƒ‹ƒRƒs[
+//87hã§ãƒ•ã‚¡ã‚¤ãƒ«ã‚³ãƒ”ãƒ¼ 
 ////  Serial.println("FILE Copy START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         f_copy();
         break;
       case 0x91:
-//91h‚Å0436H MONITOR ƒ‰ƒCƒg ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“‘ã‘Öˆ—
+//91hã§0436H MONITOR ãƒ©ã‚¤ãƒˆ ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä»£æ›¿å‡¦ç† 
 ////  Serial.println("0436H START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         mon_whead();
         break;
-//92h‚Å0475H MONITOR ƒ‰ƒCƒg ƒf[ƒ^‘ã‘Öˆ—
+//92hã§0475H MONITOR ãƒ©ã‚¤ãƒˆ ãƒ‡ãƒ¼ã‚¿ä»£æ›¿å‡¦ç† 
       case 0x92:
 ////  Serial.println("0475H START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         mon_wdata();
         break;
-//93h‚Å04D8H MONITOR ƒŠ[ƒh ƒCƒ“ƒtƒHƒ[ƒVƒ‡ƒ“‘ã‘Öˆ—
+//93hã§04D8H MONITOR ãƒªãƒ¼ãƒ‰ ã‚¤ãƒ³ãƒ•ã‚©ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä»£æ›¿å‡¦ç† 
       case 0x93:
 ////  Serial.println("04D8H START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         mon_lhead();
         break;
-//94h‚Å04F8H MONITOR ƒŠ[ƒh ƒf[ƒ^‘ã‘Öˆ—
+//94hã§04F8H MONITOR ãƒªãƒ¼ãƒ‰ ãƒ‡ãƒ¼ã‚¿ä»£æ›¿å‡¦ç† 
       case 0x94:
 ////  Serial.println("04F8H START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         mon_ldata();
         break;
-//95h‚ÅBOOT LOAD(MZ-2000_SDê—p)
+//95hã§BOOT LOAD(MZ-2000_SDå°‚ç”¨)
       case 0x95:
 ////  Serial.println("BOOT LOAD START");
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         boot();
         break;
 
-//˜AŒ‹ƒtƒ@ƒCƒ‹ƒRƒ}ƒ“ƒh
-//0E0h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
+//é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚³ãƒãƒ³ãƒ‰ 
+//0E0hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³ 
       case 0xE0:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileOpen();
         break;
-//0E1h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹1ƒuƒƒbƒN“Ç‚İ‚İ
+//0E1hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«1ãƒ–ãƒ­ãƒƒã‚¯èª­ã¿è¾¼ã¿ 
       case 0xE1:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileRead();
         break;
-//0E2h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹‚ğ1ƒuƒƒbƒNƒXƒLƒbƒv
+//0E2hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚’1ãƒ–ãƒ­ãƒƒã‚¯ã‚¹ã‚­ãƒƒãƒ— 
       case 0xE2:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileSkip();
         break;
-//0E3h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹‚©‚çƒuƒƒbƒN‚ğ’T‚·
+//0E3hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰ãƒ–ãƒ­ãƒƒã‚¯ã‚’æ¢ã™ 
       case 0xE3:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileFind();
         break;
-//0E4h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹‚Ìƒgƒbƒv‚É–ß‚é
+//0E4hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒˆãƒƒãƒ—ã«æˆ»ã‚‹ 
       case 0xE4:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileTop();
         break;
-//0E5h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹ƒNƒ[ƒY
+//0E5hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã‚¯ãƒ­ãƒ¼ã‚º 
       case 0xE5:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileClose();
         break;
-//0E6h‚Å˜AŒ‹ƒtƒ@ƒCƒ‹‚ÌŸ‚Ìƒf[ƒ^‚ª‚ ‚é‚©
+//0E6hã§é€£çµãƒ•ã‚¡ã‚¤ãƒ«ã®æ¬¡ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹ 
       case 0xE6:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         ConcatFileState();
         break;
 
-//0E7h‚ÅMIDIƒRƒ}ƒ“ƒh‘—M
+//0E7hã§MIDIã‚³ãƒãƒ³ãƒ‰é€ä¿¡ 
       case 0xE7:
-//ó‘ÔƒR[ƒh‘—M(OK)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
         snd1byte(0x00);
         SendMidi();
         break;
 
       default:
-//ó‘ÔƒR[ƒh‘—M(CMD ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(CMD ERROR)
         snd1byte(0xF4);
     }
   } else {
-//ó‘ÔƒR[ƒh‘—M(ERROR)
+//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
     snd1byte(0xF0);
   }
 }
