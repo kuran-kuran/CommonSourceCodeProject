@@ -57,6 +57,7 @@ private:
 
 	// thread
 	HANDLE hMz80kSdThread;
+	bool initialized;
 
 	void setup();
 	byte rcv4bit(void);
@@ -93,12 +94,14 @@ public:
 	{
 		initialize_output_signals(&outputs);
 		set_device_name(_T("MZ80K_SD"));
+		initialized = false;
 	}
 	~MZ80K_SD() {}
 
 	// common functions
 	void initialize();
 	void release();
+	void reset();
 
 	// unique function
 	void digitalWrite(int pin, int data);
@@ -106,7 +109,6 @@ public:
 	void setFlg(bool flag);
 	bool getChk();
 	bool terminate;
-	bool finalize;
 }
 ;
 #endif

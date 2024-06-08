@@ -21,10 +21,17 @@ void MZ2000_SD::initialize()
 	address = 0;
 	read_write_flag = 0;
 	file_position = 0;
+	this->out_debug_log(_T("MZ2000_SD: initialize\n"));
 }
 
 void MZ2000_SD::release()
 {
+	this->out_debug_log(_T("MZ2000_SD: release\n"));
+}
+
+void MZ2000_SD::reset()
+{
+	this->out_debug_log(_T("MZ2000_SD: reset\n"));
 }
 
 void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
@@ -38,18 +45,22 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 		d_mz80ksd->digitalWrite(PA1PIN, (data >> 1) & 1);
 		d_mz80ksd->digitalWrite(PA2PIN, (data >> 2) & 1);
 		d_mz80ksd->digitalWrite(PA3PIN, (data >> 3) & 1);
+		this->out_debug_log(_T("Out A0h : %02X, send data (low 4bit)\n"), data);
 		break;
 	case 0xa2:
 		// b2 FLG handshake
 		d_mz80ksd->setFlg((data >> 2) & 1);
+		this->out_debug_log(_T("Out A2h : %02X, b2 FLG handshake\n"), data);
 		break;
 	case 0xa3:
 		// 8255 setting & set bit
 		if(data < 128)
 		{
-			write_data = data & 1;
-			write_bit = (data >> 1) & 7;
-			d_mz80ksd->digitalWrite(PA0PIN + write_bit, write_data);
+			// b2 FLG handshake
+			if(((data >> 1) & 7) == 2) {
+				d_mz80ksd->setFlg(data & 1);
+				this->out_debug_log(_T("Out A4h : %02X, b2 FLG handshake\n"), (data & 1) << 2);
+			}
 		}
 		break;
 	case 0xf8:
@@ -75,11 +86,16 @@ uint32_t MZ2000_SD::read_io8(uint32_t addr)
 		result |= (d_mz80ksd->digitalRead(PB5PIN) << 5);
 		result |= (d_mz80ksd->digitalRead(PB6PIN) << 6);
 		result |= (d_mz80ksd->digitalRead(PB7PIN) << 7);
+		{
+			int chr = (result >= 32 && result < 127) ? result : 32;
+			this->out_debug_log(_T("Out A1h : %02X, receive data (8bit) (%c)\n"), result, chr);
+		}
 		break;
 	case 0xa2:
 		// b7 CHK handshake
 		result = 0;
 		result |= d_mz80ksd->getChk() << 7;
+		this->out_debug_log(_T("Out A2h : %02X, b7 CHK handshake\n"), result);
 		break;
 	case 0xf9:
 		if(address >= 0x8000) {

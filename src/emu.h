@@ -15,7 +15,7 @@
 #define _EMU_H_
 
 // for debug
-//#define _DEBUG_LOG
+#define _DEBUG_LOG
 #ifdef _DEBUG_LOG
 	// output fdc debug log
 //	#define _FDC_DEBUG_LOG
