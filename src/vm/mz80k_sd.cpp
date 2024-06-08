@@ -15,7 +15,7 @@
 
 void MZ80K_SD::initialize()
 {
-	this->out_debug_log(_T("MZ80K_SD: initialize\n"));
+	this->force_out_debug_log(_T("MZ80K_SD: initialize\n"));
 }
 
 void MZ80K_SD::release()
@@ -27,17 +27,23 @@ void MZ80K_SD::release()
 	terminate = true;
 	WaitForSingleObject(hMz80kSdThread, INFINITE);
 	hMz80kSdThread = NULL;
+	if(concatFile != NULL)
+	{
+		delete concatFile;
+		concatFile = NULL;
+	}
 	initialized = false;
-	this->out_debug_log(_T("MZ80K_SD: release\n"));
+	this->force_out_debug_log(_T("MZ80K_SD: release\n"));
 }
 
 void MZ80K_SD::reset()
 {
-	this->out_debug_log(_T("MZ80K_SD: reset\n"));
+	this->force_out_debug_log(_T("MZ80K_SD: reset\n"));
 	release();
 	terminate = false;
 	setup();
 	hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
+	concatFile = new FILEIO();
 	initialized = true;
 }
 
@@ -51,8 +57,10 @@ void MZ80K_SD::digitalWrite(int pin, int data)
 
 int MZ80K_SD::digitalRead(int pin)
 {
+	Sleep(0);
 	if(terminate == true)
 	{
+		this->force_out_debug_log(_T("terminate == true\n"));
 		throw "terminate";
 	}
 	unsigned int bit = (gpio >> pin) & 1;
@@ -120,7 +128,7 @@ void MZ80K_SD::setup(){
 		eflg = false;
 	}
 ////	Serial.println("START");
-	this->out_debug_log(_T("setup: %02X\n"), eflg);
+	this->force_out_debug_log(_T("setup: %02X\n"), eflg);
 }
 
 //4BIT受信 
@@ -130,7 +138,7 @@ byte MZ80K_SD::rcv4bit(void){
 	}
 //受信 
 	byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2+digitalRead(PA2PIN)*4+digitalRead(PA3PIN)*8;
-	this->out_debug_log(_T("rcv4bit: %02X\n"), j_data);
+	this->force_out_debug_log(_T("rcv4bit: %02X\n"), j_data);
 //FLGをセット 
 	digitalWrite(FLGPIN,HIGH);
 //LOWになるまでループ 
@@ -146,7 +154,7 @@ byte MZ80K_SD::rcv1byte(void){
 	byte i_data = 0;
 	i_data=rcv4bit()*16;
 	i_data=i_data+rcv4bit();
-	this->out_debug_log(_T("rcv1byte: %02X\n"), i_data);
+	this->force_out_debug_log(_T("rcv1byte: %02X\n"), i_data);
 	return(i_data);
 }
 
@@ -162,7 +170,7 @@ void MZ80K_SD::snd1byte(byte i_data){
 	digitalWrite(PB6PIN,(i_data>>6)&0x01);
 	digitalWrite(PB7PIN,(i_data>>7)&0x01);
 	digitalWrite(FLGPIN,HIGH);
-	this->out_debug_log(_T("snd1byte: %02X\n"), i_data);
+	this->force_out_debug_log(_T("snd1byte: %02X\n"), i_data);
 //HIGHになるまでループ 
 	while(digitalRead(CHKPIN) != HIGH){
 	}
@@ -893,7 +901,7 @@ void MZ80K_SD::boot(void){
 // Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ERROR
 void MZ80K_SD::ConcatFileOpen()
 {
-	if(isConcatState == 1)
+	if(isConcatState == 1 && concatFile != NULL)
 	{
 		concatFile->Fclose();
 	}
@@ -905,7 +913,7 @@ void MZ80K_SD::ConcatFileOpen()
 	// ファイルが存在するか、しなければERROR
 	if (FILEIO::IsFileExisting(create_local_path(concatName)) == true) {
 		//ファイルオープン 
-		bool result = concatFile->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
+		bool result = concatFile->Fopen( create_local_path(concatName), FILEIO_READ_BINARY );
 		if ( true == result ) {
 			concatSize = concatFile->FileLength();
 			//状態コード送信(OK)
@@ -1148,8 +1156,8 @@ void MZ80K_SD::loop()
 	//コマンド取得待ち 
 	////	Serial.print("cmd:");
 		byte cmd = rcv1byte();
-		this->out_debug_log(_T("cmd: %02X\n"), cmd);
-		this->out_debug_log(_T("eflg: %02X\n"), eflg);
+		this->force_out_debug_log(_T("cmd: %02X\n"), cmd);
+		this->force_out_debug_log(_T("eflg: %02X\n"), eflg);
 
 	////	Serial.println(cmd,HEX);
 		if((cmd < 0xE0) && (isConcatState == 1))
@@ -1184,7 +1192,7 @@ void MZ80K_SD::loop()
 	//83hでファイルリスト出力 
 				case 0x83:
 	////	Serial.println("FILE LIST START");
-			this->out_debug_log(_T("FILE LIST START\n"));
+			this->force_out_debug_log(_T("FILE LIST START\n"));
 	//状態コード送信(OK)
 					snd1byte(0x00);
 					dirlist();
@@ -1330,10 +1338,10 @@ unsigned __stdcall MZ80K_SD::loop_thread(void* param)
 	}
 	catch(...)
 	{
-		mz80k_sd->out_debug_log(_T("error loop_thread\n"));
+		mz80k_sd->force_out_debug_log(_T("error loop_thread\n"));
 	}
-	mz80k_sd->out_debug_log(_T("finalize loop_thread\n"));
+	mz80k_sd->force_out_debug_log(_T("finalize loop_thread\n"));
 	_endthreadex(0);
-	mz80k_sd->out_debug_log(_T("end loop_thread\n"));
+	mz80k_sd->force_out_debug_log(_T("end loop_thread\n"));
 	return 0;
 }

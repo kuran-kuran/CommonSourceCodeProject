@@ -48,7 +48,7 @@ private:
 	char new_name[40];
 	// concat file
 	char concatName[40];
-	bool isConcatState = 0; // 0:not use, 1: opened
+	int isConcatState = 0; // 0:not use, 1: opened
 	FILEIO* concatFile = NULL;
 	unsigned long concatPos = 0;
 	unsigned long concatSize = 0;
