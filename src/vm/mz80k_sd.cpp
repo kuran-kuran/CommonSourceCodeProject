@@ -341,10 +341,11 @@ void MZ80K_SD::f_load(void){
 //状態コード送信(ERROR)
 //				snd1byte(0xF2);
 //			}	
-		 } else {
+		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xFF);
-		 }
+		}
+		delete file;
 	 } else {
 //状態コード送信(FILE NOT FIND ERROR)
 		snd1byte(0xF1);
@@ -371,27 +372,29 @@ char w_name[]="0000.mzt";
 		FILEIO* file_w = new FILEIO();
 		bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
 		file_w->Fopen( create_local_path(w_name), FILEIO_WRITE_BINARY );
-			if( true == result_r ){
+		if( true == result_r ){
 //実データ 
-				unsigned int f_length = file_r->FileLength();
-				long lp1 = 0;
-				while (lp1 <= (long)f_length-1){
-					int i=0;
-					while(i<=255 && lp1<=(long)f_length-1){
-						s_data[i]=file_r->Fgetc();
-						i++;
-						lp1++;
-					}
-					file_w->Fwrite(s_data,i,1);
+			unsigned int f_length = file_r->FileLength();
+			long lp1 = 0;
+			while (lp1 <= (long)f_length-1){
+				int i=0;
+				while(i<=255 && lp1<=(long)f_length-1){
+					s_data[i]=file_r->Fgetc();
+					i++;
+					lp1++;
 				}
-				file_w->Fclose();
-				file_r->Fclose();
+				file_w->Fwrite(s_data,i,1);
+			}
+			file_w->Fclose();
+			file_r->Fclose();
 //状態コード送信(OK)
-				snd1byte(0x00);
-			} else {
+			snd1byte(0x00);
+		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xF1);
 		}
+		delete file_r;
+		delete file_w;
 	} else {
 //状態コード送信(ERROR)
 		snd1byte(0xF1);
@@ -476,6 +479,7 @@ void MZ80K_SD::dirlist(void){
 		}
 	}
 	file->FindClose();
+	delete file;
 //処理終了指示 
 	snd1byte(0xFF);
 	snd1byte(0x00);
@@ -597,62 +601,63 @@ unsigned int br_chk =0;
 //ファイルオープン
 		FILEIO* file = new FILEIO();
 		bool result = file->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
-			if( true == result ){
+		if( true == result ){
 //実データ送信(1画面:128Byte)
-				unsigned int f_length = file->FileLength();
-				long lp1 = 0;
-				while (lp1 <= (long)f_length-1){
+			unsigned int f_length = file->FileLength();
+			long lp1 = 0;
+			while (lp1 <= (long)f_length-1){
 //画面先頭ADRSを送信 
-					snd1byte(lp1 % 256);
-					snd1byte((byte)(lp1 / 256));
-					int i=0;
+				snd1byte(lp1 % 256);
+				snd1byte((byte)(lp1 / 256));
+				int i=0;
 //実データを送信 
-					while(i<128 && lp1<=(long)f_length-1){
-						snd1byte(file->Fgetc());
-						i++;
-						lp1++;
-					}
+				while(i<128 && lp1<=(long)f_length-1){
+					snd1byte(file->Fgetc());
+					i++;
+					lp1++;
+				}
 //FILE ENDが128Byteに満たなかったら残りByteに0x00を送信 
-					while(i<128){
-						snd1byte(0x00);
-						i++;
-					}
+				while(i<128){
+					snd1byte(0x00);
+					i++;
+				}
 //指示待ち 
-					br_chk=rcv1byte();
+				br_chk=rcv1byte();
 //BREAKならポインタをFILE ENDとする 
-					if (br_chk==0xff){
-						lp1 = f_length; 
-					}
+				if (br_chk==0xff){
+					lp1 = f_length; 
+				}
 //B:BACKを受信したらポインタを256Byte戻す。先頭画面なら0に戻してもう一度先頭画面表示 
-					if (br_chk==0x42){
-						if(lp1>255){
-							if (lp1 % 128 == 0){
-								lp1 = lp1 - 256;
-							} else {
-								lp1 = lp1 - 128 - (lp1 % 128);
-							}
-							file->Fseek(lp1, FILEIO_SEEK_SET);
-						} else{
-							lp1 = 0;
-							file->Fseek(0, FILEIO_SEEK_SET);
+				if (br_chk==0x42){
+					if(lp1>255){
+						if (lp1 % 128 == 0){
+							lp1 = lp1 - 256;
+						} else {
+							lp1 = lp1 - 128 - (lp1 % 128);
 						}
+						file->Fseek(lp1, FILEIO_SEEK_SET);
+					} else{
+						lp1 = 0;
+						file->Fseek(0, FILEIO_SEEK_SET);
 					}
 				}
+			}
 //FILE ENDもしくはBREAKならADRSに終了コード0FFFFHを送信 
-				if (lp1 > (long)f_length-1){
-					snd1byte(0xff);
-					snd1byte(0xff);
-				};
-				file->Fclose();
+			if (lp1 > (long)f_length-1){
+				snd1byte(0xff);
+				snd1byte(0xff);
+			};
+			file->Fclose();
 //状態コード送信(OK)
-				snd1byte(0x00);
-			} else {
+			snd1byte(0x00);
+		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xF1);
 		}
+		delete file;
 	}else{
 //状態コード送信(Error)
-				snd1byte(0xf1);
+		snd1byte(0xf1);
 	}
 }
 
@@ -677,12 +682,12 @@ void MZ80K_SD::f_copy(void){
 //新ファイルネームと同じファイルネームが存在すればERROR
 		if (FILEIO::IsFileExisting(create_local_path(new_name)) == false){
 //状態コード送信(OK)
-				snd1byte(0x00);
+			snd1byte(0x00);
 //ファイルオープン 
-		FILEIO* file_r = new FILEIO();
-		FILEIO* file_w = new FILEIO();
-		bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
-		file_w->Fopen( new_name, FILEIO_WRITE_BINARY );
+			FILEIO* file_r = new FILEIO();
+			FILEIO* file_w = new FILEIO();
+			bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
+			file_w->Fopen( new_name, FILEIO_WRITE_BINARY );
 			if( true == result_r ){
 //実データコピー 
 				unsigned int f_length = file_r->FileLength();
@@ -702,11 +707,13 @@ void MZ80K_SD::f_copy(void){
 				snd1byte(0x00);
 			}else{
 //状態コード送信(Error)
-			snd1byte(0xf1);
-		}
-			}else{
+				snd1byte(0xf1);
+			}
+			delete file_r;
+			delete file_w;
+		}else{
 //状態コード送信(Error)
-				snd1byte(0xf3);
+			snd1byte(0xf3);
 		}
 	}else{
 //状態コード送信(Error)
@@ -755,6 +762,7 @@ char m_info[130];
 //状態コード送信(ERROR)
 		snd1byte(0xF1);
 	}
+	delete file;
 }
 
 //92hで0475H MONITOR ライト データ代替処理 
@@ -786,6 +794,7 @@ void MZ80K_SD::mon_wdata(void){
 //状態コード送信(ERROR)
 		snd1byte(0xF1);
 	}
+	delete file;
 }
 
 //04D8H MONITOR リード インフォメーション代替処理 
@@ -814,7 +823,8 @@ void MZ80K_SD::mon_lhead(void){
 		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xFF);
-		}	
+		}
+		delete file;
 	} else {
 //状態コード送信(FILE NOT FIND ERROR)
 		snd1byte(0xF1);
@@ -847,7 +857,8 @@ void MZ80K_SD::mon_ldata(void){
 		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xFF);
-		}	
+		}
+		delete file;
 	} else {
 //状態コード送信(FILE NOT FIND ERROR)
 		snd1byte(0xF1);
@@ -889,7 +900,8 @@ void MZ80K_SD::boot(void){
 		} else {
 //状態コード送信(ERROR)
 			snd1byte(0xFF);
-		}	
+		}
+		delete file;
 	} else {
 //状態コード送信(FILE NOT FIND ERROR)
 		snd1byte(0xF1);
@@ -901,7 +913,7 @@ void MZ80K_SD::boot(void){
 // Result: 0x00:OK, 0xF1:FILE NOT FIND ERROR, 0xFF:ERROR
 void MZ80K_SD::ConcatFileOpen()
 {
-	if(isConcatState == 1 && concatFile != NULL)
+	if(isConcatState == 1)
 	{
 		concatFile->Fclose();
 	}
@@ -1104,6 +1116,7 @@ void MZ80K_SD::ConcatFileClose()
 		return;
 	} else if(isConcatState == 1) {
 		concatFile->Fclose();
+		concatFile = NULL;
 	}
 	isConcatState = 0;
 	snd1byte(0x00);
