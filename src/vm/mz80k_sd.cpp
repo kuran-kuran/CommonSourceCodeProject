@@ -211,7 +211,7 @@ void MZ80K_SD::addmzt(char *f_name){
 
 //SDカードにSAVE 
 void MZ80K_SD::f_save(void){
-char p_name[20];
+	char p_name[20];
 
 //保存ファイルネーム取得 
 	for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
@@ -283,10 +283,11 @@ char p_name[20];
 			file->Fwrite(s_data, i, 1);
 		}
 		file->Fclose();
-	 } else {
+	} else {
 //状態コード送信(ERROR)
 		snd1byte(0xF1);
 	}
+	delete file;
 }
 
 //SDカードから読込 
@@ -354,7 +355,7 @@ void MZ80K_SD::f_load(void){
 
 //ASTART 指定されたファイルをファイル名「0000.mzt」としてコピー 
 void MZ80K_SD::astart(void){
-char w_name[]="0000.mzt";
+	char w_name[]="0000.mzt";
 
 //ファイルネーム取得 
 	for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
@@ -585,7 +586,7 @@ void MZ80K_SD::f_ren(void){
 
 //FILE DUMP
 void MZ80K_SD::f_dump(void){
-unsigned int br_chk =0;
+	unsigned int br_chk =0;
 
 //ファイルネーム取得 
 	for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
@@ -723,7 +724,7 @@ void MZ80K_SD::f_copy(void){
 
 //91hで0436H MONITOR ライト インフォメーション代替処理 
 void MZ80K_SD::mon_whead(void){
-char m_info[130];
+	char m_info[130];
 //インフォメーションブロック受信 
 	for (unsigned int lp1 = 0;lp1 < 128;lp1++){
 		m_info[lp1] = rcv1byte();
@@ -774,10 +775,12 @@ void MZ80K_SD::mon_wdata(void){
 	unsigned int f_length = f_length1+f_length2*256;
 //ファイルオープン 
 	FILEIO* file = new FILEIO();
-	bool result = file->Fopen( create_local_path(m_name), FILEIO_WRITE_BINARY );
+	bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_WRITE_BINARY );
 	if( true == result ){
 //状態コード送信(OK)
 		snd1byte(0x00);
+//ヘッダを飛ばす
+ 		file->Fseek(128, FILEIO_SEEK_SET);
 //実データ
 		long lp1 = 0;
 		while (lp1 <= (long)f_length-1){
