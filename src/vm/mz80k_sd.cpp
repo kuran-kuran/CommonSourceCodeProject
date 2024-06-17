@@ -11,11 +11,19 @@
 */
 
 #include <string>
+#include <vector>
 #include "mz80k_sd.h"
 
 void MZ80K_SD::initialize()
 {
-	this->force_out_debug_log(_T("MZ80K_SD: initialize\n"));
+	terminate = false;
+	initialized = false;
+	long m_lop = 128;
+	isConcatState = 0; // 0:not use, 1: opened
+	concatFile = NULL;
+	concatPos = 0;
+	concatSize = 0;
+//	this->Report(_T("MZ80K_SD: initialize\n"));
 }
 
 void MZ80K_SD::release()
@@ -26,6 +34,10 @@ void MZ80K_SD::release()
 	}
 	terminate = true;
 	WaitForSingleObject(hMz80kSdThread, INFINITE);
+	for(int i = 0; i < GPIO_CNT; ++ i)
+	{
+		DeleteCriticalSection(&cs[i]);
+	}
 	hMz80kSdThread = NULL;
 	if(concatFile != NULL)
 	{
@@ -33,48 +45,57 @@ void MZ80K_SD::release()
 		concatFile = NULL;
 	}
 	initialized = false;
-	this->force_out_debug_log(_T("MZ80K_SD: release\n"));
+//	this->Report(_T("MZ80K_SD: release\n"));
 }
 
 void MZ80K_SD::reset()
 {
-	this->force_out_debug_log(_T("MZ80K_SD: reset\n"));
+//	this->Report(_T("MZ80K_SD: reset\n"));
 	release();
 	terminate = false;
+	for(int i = 0; i < GPIO_CNT; ++ i)
+	{
+		InitializeCriticalSection(&cs[i]);
+	}
+	signalEmuToThread = CreateEventA(NULL, FALSE, FALSE, NULL); // emu -> thread
+	ResetEvent(signalEmuToThread);
+	signalThreadToEmu = CreateEventA(NULL, FALSE, FALSE, NULL); // thread -> emu
+	ResetEvent(signalThreadToEmu);
 	setup();
 	hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
 	concatFile = new FILEIO();
 	initialized = true;
 }
 
-void MZ80K_SD::digitalWrite(int pin, int data)
+void MZ80K_SD::digitalWrite(int pin, int data, int from)
 {
-	unsigned int mask = ~(1 << pin);
-	unsigned int bit = (data & 1) << pin;
-	gpio &= mask;
-	gpio |= bit;
+	EnterCriticalSection(&cs[pin]);
+	gpio[pin] = data & 1;
+	LeaveCriticalSection(&cs[pin]);
 }
 
-int MZ80K_SD::digitalRead(int pin)
+int MZ80K_SD::digitalRead(int pin, int from)
 {
-	Sleep(0);
 	if(terminate == true)
 	{
-		this->force_out_debug_log(_T("terminate == true\n"));
 		throw "terminate";
 	}
-	unsigned int bit = (gpio >> pin) & 1;
-	return bit;
+	EnterCriticalSection(&cs[pin]);
+	int data = gpio[pin];
+	LeaveCriticalSection(&cs[pin]);
+	return data;
 }
 
 void MZ80K_SD::setFlg(bool flag)
 {
-	digitalWrite(CHKPIN, flag);
+	digitalWrite(CHKPIN, flag, 1);
+	SetEvent(signalEmuToThread);
 }
 
 bool MZ80K_SD::getChk()
 {
-	bool chk = digitalRead(FLGPIN) == 1;
+//	WaitForSingleObject(signalThreadToEmu, INFINITE);
+	bool chk = digitalRead(FLGPIN, 1) == 1;
 	return chk;
 }
 
@@ -103,8 +124,12 @@ void MZ80K_SD::setup(){
 	pinMode( PA2PIN,INPUT_PULLUP); //受信データ 
 	pinMode( PA3PIN,INPUT_PULLUP); //受信データ 
 */
-	gpio = 0;
+	for(int i = 0; i < GPIO_CNT; ++ i)
+	{
+		digitalWrite(i, LOW);
+	}
 
+/*
 	digitalWrite(PB0PIN,LOW);
 	digitalWrite(PB1PIN,LOW);
 	digitalWrite(PB2PIN,LOW);
@@ -114,6 +139,7 @@ void MZ80K_SD::setup(){
 	digitalWrite(PB6PIN,LOW);
 	digitalWrite(PB7PIN,LOW);
 	digitalWrite(FLGPIN,LOW);
+*/
 
 // 2022. 2. 4 MZ-1200対策 
 //	Sleep(1500);
@@ -128,24 +154,28 @@ void MZ80K_SD::setup(){
 		eflg = false;
 	}
 ////	Serial.println("START");
-	this->force_out_debug_log(_T("setup: %02X\n"), eflg);
+//	this->Report(_T("setup: %02X\n"), eflg);
 }
 
 //4BIT受信 
 byte MZ80K_SD::rcv4bit(void){
 //HIGHになるまでループ 
-	while(digitalRead(CHKPIN) != HIGH){
-	}
+	WaitForSingleObject(signalEmuToThread, INFINITE);
+//	while(digitalRead(CHKPIN) != HIGH){
+//	}
 //受信 
 	byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2+digitalRead(PA2PIN)*4+digitalRead(PA3PIN)*8;
-	this->force_out_debug_log(_T("rcv4bit: %02X\n"), j_data);
+//	this->Report(_T("rcv4bit: %02X\n"), j_data);
 //FLGをセット 
 	digitalWrite(FLGPIN,HIGH);
+	SetEvent(signalThreadToEmu);
 //LOWになるまでループ 
-	while(digitalRead(CHKPIN) == HIGH){
-	}
+	WaitForSingleObject(signalEmuToThread, INFINITE);
+//	while(digitalRead(CHKPIN) == HIGH){
+//	}
 //FLGをリセット 
 	digitalWrite(FLGPIN,LOW);
+	SetEvent(signalThreadToEmu);
 	return(j_data);
 }
 
@@ -154,7 +184,7 @@ byte MZ80K_SD::rcv1byte(void){
 	byte i_data = 0;
 	i_data=rcv4bit()*16;
 	i_data=i_data+rcv4bit();
-	this->force_out_debug_log(_T("rcv1byte: %02X\n"), i_data);
+//	this->Report(_T("rcv1byte: %02X\n"), i_data);
 	return(i_data);
 }
 
@@ -170,14 +200,17 @@ void MZ80K_SD::snd1byte(byte i_data){
 	digitalWrite(PB6PIN,(i_data>>6)&0x01);
 	digitalWrite(PB7PIN,(i_data>>7)&0x01);
 	digitalWrite(FLGPIN,HIGH);
-	this->force_out_debug_log(_T("snd1byte: %02X\n"), i_data);
+	SetEvent(signalThreadToEmu);
+	WaitForSingleObject(signalEmuToThread, INFINITE);
 //HIGHになるまでループ 
-	while(digitalRead(CHKPIN) != HIGH){
-	}
+//	while(digitalRead(CHKPIN) != HIGH){
+//	}
 	digitalWrite(FLGPIN,LOW);
+	SetEvent(signalThreadToEmu);
 //LOWになるまでループ 
-	while(digitalRead(CHKPIN) == HIGH){
-	}
+	WaitForSingleObject(signalEmuToThread, INFINITE);
+//	while(digitalRead(CHKPIN) == HIGH){
+//	}
 }
 
 //小文字->大文字 
@@ -335,6 +368,7 @@ void MZ80K_SD::f_load(void){
 //データ送信 
 				for (unsigned int lp1 = 0;lp1 < f_length;lp1++){
 						byte i_data = file->Fgetc();
+//						this->Report(_T("send[%u]: %02X\n"), lp1, i_data);
 						snd1byte(i_data);
 				}
 				file->Fclose();
@@ -1172,8 +1206,8 @@ void MZ80K_SD::loop()
 	//コマンド取得待ち 
 	////	Serial.print("cmd:");
 		byte cmd = rcv1byte();
-		this->force_out_debug_log(_T("cmd: %02X\n"), cmd);
-		this->force_out_debug_log(_T("eflg: %02X\n"), eflg);
+//		this->Report(_T("cmd: %02X\n"), cmd);
+//		this->Report(_T("eflg: %02X\n"), eflg);
 
 	////	Serial.println(cmd,HEX);
 		if((cmd < 0xE0) && (isConcatState == 1))
@@ -1208,7 +1242,6 @@ void MZ80K_SD::loop()
 	//83hでファイルリスト出力 
 				case 0x83:
 	////	Serial.println("FILE LIST START");
-			this->force_out_debug_log(_T("FILE LIST START\n"));
 	//状態コード送信(OK)
 					snd1byte(0x00);
 					dirlist();
@@ -1354,10 +1387,48 @@ unsigned __stdcall MZ80K_SD::loop_thread(void* param)
 	}
 	catch(...)
 	{
-		mz80k_sd->force_out_debug_log(_T("error loop_thread\n"));
+//		mz80k_sd->Report(_T("error loop_thread\n"));
 	}
-	mz80k_sd->force_out_debug_log(_T("finalize loop_thread\n"));
+//	mz80k_sd->Report(_T("finalize loop_thread\n"));
 	_endthreadex(0);
-	mz80k_sd->force_out_debug_log(_T("end loop_thread\n"));
+//	mz80k_sd->Report(_T("end loop_thread\n"));
 	return 0;
 }
+
+/*
+void MZ80K_SD::Report(const char* text, ...)
+{
+//	FILE* file;
+//	fopen_s(&file, ".\\bin\\x64\\Debug\\log.txt", "rb+");
+//	if(file == NULL)
+//	{
+//		fopen_s(&file, ".\\bin\\x64\\Debug\\log.txt", "wb+");
+//	}
+//	if(file != NULL)
+//	{
+//		fseek(file, 0, SEEK_END);
+//	}
+
+	std::vector<char> output_text(128);
+	va_list arglist;
+	va_start(arglist, text);
+	va_list source = arglist;
+	for(;;)
+	{
+		arglist = source;
+		if(_vsnprintf_s(&output_text[0], output_text.size() - 1, _TRUNCATE, text, arglist) != -1)
+		{
+			break;
+		}
+		output_text.resize(output_text.size() * 2);
+	}
+//	output_text.push_back('\0');
+	OutputDebugString(&output_text[0]);
+	va_end(arglist);
+//	if(file != NULL)
+//	{
+//		fwrite(&output_text[0], strlen(&output_text[0]), 1, file);
+//		fclose(file);
+//	}
+}
+*/

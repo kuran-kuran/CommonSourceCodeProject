@@ -21,17 +21,16 @@ void MZ2000_SD::initialize()
 	address = 0;
 	read_write_flag = 0;
 	file_position = 0;
-	this->force_out_debug_log(_T("MZ2000_SD: initialize\n"));
+	initA0Port = false;
+	initA2Port = false;
 }
 
 void MZ2000_SD::release()
 {
-	this->force_out_debug_log(_T("MZ2000_SD: release\n"));
 }
 
 void MZ2000_SD::reset()
 {
-	this->force_out_debug_log(_T("MZ2000_SD: reset\n"));
 }
 
 void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
@@ -40,27 +39,35 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 	unsigned int write_bit = 0;
 	switch(addr & 0xff) {
 	case 0xa0:
+		if(initA0Port == false) {
+			initA0Port = true;
+			return;
+		}
 		// send data (low 4bit) 
 		d_mz80ksd->digitalWrite(PA0PIN, data & 1);
 		d_mz80ksd->digitalWrite(PA1PIN, (data >> 1) & 1);
 		d_mz80ksd->digitalWrite(PA2PIN, (data >> 2) & 1);
 		d_mz80ksd->digitalWrite(PA3PIN, (data >> 3) & 1);
-		this->force_out_debug_log(_T("Out A0h : %02X, send data (low 4bit)\n"), data);
 		break;
 	case 0xa2:
+		if(initA2Port == false) {
+			initA2Port = true;
+			return;
+		}
 		// b2 FLG handshake
 		d_mz80ksd->setFlg((data >> 2) & 1);
-		this->force_out_debug_log(_T("Out A2h : %02X, b2 FLG handshake\n"), data);
 		break;
 	case 0xa3:
-		// 8255 setting & set bit
-		if(data < 128)
-		{
-			// b2 FLG handshake
+		// 8255 setting or set bit
+		if(data < 128) {
+			// set bit. b2 FLG handshake
 			if(((data >> 1) & 7) == 2) {
 				d_mz80ksd->setFlg(data & 1);
-				this->force_out_debug_log(_T("Out A4h : %02X, b2 FLG handshake\n"), (data & 1) << 2);
 			}
+		} else {
+			// 8255 setting
+			initA0Port = false;
+			initA2Port = false;
 		}
 		break;
 	case 0xf8:
@@ -86,16 +93,11 @@ uint32_t MZ2000_SD::read_io8(uint32_t addr)
 		result |= (d_mz80ksd->digitalRead(PB5PIN) << 5);
 		result |= (d_mz80ksd->digitalRead(PB6PIN) << 6);
 		result |= (d_mz80ksd->digitalRead(PB7PIN) << 7);
-		{
-			int chr = (result >= 32 && result < 127) ? result : 32;
-			this->force_out_debug_log(_T("Out A1h : %02X, receive data (8bit) (%c)\n"), result, chr);
-		}
 		break;
 	case 0xa2:
 		// b7 CHK handshake
 		result = 0;
 		result |= d_mz80ksd->getChk() << 7;
-		this->force_out_debug_log(_T("Out A2h : %02X, b7 CHK handshake\n"), result);
 		break;
 	case 0xf9:
 		if(address >= 0x8000) {

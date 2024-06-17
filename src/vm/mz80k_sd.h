@@ -35,6 +35,7 @@ typedef unsigned char byte;
 #define PA1PIN          (17)
 #define PA2PIN          (18)
 #define PA3PIN          (19)
+#define GPIO_CNT        (20)
 
 class MZ80K_SD : public DEVICE
 {
@@ -52,12 +53,15 @@ private:
 	FILEIO* concatFile = NULL;
 	unsigned long concatPos = 0;
 	unsigned long concatSize = 0;
-	boolean eflg;
-	unsigned int gpio;
+	bool eflg;
+	unsigned char gpio[GPIO_CNT];
 
 	// thread
 	HANDLE hMz80kSdThread;
 	bool initialized;
+	CRITICAL_SECTION cs[GPIO_CNT];
+	HANDLE signalEmuToThread;
+	HANDLE signalThreadToEmu;
 
 	void setup();
 	byte rcv4bit(void);
@@ -104,10 +108,11 @@ public:
 	void reset();
 
 	// unique function
-	void digitalWrite(int pin, int data);
-	int digitalRead(int pin);
+	void digitalWrite(int pin, int data, int from = 0);
+	int digitalRead(int pin, int from = 0);
 	void setFlg(bool flag);
 	bool getChk();
+//	void Report(const char* text, ...);
 	bool terminate;
 }
 ;

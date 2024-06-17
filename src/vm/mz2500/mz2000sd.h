@@ -23,6 +23,8 @@ private:
 	uint8_t read_write_flag; // 0: not busy, 1: reading, 2: writeing
 	uint64_t file_position;
 	MZ80K_SD* d_mz80ksd;
+	bool initA0Port;
+	bool initA2Port;
 
 public:
 	MZ2000_SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
