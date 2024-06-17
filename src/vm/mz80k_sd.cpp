@@ -33,6 +33,8 @@ void MZ80K_SD::release()
 		return;
 	}
 	terminate = true;
+	SetEvent(signalEmuToThread);
+	SetEvent(signalThreadToEmu);
 	WaitForSingleObject(hMz80kSdThread, INFINITE);
 	for(int i = 0; i < GPIO_CNT; ++ i)
 	{
@@ -161,6 +163,9 @@ void MZ80K_SD::setup(){
 byte MZ80K_SD::rcv4bit(void){
 //HIGHになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	if(terminate == true) {
+		throw "terminate";
+	}
 //	while(digitalRead(CHKPIN) != HIGH){
 //	}
 //受信 
@@ -171,6 +176,9 @@ byte MZ80K_SD::rcv4bit(void){
 	SetEvent(signalThreadToEmu);
 //LOWになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	if(terminate == true) {
+		throw "terminate";
+	}
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 //FLGをリセット 
@@ -202,6 +210,9 @@ void MZ80K_SD::snd1byte(byte i_data){
 	digitalWrite(FLGPIN,HIGH);
 	SetEvent(signalThreadToEmu);
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	if(terminate == true) {
+		throw "terminate";
+	}
 //HIGHになるまでループ 
 //	while(digitalRead(CHKPIN) != HIGH){
 //	}
@@ -209,6 +220,9 @@ void MZ80K_SD::snd1byte(byte i_data){
 	SetEvent(signalThreadToEmu);
 //LOWになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	if(terminate == true) {
+		throw "terminate";
+	}
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 }

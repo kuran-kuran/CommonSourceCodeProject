@@ -114,6 +114,6 @@ public:
 	bool getChk();
 //	void Report(const char* text, ...);
 	bool terminate;
-}
-;
+};
+
 #endif
