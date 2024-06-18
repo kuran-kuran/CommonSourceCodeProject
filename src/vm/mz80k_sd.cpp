@@ -23,7 +23,6 @@ void MZ80K_SD::initialize()
 	concatFile = NULL;
 	concatPos = 0;
 	concatSize = 0;
-//	this->Report(_T("MZ80K_SD: initialize\n"));
 }
 
 void MZ80K_SD::release()
@@ -47,12 +46,10 @@ void MZ80K_SD::release()
 		concatFile = NULL;
 	}
 	initialized = false;
-//	this->Report(_T("MZ80K_SD: release\n"));
 }
 
 void MZ80K_SD::reset()
 {
-//	this->Report(_T("MZ80K_SD: reset\n"));
 	release();
 	terminate = false;
 	for(int i = 0; i < GPIO_CNT; ++ i)
@@ -63,6 +60,9 @@ void MZ80K_SD::reset()
 	ResetEvent(signalEmuToThread);
 	signalThreadToEmu = CreateEventA(NULL, FALSE, FALSE, NULL); // thread -> emu
 	ResetEvent(signalThreadToEmu);
+	signalTransfer = CreateEventA(NULL, FALSE, FALSE, NULL); // EnableRcv
+	ResetEvent(signalTransfer);
+	rcvComplete = false;
 	setup();
 	hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
 	concatFile = new FILEIO();
@@ -96,8 +96,12 @@ void MZ80K_SD::setFlg(bool flag)
 
 bool MZ80K_SD::getChk()
 {
-//	WaitForSingleObject(signalThreadToEmu, INFINITE);
+	WaitForSingleObject(signalThreadToEmu, INFINITE);
 	bool chk = digitalRead(FLGPIN, 1) == 1;
+	if(chk == 0 && rcvComplete == true) {
+		SetEvent(signalTransfer);
+		rcvComplete = false;
+	}
 	return chk;
 }
 
@@ -156,11 +160,10 @@ void MZ80K_SD::setup(){
 		eflg = false;
 	}
 ////	Serial.println("START");
-//	this->Report(_T("setup: %02X\n"), eflg);
 }
 
 //4BIT受信 
-byte MZ80K_SD::rcv4bit(void){
+byte MZ80K_SD::rcv4bit(bool wait){
 //HIGHになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
@@ -170,7 +173,6 @@ byte MZ80K_SD::rcv4bit(void){
 //	}
 //受信 
 	byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2+digitalRead(PA2PIN)*4+digitalRead(PA3PIN)*8;
-//	this->Report(_T("rcv4bit: %02X\n"), j_data);
 //FLGをセット 
 	digitalWrite(FLGPIN,HIGH);
 	SetEvent(signalThreadToEmu);
@@ -182,17 +184,19 @@ byte MZ80K_SD::rcv4bit(void){
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 //FLGをリセット 
+	ResetEvent(signalTransfer);
+	rcvComplete = true;
 	digitalWrite(FLGPIN,LOW);
 	SetEvent(signalThreadToEmu);
+	WaitForSingleObject(signalTransfer, INFINITE);
 	return(j_data);
 }
 
 //1BYTE受信 
 byte MZ80K_SD::rcv1byte(void){
 	byte i_data = 0;
-	i_data=rcv4bit()*16;
-	i_data=i_data+rcv4bit();
-//	this->Report(_T("rcv1byte: %02X\n"), i_data);
+	i_data=rcv4bit(false)*16;
+	i_data=i_data+rcv4bit(true);
 	return(i_data);
 }
 
@@ -241,7 +245,8 @@ void MZ80K_SD::addmzt(char *f_name){
 	while (f_name[lp1] != 0x0D){
 		lp1++;
 	}
-	if (f_name[lp1-4]!='.' ||
+	if (strlen(f_name) < 4 ||
+		f_name[lp1-4]!='.' ||
 		( f_name[lp1-3]!='M' &&
 			f_name[lp1-3]!='m' ) ||
 		( f_name[lp1-2]!='Z' &&
@@ -382,7 +387,6 @@ void MZ80K_SD::f_load(void){
 //データ送信 
 				for (unsigned int lp1 = 0;lp1 < f_length;lp1++){
 						byte i_data = file->Fgetc();
-//						this->Report(_T("send[%u]: %02X\n"), lp1, i_data);
 						snd1byte(i_data);
 				}
 				file->Fclose();
@@ -1220,8 +1224,6 @@ void MZ80K_SD::loop()
 	//コマンド取得待ち 
 	////	Serial.print("cmd:");
 		byte cmd = rcv1byte();
-//		this->Report(_T("cmd: %02X\n"), cmd);
-//		this->Report(_T("eflg: %02X\n"), eflg);
 
 	////	Serial.println(cmd,HEX);
 		if((cmd < 0xE0) && (isConcatState == 1))
@@ -1401,48 +1403,7 @@ unsigned __stdcall MZ80K_SD::loop_thread(void* param)
 	}
 	catch(...)
 	{
-//		mz80k_sd->Report(_T("error loop_thread\n"));
 	}
-//	mz80k_sd->Report(_T("finalize loop_thread\n"));
 	_endthreadex(0);
-//	mz80k_sd->Report(_T("end loop_thread\n"));
 	return 0;
 }
-
-/*
-void MZ80K_SD::Report(const char* text, ...)
-{
-//	FILE* file;
-//	fopen_s(&file, ".\\bin\\x64\\Debug\\log.txt", "rb+");
-//	if(file == NULL)
-//	{
-//		fopen_s(&file, ".\\bin\\x64\\Debug\\log.txt", "wb+");
-//	}
-//	if(file != NULL)
-//	{
-//		fseek(file, 0, SEEK_END);
-//	}
-
-	std::vector<char> output_text(128);
-	va_list arglist;
-	va_start(arglist, text);
-	va_list source = arglist;
-	for(;;)
-	{
-		arglist = source;
-		if(_vsnprintf_s(&output_text[0], output_text.size() - 1, _TRUNCATE, text, arglist) != -1)
-		{
-			break;
-		}
-		output_text.resize(output_text.size() * 2);
-	}
-//	output_text.push_back('\0');
-	OutputDebugString(&output_text[0]);
-	va_end(arglist);
-//	if(file != NULL)
-//	{
-//		fwrite(&output_text[0], strlen(&output_text[0]), 1, file);
-//		fclose(file);
-//	}
-}
-*/
