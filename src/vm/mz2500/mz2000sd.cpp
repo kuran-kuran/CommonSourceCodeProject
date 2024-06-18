@@ -48,6 +48,7 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 		d_mz80ksd->digitalWrite(PA1PIN, (data >> 1) & 1);
 		d_mz80ksd->digitalWrite(PA2PIN, (data >> 2) & 1);
 		d_mz80ksd->digitalWrite(PA3PIN, (data >> 3) & 1);
+		*d_mz80ksd->buffer = '0'; ++ d_mz80ksd->buffer;
 		break;
 	case 0xa2:
 		if(initA2Port == false) {
@@ -56,6 +57,7 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 		}
 		// b2 FLG handshake
 		d_mz80ksd->setFlg((data >> 2) & 1);
+		*d_mz80ksd->buffer = '1'; ++ d_mz80ksd->buffer;
 		break;
 	case 0xa3:
 		// 8255 setting or set bit
@@ -63,6 +65,10 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 			// set bit. b2 FLG handshake
 			if(((data >> 1) & 7) == 2) {
 				d_mz80ksd->setFlg(data & 1);
+				*d_mz80ksd->buffer = '2'; ++ d_mz80ksd->buffer;
+				*d_mz80ksd->buffer = '['; ++ d_mz80ksd->buffer;
+				*d_mz80ksd->buffer = (data & 1) ? '1' : '0'; ++ d_mz80ksd->buffer;
+				*d_mz80ksd->buffer = ']'; ++ d_mz80ksd->buffer;
 			}
 		} else {
 			// 8255 setting
@@ -93,11 +99,16 @@ uint32_t MZ2000_SD::read_io8(uint32_t addr)
 		result |= (d_mz80ksd->digitalRead(PB5PIN) << 5);
 		result |= (d_mz80ksd->digitalRead(PB6PIN) << 6);
 		result |= (d_mz80ksd->digitalRead(PB7PIN) << 7);
+		*d_mz80ksd->buffer = '3'; ++ d_mz80ksd->buffer;
 		break;
 	case 0xa2:
 		// b7 CHK handshake
 		result = 0;
 		result |= d_mz80ksd->getChk() << 7;
+		*d_mz80ksd->buffer = '4'; ++ d_mz80ksd->buffer;
+		*d_mz80ksd->buffer = '['; ++ d_mz80ksd->buffer;
+		*d_mz80ksd->buffer = result != 0 ? '1' : '0'; ++ d_mz80ksd->buffer;
+		*d_mz80ksd->buffer = ']'; ++ d_mz80ksd->buffer;
 		break;
 	case 0xf9:
 		if(address >= 0x8000) {

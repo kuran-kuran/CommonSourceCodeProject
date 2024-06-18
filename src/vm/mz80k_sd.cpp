@@ -23,7 +23,25 @@ void MZ80K_SD::initialize()
 	concatFile = NULL;
 	concatPos = 0;
 	concatSize = 0;
-//	this->Report(_T("MZ80K_SD: initialize\n"));
+
+	globalMemoryHandle = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, "GlobalMemory");
+	if(globalMemoryHandle != NULL)
+	{
+		buffer = (unsigned char*) MapViewOfFile(globalMemoryHandle, FILE_MAP_ALL_ACCESS, 0, 0, 1024 * 1024);
+		if(buffer != NULL)
+		{
+			*buffer = '!'; ++ buffer;
+		}
+		else
+		{
+			CloseHandle(globalMemoryHandle);
+		}
+	}
+	else
+	{
+	}
+	
+	//	this->Report(_T("MZ80K_SD: initialize\n"));
 }
 
 void MZ80K_SD::release()
@@ -90,14 +108,24 @@ int MZ80K_SD::digitalRead(int pin, int from)
 
 void MZ80K_SD::setFlg(bool flag)
 {
+	*buffer = 'A'; ++ buffer;
 	digitalWrite(CHKPIN, flag, 1);
+	*buffer = 'B'; ++ buffer;
 	SetEvent(signalEmuToThread);
+	*buffer = 'C'; ++ buffer;
 }
 
 bool MZ80K_SD::getChk()
 {
-//	WaitForSingleObject(signalThreadToEmu, INFINITE);
+	*buffer = 'D'; ++ buffer;
+	WaitForSingleObject(signalThreadToEmu, INFINITE);
+	*buffer = 'E'; ++ buffer;
 	bool chk = digitalRead(FLGPIN, 1) == 1;
+	*buffer = 'F'; ++ buffer;
+	*buffer = '['; ++ buffer;
+	*buffer = chk ? '1' : '0'; ++ buffer;
+	*buffer = ']'; ++ buffer;
+
 	return chk;
 }
 
@@ -162,36 +190,51 @@ void MZ80K_SD::setup(){
 //4BIT受信 
 byte MZ80K_SD::rcv4bit(void){
 //HIGHになるまでループ 
+	*buffer = 'G'; ++ buffer;
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	*buffer = 'H'; ++ buffer;
 	if(terminate == true) {
+		*buffer = 'I'; ++ buffer;
 		throw "terminate";
 	}
 //	while(digitalRead(CHKPIN) != HIGH){
 //	}
 //受信 
+	*buffer = 'J'; ++ buffer;
 	byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2+digitalRead(PA2PIN)*4+digitalRead(PA3PIN)*8;
 //	this->Report(_T("rcv4bit: %02X\n"), j_data);
 //FLGをセット 
+	*buffer = 'K'; ++ buffer;
 	digitalWrite(FLGPIN,HIGH);
+	*buffer = 'L'; ++ buffer;
 	SetEvent(signalThreadToEmu);
 //LOWになるまでループ 
+	*buffer = 'M'; ++ buffer;
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	*buffer = 'N'; ++ buffer;
 	if(terminate == true) {
+		*buffer = 'O'; ++ buffer;
 		throw "terminate";
 	}
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 //FLGをリセット 
+	*buffer = 'P'; ++ buffer;
 	digitalWrite(FLGPIN,LOW);
+	*buffer = 'Q'; ++ buffer;
 	SetEvent(signalThreadToEmu);
+	*buffer = 'R'; ++ buffer;
 	return(j_data);
 }
 
 //1BYTE受信 
 byte MZ80K_SD::rcv1byte(void){
 	byte i_data = 0;
+	*buffer = 'S'; ++ buffer;
 	i_data=rcv4bit()*16;
+	*buffer = 'T'; ++ buffer;
 	i_data=i_data+rcv4bit();
+	*buffer = 'U'; ++ buffer;
 //	this->Report(_T("rcv1byte: %02X\n"), i_data);
 	return(i_data);
 }
@@ -199,6 +242,7 @@ byte MZ80K_SD::rcv1byte(void){
 //1BYTE送信 
 void MZ80K_SD::snd1byte(byte i_data){
 //下位ビットから8ビット分をセット 
+	*buffer = 'V'; ++ buffer;
 	digitalWrite(PB0PIN,(i_data)&0x01);
 	digitalWrite(PB1PIN,(i_data>>1)&0x01);
 	digitalWrite(PB2PIN,(i_data>>2)&0x01);
@@ -207,22 +251,34 @@ void MZ80K_SD::snd1byte(byte i_data){
 	digitalWrite(PB5PIN,(i_data>>5)&0x01);
 	digitalWrite(PB6PIN,(i_data>>6)&0x01);
 	digitalWrite(PB7PIN,(i_data>>7)&0x01);
+	*buffer = 'W'; ++ buffer;
 	digitalWrite(FLGPIN,HIGH);
+	*buffer = 'X'; ++ buffer;
 	SetEvent(signalThreadToEmu);
+	*buffer = 'Y'; ++ buffer;
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	*buffer = 'Z'; ++ buffer;
 	if(terminate == true) {
+		*buffer = 'a'; ++ buffer;
 		throw "terminate";
 	}
 //HIGHになるまでループ 
 //	while(digitalRead(CHKPIN) != HIGH){
 //	}
+	*buffer = 'b'; ++ buffer;
 	digitalWrite(FLGPIN,LOW);
+	*buffer = 'c'; ++ buffer;
 	SetEvent(signalThreadToEmu);
+	*buffer = 'd'; ++ buffer;
 //LOWになるまでループ 
+	*buffer = 'e'; ++ buffer;
 	WaitForSingleObject(signalEmuToThread, INFINITE);
+	*buffer = 'f'; ++ buffer;
 	if(terminate == true) {
+		*buffer = 'g'; ++ buffer;
 		throw "terminate";
 	}
+	*buffer = 'h'; ++ buffer;
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 }
@@ -241,7 +297,8 @@ void MZ80K_SD::addmzt(char *f_name){
 	while (f_name[lp1] != 0x0D){
 		lp1++;
 	}
-	if (f_name[lp1-4]!='.' ||
+	if (strlen(f_name) < 4 ||
+		f_name[lp1-4]!='.' ||
 		( f_name[lp1-3]!='M' &&
 			f_name[lp1-3]!='m' ) ||
 		( f_name[lp1-2]!='Z' &&
@@ -1219,18 +1276,22 @@ void MZ80K_SD::loop()
 		digitalWrite(FLGPIN,LOW);
 	//コマンド取得待ち 
 	////	Serial.print("cmd:");
+		*buffer = 'i'; ++ buffer;
 		byte cmd = rcv1byte();
-//		this->Report(_T("cmd: %02X\n"), cmd);
+		this->Report(_T("cmd: %02X\n"), cmd);
 //		this->Report(_T("eflg: %02X\n"), eflg);
+		*buffer = 'j'; ++ buffer;
 
 	////	Serial.println(cmd,HEX);
 		if((cmd < 0xE0) && (isConcatState == 1))
 		{
+			*buffer = 'k'; ++ buffer;
 			// 連結ファイルオープン中に通常ファイルコマンドが来たので連結ファイルはクローズする 
 			concatFile->Fclose();
 			isConcatState = 0;
 		}
 		if (eflg == false){
+			*buffer = 'l'; ++ buffer;
 			switch(cmd) {
 	//80hでSDカードにsave
 				case 0x80:
@@ -1256,9 +1317,13 @@ void MZ80K_SD::loop()
 	//83hでファイルリスト出力 
 				case 0x83:
 	////	Serial.println("FILE LIST START");
+//					this->Report(_T("dirlist\n"));
 	//状態コード送信(OK)
+					*buffer = 'm'; ++ buffer;
 					snd1byte(0x00);
+					*buffer = 'n'; ++ buffer;
 					dirlist();
+					*buffer = 'o'; ++ buffer;
 					break;
 	//84hでファイルDelete
 				case 0x84:
@@ -1409,7 +1474,6 @@ unsigned __stdcall MZ80K_SD::loop_thread(void* param)
 	return 0;
 }
 
-/*
 void MZ80K_SD::Report(const char* text, ...)
 {
 //	FILE* file;
@@ -1445,4 +1509,4 @@ void MZ80K_SD::Report(const char* text, ...)
 //		fclose(file);
 //	}
 }
-*/
+

@@ -13,6 +13,7 @@
 #ifndef _MZ80K_SD_H_
 #define _MZ80K_SD_H_
 
+#include <vector>
 #include "vm.h"
 #include "../emu.h"
 #include "device.h"
@@ -112,8 +113,11 @@ public:
 	int digitalRead(int pin, int from = 0);
 	void setFlg(bool flag);
 	bool getChk();
-//	void Report(const char* text, ...);
+	void Report(const char* text, ...);
 	bool terminate;
+
+	HANDLE globalMemoryHandle;
+	unsigned char* buffer;
 };
 
 #endif
