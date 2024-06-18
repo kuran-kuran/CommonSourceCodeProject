@@ -14,6 +14,8 @@
 #include <vector>
 #include "mz80k_sd.h"
 
+static const size_t GLOBAL_BUFFER_SIZE = 64;
+
 void MZ80K_SD::initialize()
 {
 	terminate = false;
@@ -27,7 +29,7 @@ void MZ80K_SD::initialize()
 	globalMemoryHandle = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, "GlobalMemory");
 	if(globalMemoryHandle != NULL)
 	{
-		buffer = (unsigned char*) MapViewOfFile(globalMemoryHandle, FILE_MAP_ALL_ACCESS, 0, 0, 1024 * 1024);
+		buffer = (unsigned char*) MapViewOfFile(globalMemoryHandle, FILE_MAP_ALL_ACCESS, 0, 0, 1024 * 1024 * GLOBAL_BUFFER_SIZE);
 		if(buffer != NULL)
 		{
 			*buffer = '!'; ++ buffer;
@@ -81,6 +83,9 @@ void MZ80K_SD::reset()
 	ResetEvent(signalEmuToThread);
 	signalThreadToEmu = CreateEventA(NULL, FALSE, FALSE, NULL); // thread -> emu
 	ResetEvent(signalThreadToEmu);
+	signalTransfer = CreateEventA(NULL, FALSE, FALSE, NULL); // EnableRcv
+	ResetEvent(signalTransfer);
+	rcvComplete = false;
 	setup();
 	hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
 	concatFile = new FILEIO();
@@ -125,7 +130,10 @@ bool MZ80K_SD::getChk()
 	*buffer = '['; ++ buffer;
 	*buffer = chk ? '1' : '0'; ++ buffer;
 	*buffer = ']'; ++ buffer;
-
+	if(chk == 0 && rcvComplete == true) {
+		SetEvent(signalTransfer);
+		rcvComplete = false;
+	}
 	return chk;
 }
 
@@ -188,7 +196,7 @@ void MZ80K_SD::setup(){
 }
 
 //4BIT受信 
-byte MZ80K_SD::rcv4bit(void){
+byte MZ80K_SD::rcv4bit(bool wait){
 //HIGHになるまでループ 
 	*buffer = 'G'; ++ buffer;
 	WaitForSingleObject(signalEmuToThread, INFINITE);
@@ -219,11 +227,17 @@ byte MZ80K_SD::rcv4bit(void){
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
 //FLGをリセット 
+	ResetEvent(signalTransfer);
+	rcvComplete = true;
+
 	*buffer = 'P'; ++ buffer;
 	digitalWrite(FLGPIN,LOW);
 	*buffer = 'Q'; ++ buffer;
 	SetEvent(signalThreadToEmu);
 	*buffer = 'R'; ++ buffer;
+
+	WaitForSingleObject(signalTransfer, INFINITE);
+
 	return(j_data);
 }
 
@@ -231,9 +245,9 @@ byte MZ80K_SD::rcv4bit(void){
 byte MZ80K_SD::rcv1byte(void){
 	byte i_data = 0;
 	*buffer = 'S'; ++ buffer;
-	i_data=rcv4bit()*16;
+	i_data=rcv4bit(false)*16;
 	*buffer = 'T'; ++ buffer;
-	i_data=i_data+rcv4bit();
+	i_data=i_data+rcv4bit(true);
 	*buffer = 'U'; ++ buffer;
 //	this->Report(_T("rcv1byte: %02X\n"), i_data);
 	return(i_data);
@@ -1278,7 +1292,8 @@ void MZ80K_SD::loop()
 	////	Serial.print("cmd:");
 		*buffer = 'i'; ++ buffer;
 		byte cmd = rcv1byte();
-		this->Report(_T("cmd: %02X\n"), cmd);
+//		Sleep(1);
+//		this->Report(_T("cmd: %02X\n"), cmd);
 //		this->Report(_T("eflg: %02X\n"), eflg);
 		*buffer = 'j'; ++ buffer;
 

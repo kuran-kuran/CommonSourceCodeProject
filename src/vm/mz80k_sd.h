@@ -63,9 +63,11 @@ private:
 	CRITICAL_SECTION cs[GPIO_CNT];
 	HANDLE signalEmuToThread;
 	HANDLE signalThreadToEmu;
+	HANDLE signalTransfer;
+	bool rcvComplete;
 
 	void setup();
-	byte rcv4bit(void);
+	byte rcv4bit(bool wait);
 	byte rcv1byte(void);
 	void snd1byte(byte i_data);
 	char upper(char c);
