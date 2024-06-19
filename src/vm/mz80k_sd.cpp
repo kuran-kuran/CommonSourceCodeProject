@@ -1171,7 +1171,6 @@ void MZ80K_SD::ConcatFileClose()
 		return;
 	} else if(isConcatState == 1) {
 		concatFile->Fclose();
-		concatFile = NULL;
 	}
 	isConcatState = 0;
 	snd1byte(0x00);
