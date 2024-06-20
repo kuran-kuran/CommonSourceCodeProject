@@ -31,6 +31,10 @@ void MZ2000_SD::release()
 
 void MZ2000_SD::reset()
 {
+	if(d_mz80ksd != NULL)
+	{
+		d_mz80ksd->reset();
+	}
 }
 
 void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)

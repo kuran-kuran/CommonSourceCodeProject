@@ -65,12 +65,15 @@ private:
 	HANDLE signalTransfer;
 	bool rcvComplete;
 
+	char sdcard_path[_MAX_PATH];
+
 	void setup();
 	byte rcv4bit(bool wait);
 	byte rcv1byte(void);
 	void snd1byte(byte i_data);
 	char upper(char c);
 	void addmzt(char *f_name);
+	char* create_sdcard_path(char* f_name);
 	void f_save(void);
 	void f_load(void);
 	void astart(void);

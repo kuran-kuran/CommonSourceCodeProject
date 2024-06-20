@@ -261,6 +261,14 @@ void MZ80K_SD::addmzt(char *f_name){
 	f_name[lp1] = 0x00;
 }
 
+// SDカードのファイルパス作成
+char* MZ80K_SD::create_sdcard_path(char* f_name)
+{
+	strcpy(sdcard_path, config.sdcard_path);
+	strcat(sdcard_path, f_name);
+	return sdcard_path;
+}
+
 //SDカードにSAVE 
 void MZ80K_SD::f_save(void){
 	char p_name[20];
@@ -296,12 +304,12 @@ void MZ80K_SD::f_save(void){
 	unsigned int f_length1 = f_length % 256;
 	unsigned int f_length2 = f_length / 256;
 //ファイルが存在すればdelete
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-			FILEIO::RemoveFile(create_local_path(f_name));
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
+			FILEIO::RemoveFile(create_sdcard_path(f_name));
 	}
 //ファイルオープン 
 	FILEIO* file = new FILEIO();
-	bool result = file->Fopen( create_local_path(f_name), FILEIO_WRITE_BINARY );
+	bool result = file->Fopen( create_sdcard_path(f_name), FILEIO_WRITE_BINARY );
 	if( true == result ){
 //状態コード送信(OK)
 		snd1byte(0x00);
@@ -350,10 +358,10 @@ void MZ80K_SD::f_load(void){
 	}
 	addmzt(f_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 //ファイルオープン 
 		FILEIO* file = new FILEIO();
-		bool result = file->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
+		bool result = file->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
 		if( true == result ){
 //ファイル種類コードの判別を撤廃 
 //			if( file.read() == 0x01){
@@ -415,16 +423,16 @@ void MZ80K_SD::astart(void){
 	}
 	addmzt(f_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 //0000.mztが存在すればdelete
-		if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
-				FILEIO::RemoveFile(create_local_path(f_name));
+		if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
+				FILEIO::RemoveFile(create_sdcard_path(f_name));
 		}
 //ファイルオープン 
 		FILEIO* file_r = new FILEIO();
 		FILEIO* file_w = new FILEIO();
-		bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
-		file_w->Fopen( create_local_path(w_name), FILEIO_WRITE_BINARY );
+		bool result_r = file_r->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
+		file_w->Fopen( create_sdcard_path(w_name), FILEIO_WRITE_BINARY );
 		if( true == result_r ){
 //実データ 
 			unsigned int f_length = file_r->FileLength();
@@ -464,7 +472,7 @@ void MZ80K_SD::dirlist(void){
 	}
 //
 	FILEIO* file = new FILEIO();
-	bool entry = file->FindFirst(create_local_path(_T("\\*.mzt")));
+	bool entry = file->FindFirst(create_sdcard_path(_T("\\*.mzt")));
 	int cntl2 = 0;
 	unsigned int br_chk =0;
 	int page = 1;
@@ -578,13 +586,13 @@ void MZ80K_SD::f_del(void){
 	addmzt(f_name);
 
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 //状態コード送信(OK)
 		snd1byte(0x00);
 
 //処理選択を受信(0:継続してDELETE 0以外:CANSEL)
 		if (rcv1byte() == 0x00){
-			if (FILEIO::RemoveFile(create_local_path(f_name)) == true){
+			if (FILEIO::RemoveFile(create_sdcard_path(f_name)) == true){
 //状態コード送信(OK)
 				snd1byte(0x00);
 			}else{
@@ -647,13 +655,13 @@ void MZ80K_SD::f_dump(void){
 	addmzt(f_name);
 
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 //状態コード送信(OK)
 		snd1byte(0x00);
 
 //ファイルオープン
 		FILEIO* file = new FILEIO();
-		bool result = file->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
+		bool result = file->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
 		if( true == result ){
 //実データ送信(1画面:128Byte)
 			unsigned int f_length = file->FileLength();
@@ -723,7 +731,7 @@ void MZ80K_SD::f_copy(void){
 	}
 	addmzt(f_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(f_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 //状態コード送信(OK)
 		snd1byte(0x00);
 
@@ -733,13 +741,13 @@ void MZ80K_SD::f_copy(void){
 		}
 		addmzt(new_name);
 //新ファイルネームと同じファイルネームが存在すればERROR
-		if (FILEIO::IsFileExisting(create_local_path(new_name)) == false){
+		if (FILEIO::IsFileExisting(create_sdcard_path(new_name)) == false){
 //状態コード送信(OK)
 			snd1byte(0x00);
 //ファイルオープン 
 			FILEIO* file_r = new FILEIO();
 			FILEIO* file_w = new FILEIO();
-			bool result_r = file_r->Fopen( create_local_path(f_name), FILEIO_READ_BINARY );
+			bool result_r = file_r->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
 			file_w->Fopen( new_name, FILEIO_WRITE_BINARY );
 			if( true == result_r ){
 //実データコピー 
@@ -797,12 +805,12 @@ void MZ80K_SD::mon_whead(void){
 	addmzt(m_name);
 	m_info[16] = 0x0d;
 //ファイルが存在すればdelete
-	if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
-			FILEIO::RemoveFile(create_local_path(m_name));
+	if (FILEIO::IsFileExisting(create_sdcard_path(m_name)) == true){
+			FILEIO::RemoveFile(create_sdcard_path(m_name));
 	}
 //ファイルオープン 
 	FILEIO* file = new FILEIO();
-	bool result = file->Fopen( create_local_path(m_name), FILEIO_WRITE_BINARY );
+	bool result = file->Fopen( create_sdcard_path(m_name), FILEIO_WRITE_BINARY );
 	if( true == result ){
 //状態コード送信(OK)
 		snd1byte(0x00);
@@ -827,7 +835,7 @@ void MZ80K_SD::mon_wdata(void){
 	unsigned int f_length = f_length1+f_length2*256;
 //ファイルオープン 
 	FILEIO* file = new FILEIO();
-	bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_WRITE_BINARY );
+	bool result = file->Fopen( create_sdcard_path(m_name), FILEIO_READ_WRITE_BINARY );
 	if( true == result ){
 //状態コード送信(OK)
 		snd1byte(0x00);
@@ -862,11 +870,11 @@ void MZ80K_SD::mon_lhead(void){
 	}
 	addmzt(m_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(m_name)) == true){
 		snd1byte(0x00);
 //ファイルオープン
 		FILEIO* file = new FILEIO();
-		bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
+		bool result = file->Fopen( create_sdcard_path(m_name), FILEIO_READ_BINARY );
 		if( true == result ){
 			snd1byte(0x00);
 			for (unsigned int lp1 = 0;lp1 < 128;lp1++){
@@ -890,11 +898,11 @@ void MZ80K_SD::mon_lhead(void){
 void MZ80K_SD::mon_ldata(void){
 	addmzt(m_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(m_name)) == true){
 		snd1byte(0x00);
 //ファイルオープン 
 		FILEIO* file = new FILEIO();
-		bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
+		bool result = file->Fopen( create_sdcard_path(m_name), FILEIO_READ_BINARY );
 		if( true == result ){
 			snd1byte(0x00);
 			file->Fseek(m_lop, FILEIO_SEEK_SET);
@@ -929,11 +937,11 @@ void MZ80K_SD::boot(void){
 ////	Serial.print("m_name:");
 ////	Serial.println(m_name);
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(m_name)) == true){
+	if (FILEIO::IsFileExisting(create_sdcard_path(m_name)) == true){
 		snd1byte(0x00);
 //ファイルオープン 
 		FILEIO* file = new FILEIO();
-		bool result = file->Fopen( create_local_path(m_name), FILEIO_READ_BINARY );
+		bool result = file->Fopen( create_sdcard_path(m_name), FILEIO_READ_BINARY );
 		if( true == result ){
 		snd1byte(0x00);
 //ファイルサイズ送信 
@@ -978,9 +986,9 @@ void MZ80K_SD::ConcatFileOpen()
 	}
 	addmzt(concatName);
 	// ファイルが存在するか、しなければERROR
-	if (FILEIO::IsFileExisting(create_local_path(concatName)) == true) {
+	if (FILEIO::IsFileExisting(create_sdcard_path(concatName)) == true) {
 		//ファイルオープン 
-		bool result = concatFile->Fopen( create_local_path(concatName), FILEIO_READ_BINARY );
+		bool result = concatFile->Fopen( create_sdcard_path(concatName), FILEIO_READ_BINARY );
 		if ( true == result ) {
 			concatSize = concatFile->FileLength();
 			//状態コード送信(OK)

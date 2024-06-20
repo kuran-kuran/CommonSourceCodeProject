@@ -241,7 +241,12 @@ typedef struct {
 	#if defined(USE_SHARED_DLL) || defined(USE_PRINTER)
 		_TCHAR printer_dll_path[_MAX_PATH];
 	#endif
-	
+
+	// sd card
+	#if defined(USE_MZ80K_SD)
+		_TCHAR sdcard_path[_MAX_PATH];
+	#endif
+
 	// debug
 	bool print_statistics;
 	bool special_debug_fdc;

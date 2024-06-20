@@ -29,6 +29,7 @@ private:
 public:
 	MZ2000_SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
+		d_mz80ksd = NULL;
 		set_device_name(_T("MZ2000_SD (SD Card reader/writer)"));
 	}
 

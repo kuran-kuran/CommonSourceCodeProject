@@ -446,6 +446,11 @@ void load_config(const _TCHAR* config_path)
 		if(config.rendering_type < 0) config.rendering_type = 0;
 		if(config.rendering_type >= CONFIG_RENDER_TYPE_END) config.rendering_type = CONFIG_RENDER_TYPE_END - 1;
 	#endif
+
+	// sd card
+	#ifdef USE_MZ80K_SD
+		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(""), config.sdcard_path, _MAX_PATH, config_path);
+	#endif
 }
 
 void save_config(const _TCHAR* config_path)
@@ -684,6 +689,11 @@ void save_config(const _TCHAR* config_path)
 		MyWritePrivateProfileInt(_T("Qt"), _T("RenderMinorVersion"), config.render_minor_version, config_path);
 		MyWritePrivateProfileInt(_T("Qt"), _T("RenderType"), config.rendering_type, config_path);
     #endif
+
+	// sd card
+	#ifdef USE_MZ80K_SD
+		MyWritePrivateProfileString(_T("SDCard"), _T("SDCardPath"), config.sdcard_path, config_path);
+	#endif
 
 #if defined(__ANDROID__) // Medamap
     MySavePrivateProfile(config_path);
