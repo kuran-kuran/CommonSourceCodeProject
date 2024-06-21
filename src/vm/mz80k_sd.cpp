@@ -18,7 +18,7 @@ void MZ80K_SD::initialize()
 {
 	terminate = false;
 	initialized = false;
-	long m_lop = 128;
+	m_lop = 128;
 	isConcatState = 0; // 0:not use, 1: opened
 	concatFile = NULL;
 	concatPos = 0;
@@ -80,7 +80,7 @@ int MZ80K_SD::digitalRead(int pin, int from)
 {
 	if(terminate == true)
 	{
-		throw "terminate";
+		throw _T("terminate");
 	}
 	EnterCriticalSection(&cs[pin]);
 	int data = gpio[pin];
@@ -167,7 +167,7 @@ byte MZ80K_SD::rcv4bit(bool wait){
 //HIGHになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
-		throw "terminate";
+		throw _T("terminate");
 	}
 //	while(digitalRead(CHKPIN) != HIGH){
 //	}
@@ -179,7 +179,7 @@ byte MZ80K_SD::rcv4bit(bool wait){
 //LOWになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
-		throw "terminate";
+		throw _T("terminate");
 	}
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
@@ -215,7 +215,7 @@ void MZ80K_SD::snd1byte(byte i_data){
 	SetEvent(signalThreadToEmu);
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
-		throw "terminate";
+		throw _T("terminate");
 	}
 //HIGHになるまでループ 
 //	while(digitalRead(CHKPIN) != HIGH){
@@ -225,7 +225,7 @@ void MZ80K_SD::snd1byte(byte i_data){
 //LOWになるまでループ 
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
-		throw "terminate";
+		throw _T("terminate");
 	}
 //	while(digitalRead(CHKPIN) == HIGH){
 //	}
@@ -245,7 +245,7 @@ void MZ80K_SD::addmzt(char *f_name){
 	while (f_name[lp1] != 0x0D){
 		lp1++;
 	}
-	if (strlen(f_name) < 4 ||
+	if (lp1 < 4 ||
 		f_name[lp1-4]!='.' ||
 		( f_name[lp1-3]!='M' &&
 			f_name[lp1-3]!='m' ) ||
@@ -261,11 +261,42 @@ void MZ80K_SD::addmzt(char *f_name){
 	f_name[lp1] = 0x00;
 }
 
-// SDカードのファイルパス作成
-char* MZ80K_SD::create_sdcard_path(char* f_name)
+// charから_TCHARに変換
+_TCHAR* MZ80K_SD::create_tchar_text(char* text)
 {
-	strcpy(sdcard_path, config.sdcard_path);
-	strcat(sdcard_path, f_name);
+	static _TCHAR temp_text[_MAX_PATH];
+#ifdef _UNICODE
+	_TCHAR tchar_temp[_MAX_PATH];
+	MultiByteToWideChar(CP_ACP, 0, text, -1, tchar_temp, _MAX_PATH);
+	my_tcscpy_s(temp_text, tchar_temp);
+#else
+	my_tcscpy_s(temp_text, text);
+#endif
+	return temp_text;
+}
+
+// charから_TCHARに変換
+char* MZ80K_SD::create_char_text(const _TCHAR* text)
+{
+	static char char_temp[_MAX_PATH];
+#ifdef _UNICODE
+	WideCharToMultiByte(CP_ACP, 0, text, -1, char_temp, _MAX_PATH, NULL, NULL);
+#else
+	my_tcscpy_s(char_temp, text);
+#endif
+	return char_temp;
+}
+
+// SDカードのファイルパス作成
+_TCHAR* MZ80K_SD::create_sdcard_path(char* f_name)
+{
+#ifdef _UNICODE
+	my_tcscpy_s(sdcard_path, config.sdcard_path);
+	my_tcscat_s(sdcard_path, create_tchar_text(f_name));
+#else
+	my_tcscpy_s(sdcard_path, config.sdcard_path);
+	my_tcscat_s(sdcard_path, f_name);
+#endif
 	return sdcard_path;
 }
 
@@ -472,22 +503,22 @@ void MZ80K_SD::dirlist(void){
 	}
 //
 	FILEIO* file = new FILEIO();
-	bool entry = file->FindFirst(create_sdcard_path(_T("\\*.mzt")));
+	bool entry = file->FindFirst(create_sdcard_path("\\*.mzt"));
 	int cntl2 = 0;
 	unsigned int br_chk =0;
 	int page = 1;
 //全件出力の場合には20件出力したところで一時停止、キー入力により継続、打ち切りを選択 
 	while (br_chk == 0) {
 		if(entry){
-			const _TCHAR* name = file->FindFile();
-			my_tcscpy_s(f_name, 36, name);
+			const char* name = create_char_text(file->FindFile());
+			strncpy(f_name, name, 36);
 			unsigned int lp1=0;
 //一件送信 
 //比較文字列でファイルネームを先頭10文字まで比較して一致するものだけを出力 
 			if (f_match(f_name,c_name)){
 				while (lp1<=36 && f_name[lp1]!=0x00){
-				snd1byte(upper(f_name[lp1]));
-				lp1++;
+					snd1byte(upper(f_name[lp1]));
+					lp1++;
 				}
 				snd1byte(0x0D);
 				snd1byte(0x00);
@@ -619,7 +650,7 @@ void MZ80K_SD::f_ren(void){
 	addmzt(f_name);
 
 //ファイルが存在しなければERROR
-	if (FILEIO::IsFileExisting(f_name) == true){
+	if (FILEIO::IsFileExisting(create_tchar_text(f_name)) == true){
 //状態コード送信(OK)
 		snd1byte(0x00);
 
@@ -631,7 +662,7 @@ void MZ80K_SD::f_ren(void){
 //状態コード送信(OK)
 		snd1byte(0x00);
 
-		if (FILEIO::RenameFile(f_name, new_name)){
+		if (FILEIO::RenameFile(create_tchar_text(f_name), create_tchar_text(new_name))){
  //状態コード送信(OK)
 		 snd1byte(0x00);
 		} else {
@@ -748,7 +779,7 @@ void MZ80K_SD::f_copy(void){
 			FILEIO* file_r = new FILEIO();
 			FILEIO* file_w = new FILEIO();
 			bool result_r = file_r->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
-			file_w->Fopen( new_name, FILEIO_WRITE_BINARY );
+			file_w->Fopen( create_tchar_text(new_name), FILEIO_WRITE_BINARY );
 			if( true == result_r ){
 //実データコピー 
 				unsigned int f_length = file_r->FileLength();
@@ -1395,6 +1426,7 @@ void MZ80K_SD::loop()
 	}
 	catch(char* e)
 	{
+		// 例外で全てをキャンセルする
 		(void)e;
 	}
 }

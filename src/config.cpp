@@ -449,7 +449,7 @@ void load_config(const _TCHAR* config_path)
 
 	// sd card
 	#ifdef USE_MZ80K_SD
-		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(""), config.sdcard_path, _MAX_PATH, config_path);
+		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(_T("")), config.sdcard_path, _MAX_PATH, config_path);
 	#endif
 }
 

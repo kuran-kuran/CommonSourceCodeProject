@@ -41,7 +41,7 @@ class MZ80K_SD : public DEVICE
 {
 private:
 	outputs_t outputs;
-	unsigned long m_lop=128;
+	uint32_t m_lop;
 	char m_name[40];
 	byte s_data[260];
 	char f_name[40];
@@ -49,12 +49,12 @@ private:
 	char new_name[40];
 	// concat file
 	char concatName[40];
-	int isConcatState = 0; // 0:not use, 1: opened
-	FILEIO* concatFile = NULL;
-	unsigned long concatPos = 0;
-	unsigned long concatSize = 0;
+	int isConcatState; // 0:not use, 1: opened
+	FILEIO* concatFile;
+	uint32_t concatPos;
+	uint32_t concatSize;
 	bool eflg;
-	unsigned char gpio[GPIO_CNT];
+	uint8_t gpio[GPIO_CNT];
 
 	// thread
 	HANDLE hMz80kSdThread;
@@ -65,15 +65,17 @@ private:
 	HANDLE signalTransfer;
 	bool rcvComplete;
 
-	char sdcard_path[_MAX_PATH];
+	_TCHAR sdcard_path[_MAX_PATH];
 
 	void setup();
 	byte rcv4bit(bool wait);
 	byte rcv1byte(void);
-	void snd1byte(byte i_data);
+	void snd1byte(uint8_t i_data);
 	char upper(char c);
 	void addmzt(char *f_name);
-	char* create_sdcard_path(char* f_name);
+	_TCHAR* create_tchar_text(char* text);
+	char* create_char_text(const _TCHAR* text);
+	_TCHAR* create_sdcard_path(char* f_name);
 	void f_save(void);
 	void f_load(void);
 	void astart(void);
