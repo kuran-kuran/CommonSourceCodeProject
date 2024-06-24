@@ -1015,10 +1015,10 @@ public class EmulatorActivity extends NativeActivity {
     // NDKから呼び出される画像保存メソッド
     public void savePngImage(String imageName, byte[] imageData, int width, int height) {
         ImageSaver.saveImage(this, imageName, imageData, width, height);
-        showTemporarySaveDialog(imageName);
+        showTemporaryDialog("Save " + imageName + ".png");
     }
 
-    private void showTemporarySaveDialog(final String fileName) {
+    public void showTemporaryDialog(final String dialogString) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -1029,12 +1029,12 @@ public class EmulatorActivity extends NativeActivity {
 
                 // ダイアログに表示するテキストビューを設定
                 TextView textView = dialog.findViewById(R.id.text_view);
-                textView.setText("Save " + fileName + ".png");
+                textView.setText(dialogString);
 
                 // ダイアログを表示
                 dialog.show();
 
-                // 0.5秒後にダイアログを閉じる
+                // 1.5秒後にダイアログを閉じる
                 new Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -1071,6 +1071,8 @@ public class EmulatorActivity extends NativeActivity {
                         return R.drawable.screenshot;
                     case 10:
                         return R.drawable.midi;
+                    case 11:
+                        return R.drawable.blindness;
                 }
             case 1://mediaIcon
                 switch(iconId) {

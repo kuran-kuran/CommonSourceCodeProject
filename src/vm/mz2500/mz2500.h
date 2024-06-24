@@ -52,6 +52,8 @@
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
+#define USE_MIDI
+#define USE_CMU800
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -98,6 +100,7 @@ class MZ1R37;
 class PRINTER;
 class SERIAL;
 class TIMER;
+class CMU800;
 
 class VM : public VM_TEMPLATE
 {
@@ -138,6 +141,7 @@ protected:
 	PRINTER* printer;
 	SERIAL* serial;
 	TIMER* timer;
+	CMU800* cmu800;
 	
 	// monitor type cache
 	int boot_mode;

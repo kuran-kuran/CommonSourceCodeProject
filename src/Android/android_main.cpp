@@ -657,6 +657,7 @@ public:
                : systemIconType == SYSTEM_JOYSTICK   ? "JOYSTICK"
                : systemIconType == SYSTEM_SCREENSHOT ? "SCREENSHOT"
                : systemIconType == SYSTEM_MIDI       ? "MIDI"
+               : systemIconType == SYSTEM_COLORBLIND ? "COLORBLIND"
                : "Other"),
             iconType(SYSTEM_ICON),
             isValid(true),
@@ -897,6 +898,8 @@ public:
                     return SYSTEM_SCREENSHOT;
                 case SYSTEM_MIDI:
                     return SYSTEM_MIDI;
+                case SYSTEM_COLORBLIND:
+                    return SYSTEM_COLORBLIND;
             }
         }
         return SYSTEM_NONE; // 四角形外
@@ -940,11 +943,39 @@ varying vec2 vTextureCoord;
 uniform sampler2D texture;
 uniform vec3 uColor;
 uniform float alpha;
+uniform int colorBlindType; // 0 = C型, 1 = P型, 2 = PA型, 3 = D型, 4 = DA型
+
+vec3 convertColorBlindness(vec3 color) {
+    if (colorBlindType == 1) { // P型 (強度 Protanope＝1型2色覚)
+        float r = dot(color, vec3(0.567, 0.433, 0.0));
+        float g = dot(color, vec3(0.558, 0.442, 0.0));
+        float b = dot(color, vec3(0.0, 0.242, 0.758));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 2) { // PA型 (弱度 Protanormaly=1型3色覚)
+        float r = dot(color, vec3(0.817, 0.183, 0.0));
+        float g = dot(color, vec3(0.333, 0.667, 0.0));
+        float b = dot(color, vec3(0.0, 0.125, 0.875));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 3) { // D型 (強度 Deuteranope＝2型2色覚)
+        float r = dot(color, vec3(0.625, 0.375, 0.0));
+        float g = dot(color, vec3(0.7, 0.3, 0.0));
+        float b = dot(color, vec3(0.0, 0.3, 0.7));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 4) { // DA型 (弱度 Deuternormaly=2型3色覚)
+        float r = dot(color, vec3(0.8, 0.2, 0.0));
+        float g = dot(color, vec3(0.258, 0.742, 0.0));
+        float b = dot(color, vec3(0.0, 0.142, 0.858));
+        return vec3(r, g, b);
+    } else { // C型 (正常色覚)
+        return color;
+    }
+}
 
 void main() {
     vec4 texColor = texture2D(texture, vTextureCoord);
+    vec3 convertedColor = convertColorBlindness(texColor.rgb * uColor);
     float outAlpha = (texColor.r <= 0.05 && texColor.g <= 0.05 && texColor.b <= 0.05) ? alpha : 1.0;
-    gl_FragColor = vec4(texColor.r * uColor.r, texColor.g * uColor.g, texColor.b * uColor.b, outAlpha);
+    gl_FragColor = vec4(convertedColor, outAlpha);
 }
 )glsl";
 #endif
@@ -958,6 +989,33 @@ varying vec2 vTextureCoord;
 uniform sampler2D texture;
 uniform vec3 uColor;
 uniform float alpha;
+uniform int colorBlindType; // 0 = C型, 1 = P型, 2 = PA型, 3 = D型, 4 = DA型
+
+vec3 convertColorBlindness(vec3 color) {
+    if (colorBlindType == 1) { // P型 (強度 Protanope＝1型2色覚)
+        float r = dot(color, vec3(0.567, 0.433, 0.0));
+        float g = dot(color, vec3(0.558, 0.442, 0.0));
+        float b = dot(color, vec3(0.0, 0.242, 0.758));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 2) { // PA型 (弱度 Protanormaly=1型3色覚)
+        float r = dot(color, vec3(0.817, 0.183, 0.0));
+        float g = dot(color, vec3(0.333, 0.667, 0.0));
+        float b = dot(color, vec3(0.0, 0.125, 0.875));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 3) { // D型 (強度 Deuteranope＝2型2色覚)
+        float r = dot(color, vec3(0.625, 0.375, 0.0));
+        float g = dot(color, vec3(0.7, 0.3, 0.0));
+        float b = dot(color, vec3(0.0, 0.3, 0.7));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 4) { // DA型 (弱度 Deuternormaly=2型3色覚)
+        float r = dot(color, vec3(0.8, 0.2, 0.0));
+        float g = dot(color, vec3(0.258, 0.742, 0.0));
+        float b = dot(color, vec3(0.0, 0.142, 0.858));
+        return vec3(r, g, b);
+    } else { // C型 (正常色覚)
+        return color;
+    }
+}
 
 void main() {
     float offset = 1.0 / 600.0; // テクスチャの寸法に基づいてこの値を調整
@@ -975,8 +1033,9 @@ void main() {
     blurColor.r *= uColor.r;
     blurColor.g *= uColor.g;
     blurColor.b *= uColor.b;
+    vec3 convertedColor = convertColorBlindness(blurColor.rgb * uColor);
     float outAlpha = (blurColor.r <= 0.05 && blurColor.g <= 0.05 && blurColor.b <= 0.05) ? alpha : 1.0;
-    gl_FragColor = vec4(blurColor.rgb, outAlpha);
+    gl_FragColor = vec4(convertedColor.rgb, outAlpha);
 }
 )glsl";
 #endif
@@ -992,6 +1051,33 @@ uniform vec3 uColor;
 uniform float screenWidth;
 uniform float screenHeight;
 uniform float alpha;
+uniform int colorBlindType; // 0 = C型, 1 = P型, 2 = PA型, 3 = D型, 4 = DA型
+
+vec3 convertColorBlindness(vec3 color) {
+    if (colorBlindType == 1) { // P型 (強度 Protanope＝1型2色覚)
+        float r = dot(color, vec3(0.567, 0.433, 0.0));
+        float g = dot(color, vec3(0.558, 0.442, 0.0));
+        float b = dot(color, vec3(0.0, 0.242, 0.758));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 2) { // PA型 (弱度 Protanormaly=1型3色覚)
+        float r = dot(color, vec3(0.817, 0.183, 0.0));
+        float g = dot(color, vec3(0.333, 0.667, 0.0));
+        float b = dot(color, vec3(0.0, 0.125, 0.875));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 3) { // D型 (強度 Deuteranope＝2型2色覚)
+        float r = dot(color, vec3(0.625, 0.375, 0.0));
+        float g = dot(color, vec3(0.7, 0.3, 0.0));
+        float b = dot(color, vec3(0.0, 0.3, 0.7));
+        return vec3(r, g, b);
+    } else if (colorBlindType == 4) { // DA型 (弱度 Deuternormaly=2型3色覚)
+        float r = dot(color, vec3(0.8, 0.2, 0.0));
+        float g = dot(color, vec3(0.258, 0.742, 0.0));
+        float b = dot(color, vec3(0.0, 0.142, 0.858));
+        return vec3(r, g, b);
+    } else { // C型 (正常色覚)
+        return color;
+    }
+}
 
 void main() {
     vec4 texColor = texture2D(texture, vTextureCoord);
@@ -1010,8 +1096,9 @@ void main() {
         color = vec3(texColor.r * uColor.r * 0.5, texColor.g * uColor.g * 0.5, texColor.b * uColor.b * 3.0);  // 青
     }
 
+    vec3 convertedColor = convertColorBlindness(color.rgb * uColor);
     float outAlpha = (texColor.r <= 0.05 && texColor.g <= 0.05 && texColor.b <= 0.05) ? alpha : 1.0;
-    gl_FragColor = vec4(color, outAlpha);
+    gl_FragColor = vec4(convertedColor, outAlpha);
 }
 )glsl";
 #endif
@@ -1150,6 +1237,7 @@ static void callJavaSaveImage(struct android_app* app, const char* path, uint16_
 #ifdef USE_MIDI
 void updateMidiDevice(struct android_app* app);
 #endif
+void showTemporaryDialog(struct android_app* app, const char* message);
 
 #define SOFT_KEYBOARD_KEEP_COUNT  3
 int softKeyboardCount = 0;
@@ -5459,8 +5547,9 @@ void initializeGlIcons(struct engine* engine) {
     glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_WALLPAPER, false, false);
     glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_SCREENSHOT, false, false);
 #ifdef USE_MIDI
-    glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_MIDI, false, false);
+    //glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_MIDI, false, false);
 #endif
+    glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_COLORBLIND, false, true);
 #if defined(_MZ80K) || defined(_MZ1200) || defined(_MZ700)
     glIcons.resize(glIcons.size() + 1); glIcons[iconIndex++] = *new GlIcon(engine, id++, SYSTEM_PCG, true, config.dipswitch & 1);
 #elif defined(SUPPORT_PC88_PCG8100)
@@ -5797,6 +5886,9 @@ void drawOpenGlFrame(struct engine* engine) {
     // アルファ値をセット
     GLint alphaLocation = glGetUniformLocation(engine->shaderProgram[shader_type], "alpha"); checkGLError("glGetUniformLocation E10b");
     if (alphaLocation > -1) { glUniform1f(alphaLocation, (GLfloat)screenAlpha); checkGLError("glUniform1f E11b"); }
+    // colorBlindTypeのユニフォームロケーションを取得して設定
+    GLint colorBlindTypeLocation = glGetUniformLocation(engine->shaderProgram[shader_type], "colorBlindType"); checkGLError("glGetUniformLocation colorBlindType");
+    if (colorBlindTypeLocation > -1) { glUniform1i(colorBlindTypeLocation, config.shader_color_blindness); checkGLError("glUniform1i colorBlindType"); }
     // 頂点セット
     glEnableVertexAttribArray(0); checkGLError("glEnableVertexAttribArray E12");
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vertexScreen.data()); checkGLError("glVertexAttribPointer E13");
@@ -5911,6 +6003,20 @@ void clickOpenGlIcon(struct android_app *app, float x, float y) {
                 updateMidiDevice(app);
                 break;
 #endif
+            case SYSTEM_COLORBLIND: {
+                config.shader_color_blindness = ((config.shader_color_blindness + 1) % 5);
+                char dialogMessage[50];
+                sprintf(dialogMessage,
+                        "Set Color Blindness Type is %s",
+                        config.shader_color_blindness == 0 ? "C" :
+                        config.shader_color_blindness == 1 ? "P" :
+                        config.shader_color_blindness == 2 ? "PA" :
+                        config.shader_color_blindness == 3 ? "D" :
+                        config.shader_color_blindness == 4 ? "DA" : "C"
+                        );
+                showTemporaryDialog(app, dialogMessage);
+                break;
+            }
             case SYSTEM_NONE:
                 break;
             case SYSTEM_ICON_MAX:
@@ -7927,6 +8033,23 @@ void updateMidiDevice(struct android_app* app) {
     app->activity->vm->DetachCurrentThread();
 }
 #endif
+
+void showTemporaryDialog(struct android_app* app, const char* message) {
+    JNIEnv* jni;
+    app->activity->vm->AttachCurrentThread(&jni, NULL);
+    jclass clazz = jni->GetObjectClass(app->activity->clazz);
+    jmethodID methodID = jni->GetMethodID(clazz, "showTemporaryDialog", "(Ljava/lang/String;)V");
+    if (methodID == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, "JNI", "Failed to find the showTemporaryDialog method");
+        app->activity->vm->DetachCurrentThread();
+        return;
+    }
+    jstring jMessage = jni->NewStringUTF(message);
+    jni->CallVoidMethod(app->activity->clazz, methodID, jMessage);
+    jni->DeleteLocalRef(jMessage);
+    jni->DeleteLocalRef(clazz);
+    app->activity->vm->DetachCurrentThread();
+}
 
 // ----------------------------------------------------------------------------
 // jni export

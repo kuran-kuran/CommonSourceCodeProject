@@ -176,6 +176,15 @@
     <ClCompile Include="..\src\vm\mz80k_sd.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\win32\osd_midi.cpp">
+      <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\midi.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
@@ -303,6 +312,12 @@
     </ClInclude>
     <ClInclude Include="..\src\vm\mz80k_sd.h">
       <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\midi.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

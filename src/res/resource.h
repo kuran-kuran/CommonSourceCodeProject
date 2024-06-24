@@ -282,7 +282,8 @@
 #define ID_VM_SOUND_NOISE_CMT           41122
 #define ID_VM_SOUND_TAPE_SIGNAL         41123
 #define ID_VM_SOUND_TAPE_VOICE          41124
-#define ID_VM_SOUND_MENU_END            41124
+#define ID_VM_SOUND_CMU800              41125
+#define ID_VM_SOUND_MENU_END            41125
 
 #define ID_VM_MONITOR_MENU_START        41131
 #define ID_VM_MONITOR_TYPE0             41131

@@ -25,6 +25,8 @@
 #include "../prnfile.h"
 #include "../z80.h"
 #include "../z80pio.h"
+#include "../midi.h"
+#include "../cmu800.h"
 #include "../mz80k_sd.h"
 
 #ifdef USE_DEBUGGER
@@ -87,6 +89,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	mz1r13 = new MZ1R13(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
+	cmu800 = new CMU800(this, emu);
 	mz2000sd = new MZ2000_SD(this, emu);
 
 #ifdef SUPPORT_QUICK_DISK
@@ -158,6 +161,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		printer->set_context_prn(dummy);
 	}
 	timer->set_context_pit(pit);
+	// CMU-800
+	MIDI *midi = new MIDI(this, emu);
+	cmu800->set_context_midi(midi);
+	cmu800->set_context_event(event);
 
 	MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
 	mz2000sd->set_context_mz80k_sd(mz80k_sd);
@@ -249,6 +256,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_w(0xf4, 0xf7, memory);
 	io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
+	io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
 	io->set_iomap_range_rw(0xf8, 0xf9, mz2000sd);
 

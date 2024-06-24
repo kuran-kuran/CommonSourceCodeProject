@@ -15,6 +15,7 @@ set(HEADER
         ../../../../../src/vm/i8255.h
         ../../../../../src/vm/io.h
         ../../../../../src/vm/mb8877.h
+        ../../../../../src/vm/cmu800.h
         ../../../../../src/vm/mz700/cmos.h
         ../../../../../src/vm/mz700/emm.h
         ../../../../../src/vm/mz700/cmos.h
@@ -55,6 +56,8 @@ add_library(native-activity SHARED
         ../../../../../src/vm/i8255.cpp
         ../../../../../src/vm/io.cpp
         ../../../../../src/vm/mb8877.cpp
+        ../../../../../src/vm/midi.cpp
+        ../../../../../src/vm/cmu800.cpp
         ../../../../../src/vm/mz700/cmos.cpp
         ../../../../../src/vm/mz700/emm.cpp
         ../../../../../src/vm/mz700/floppy.cpp
@@ -71,6 +74,7 @@ add_library(native-activity SHARED
         ../../../../../src/vm/z80sio.cpp
         ../../../../../src/Android/osd.cpp
         ../../../../../src/Android/osd_input.cpp
+        ../../../../../src/Android/osd_midi.cpp
         ../../../../../src/Android/osd_screen.cpp
         ../../../../../src/Android/osd_sound.cpp
         ../../../../../src/Android/osd_console.cpp

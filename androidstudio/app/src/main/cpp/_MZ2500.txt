@@ -23,6 +23,7 @@ set(HEADER
         ../../../../../src/vm/i8255.h
         ../../../../../src/vm/io.h
         ../../../../../src/vm/mb8877.h
+        ../../../../../src/vm/cmu800.h
         ../../../../../src/vm/mz2500/calendar.h
         ../../../../../src/vm/mz2500/cmt.h
         ../../../../../src/vm/mz2500/crtc.h
@@ -80,6 +81,8 @@ add_library(native-activity SHARED
         ../../../../../src/vm/i8255.cpp
         ../../../../../src/vm/io.cpp
         ../../../../../src/vm/mb8877.cpp
+        ../../../../../src/vm/midi.cpp
+        ../../../../../src/vm/cmu800.cpp
         ../../../../../src/vm/mz2500/calendar.cpp
         ../../../../../src/vm/mz2500/cmt.cpp
         ../../../../../src/vm/mz2500/crtc.cpp
@@ -111,6 +114,7 @@ add_library(native-activity SHARED
         ../../../../../src/vm/z80sio.cpp
         ../../../../../src/Android/osd.cpp
         ../../../../../src/Android/osd_input.cpp
+        ../../../../../src/Android/osd_midi.cpp
         ../../../../../src/Android/osd_screen.cpp
         ../../../../../src/Android/osd_socket.cpp
         ../../../../../src/Android/osd_sound.cpp

@@ -834,6 +834,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			//}
 			break;
 #endif
+#ifdef USE_CMU800
+		case ID_VM_SOUND_CMU800:
+			config.cmu800 = !config.cmu800;
+			break;
+#endif
 #ifdef USE_FLOPPY_DISK
 		case ID_VM_SOUND_NOISE_FDD:
 			config.sound_noise_fdd = !config.sound_noise_fdd;
@@ -1913,7 +1918,7 @@ void update_vm_joystick_menu(HMENU hMenu)
 }
 #endif
 
-#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE)
+#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE) || defined(USE_CMU800)
 void update_vm_sound_menu(HMENU hMenu)
 {
 #ifdef USE_SOUND_TYPE
@@ -1928,6 +1933,9 @@ void update_vm_sound_menu(HMENU hMenu)
 	CheckMenuItem(hMenu, ID_VM_SOUND_NOISE_CMT, config.sound_noise_cmt ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VM_SOUND_TAPE_SIGNAL, config.sound_tape_signal ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VM_SOUND_TAPE_VOICE, config.sound_tape_voice ? MF_CHECKED : MF_UNCHECKED);
+#endif
+#if defined(USE_CMU800)
+	CheckMenuItem(hMenu, ID_VM_SOUND_CMU800, config.cmu800 ? MF_CHECKED : MF_UNCHECKED);
 #endif
 }
 #endif
@@ -2212,6 +2220,11 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 			break;
 		}
 	}
+
+	char temp[1024];
+	sprintf(temp, "id = %d\n", id);
+	OutputDebugStringA(temp);
+
 	if(id >= ID_CONTROL_MENU_START && id <= ID_CONTROL_MENU_END) {
 		update_control_menu(hMenu);
 	}
@@ -2437,9 +2450,9 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 		update_vm_joystick_menu(hMenu);
 	}
 #endif
-#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE) || defined(USE_DIPSWITCH)
+#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE) || defined(USE_DIPSWITCH) || defined(USE_CMU800)
 	else if(id >= ID_VM_SOUND_MENU_START && id <= ID_VM_SOUND_MENU_END) {
-		#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE)
+		#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE) || defined(USE_CMU800)
 			update_vm_sound_menu(hMenu);
 		#endif
 		#ifdef USE_DIPSWITCH

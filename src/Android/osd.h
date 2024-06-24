@@ -1254,6 +1254,7 @@ enum systemIconType {
     SYSTEM_JOYSTICK ,
     SYSTEM_SCREENSHOT,
     SYSTEM_MIDI,
+    SYSTEM_COLORBLIND,
     SYSTEM_ICON_MAX
 };
 enum FileSelectType {

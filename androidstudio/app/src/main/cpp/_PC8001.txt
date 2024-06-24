@@ -23,6 +23,7 @@ set(HEADER
         ../../../../../src/vm/i8255.h
         ../../../../../src/vm/noise.h
         ../../../../../src/vm/pc80s31k.h
+        ../../../../../src/vm/cmu800.h
         ../../../../../src/vm/pc8801/diskio.h
         ../../../../../src/vm/pc8801/pc88.h
         ../../../../../src/vm/pc8801/pc8801.h
@@ -61,6 +62,8 @@ add_library(native-activity SHARED
         ../../../../../src/vm/i8255.cpp
         ../../../../../src/vm/noise.cpp
         ../../../../../src/vm/pc80s31k.cpp
+        ../../../../../src/vm/midi.cpp
+        ../../../../../src/vm/cmu800.cpp
         ../../../../../src/vm/pc8801/diskio.cpp
         ../../../../../src/vm/pc8801/pc88.cpp
         ../../../../../src/vm/pc8801/pc8801.cpp
@@ -71,6 +74,7 @@ add_library(native-activity SHARED
         ../../../../../src/vm/z80.cpp
         ../../../../../src/Android/osd.cpp
         ../../../../../src/Android/osd_input.cpp
+        ../../../../../src/Android/osd_midi.cpp
         ../../../../../src/Android/osd_screen.cpp
         ../../../../../src/Android/osd_sound.cpp
         ../../../../../src/Android/osd_console.cpp

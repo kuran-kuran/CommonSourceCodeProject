@@ -65,6 +65,8 @@
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
+#define USE_MIDI
+#define USE_CMU800
 #define USE_MZ80K_SD
 
 #include "../../common.h"
@@ -92,6 +94,7 @@ class MB8877;
 class PCM1BIT;
 class Z80;
 class Z80PIO;
+class CMU800;
 
 class CMT;
 class FLOPPY;
@@ -130,6 +133,7 @@ protected:
 	PCM1BIT* pcm;
 	Z80* cpu;
 	Z80PIO* pio;
+	CMU800* cmu800;
 	
 	CMT* cmt;
 	FLOPPY* floppy;
