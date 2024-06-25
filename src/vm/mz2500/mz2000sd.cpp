@@ -11,15 +11,6 @@ Date   : 2024.05.28-
 
 void MZ2000_SD::initialize()
 {
-	memset(boot_rom, 0xff, sizeof(boot_rom));
-	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(boot_rom, sizeof(boot_rom), 1);
-		fio->Fclose();
-	}
-	delete fio;
-	address = 0;
-	read_write_flag = 0;
 	file_position = 0;
 	initA0Port = false;
 	initA2Port = false;
@@ -74,12 +65,6 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 			initA2Port = false;
 		}
 		break;
-	case 0xf8:
-		address = (address & 0x00ff) | (data << 8);
-		break;
-	case 0xf9:
-		address = (address & 0xff00) | (data << 0);
-		break;
 	}
 }
 
@@ -103,10 +88,6 @@ uint32_t MZ2000_SD::read_io8(uint32_t addr)
 		result = 0;
 		result |= d_mz80ksd->getChk() << 7;
 		break;
-	case 0xf9:
-		if(address >= 0x8000) {
-			return boot_rom[address & 0x7fff];
-		}
 	}
 	return result;
 }
@@ -121,8 +102,6 @@ bool MZ2000_SD::process_state(FILEIO* state_fio, bool loading)
 	if(!state_fio->StateCheckInt32(this_device_id)) {
 		return false;
 	}
-	state_fio->StateValue(address);
-	state_fio->StateValue(read_write_flag);
 	state_fio->StateValue(file_position);
 	return true;
 }
