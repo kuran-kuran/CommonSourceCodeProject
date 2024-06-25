@@ -456,8 +456,9 @@ void load_config(const _TCHAR* config_path)
 
 	// CMU-800 MIDI
 	#ifdef USE_CMU800
-	config.cmu800 = MyGetPrivateProfileBool(_T("Cmu800Midi"), _T("Cmu800"), config.cmu800, config_path);
-	config.cmu800_tempo = MyGetPrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
+		config.cmu800 = MyGetPrivateProfileBool(_T("Cmu800Midi"), _T("Cmu800"), config.cmu800, config_path);
+		config.cmu800_tempo = MyGetPrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
+	#endif
 	// sd card
 	#ifdef USE_MZ80K_SD
 		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(_T("")), config.sdcard_path, _MAX_PATH, config_path);
@@ -704,8 +705,9 @@ void save_config(const _TCHAR* config_path)
 
 	// CMU-800 MIDI
 	#ifdef USE_CMU800
-	MyWritePrivateProfileBool(_T("Cmu800Midi"), _T("Cmu800"), config.cmu800, config_path);
-	MyWritePrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
+		MyWritePrivateProfileBool(_T("Cmu800Midi"), _T("Cmu800"), config.cmu800, config_path);
+		MyWritePrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
+	#endif
 	// sd card
 	#ifdef USE_MZ80K_SD
 		MyWritePrivateProfileString(_T("SDCard"), _T("SDCardPath"), config.sdcard_path, config_path);
@@ -771,4 +773,3 @@ bool process_config_state(void *f, bool loading)
 	state_fio->StateValue(config.sound_latency);
 	return true;
 }
-
