@@ -18,9 +18,6 @@ Date   : 2024.05.28-
 class MZ2000_SD : public DEVICE
 {
 private:
-	uint8_t boot_rom[0x8000];
-	uint16_t address;
-	uint8_t read_write_flag; // 0: not busy, 1: reading, 2: writeing
 	uint64_t file_position;
 	MZ80K_SD* d_mz80ksd;
 	bool initA0Port;

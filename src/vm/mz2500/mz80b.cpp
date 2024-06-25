@@ -258,7 +258,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 	io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
-	io->set_iomap_range_rw(0xf8, 0xf9, mz2000sd);
 
 	io->set_iowait_range_rw(0xd8, 0xdf, 1);
 	io->set_iowait_range_rw(0xe8, 0xeb, 1);
