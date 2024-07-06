@@ -328,6 +328,7 @@
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
     <ClCompile Include="..\src\vm\and.cpp" />
+    <ClCompile Include="..\src\vm\cmu800.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -335,6 +336,7 @@
     <ClCompile Include="..\src\vm\i8255.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
+    <ClCompile Include="..\src\vm\midi.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz700\cmos.cpp" />
     <ClCompile Include="..\src\vm\mz700\emm.cpp" />
@@ -358,6 +360,7 @@
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
+    <ClCompile Include="..\src\win32\osd_midi.cpp" />
     <ClCompile Include="..\src\win32\osd_screen.cpp" />
     <ClCompile Include="..\src\win32\osd_sound.cpp" />
     <ClCompile Include="..\src\win32\winmain.cpp" />
@@ -370,6 +373,7 @@
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
     <ClInclude Include="..\src\vm\and.h" />
+    <ClInclude Include="..\src\vm\cmu800.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />

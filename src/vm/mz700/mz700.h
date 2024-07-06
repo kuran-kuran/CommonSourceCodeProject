@@ -88,6 +88,10 @@
 #endif
 #define USE_DEBUGGER
 #define USE_STATE
+#if !defined(_MZ800)
+#define USE_MIDI
+#define USE_CMU800
+#endif
 
 #if defined(_MZ700) || defined(_MZ1500)
 static const int vm_auto_key_table_base[][2] = {
@@ -209,6 +213,9 @@ class KEYBOARD;
 class MEMORY;
 class QUICKDISK;
 class RAMFILE;
+#if !defined(_MZ800)
+class CMU800;
+#endif
 
 #if defined(_MZ800) || defined(_MZ1500)
 class NOT;
@@ -248,7 +255,10 @@ protected:
 	MEMORY* memory;
 	RAMFILE* ramfile;
 	QUICKDISK* qd;
-	
+#if !defined(_MZ800)
+	CMU800* cmu800;
+#endif
+
 #if defined(_MZ800) || defined(_MZ1500)
 	AND* and_snd;
 #if defined(_MZ800)

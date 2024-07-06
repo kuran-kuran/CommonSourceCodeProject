@@ -19,6 +19,7 @@ void CMOS::initialize()
 	// init memory
 	data_buffer = (uint8_t *)malloc(DATA_SIZE);
 	memset(data_buffer, 0, DATA_SIZE);
+	data_buffer[0] = 1;
 	modified = false;
 	
 	// load cmos image

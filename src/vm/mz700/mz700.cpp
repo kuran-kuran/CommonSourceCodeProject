@@ -25,6 +25,10 @@
 #include "../pcm1bit.h"
 #include "../z80.h"
 #include "../z80sio.h"
+#include "../midi.h"
+#if !defined(_MZ800)
+#include "../cmu800.h"
+#endif
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -100,7 +104,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	ramfile = new RAMFILE(this, emu);
 	qd = new QUICKDISK(this, emu);
 	qd->set_context_noise_seek(new NOISE(this, emu));
-	
+#if !defined(_MZ800)
+	cmu800 = new CMU800(this, emu);
+#endif
+
 #if defined(_MZ800) || defined(_MZ1500)
 	and_snd = new AND(this, emu);
 	and_snd->set_device_name(_T("AND Gate (Sound)"));
@@ -188,7 +195,14 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	// Z80SIO:DCDA <- QD:INSERT
 	// Z80SIO:DCDB <- QD:HOE
 	qd->set_context_sio(sio_qd);
-	
+
+#if !defined(_MZ800)
+	// CMU-800
+	MIDI *midi = new MIDI(this, emu);
+	cmu800->set_context_midi(midi);
+	cmu800->set_context_event(event);
+#endif
+
 #if defined(_MZ1500)
 	// psg mixer
 	psg->set_context_psg_l(psg_l);
@@ -332,8 +346,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// floppy drives
-	io->set_iomap_range_rw(0xd8, 0xdb, fdc);
-	io->set_iomap_range_w(0xdc, 0xdf, floppy);
+	FILEIO *fio = new FILEIO();
+	if(fio->IsFileExisting(create_local_path(_T("CMOS.BIN"))) == false)
+	{
+		io->set_iomap_range_rw(0xd8, 0xdb, fdc);
+		io->set_iomap_range_w(0xdc, 0xdf, floppy);
+	}
+	delete fio;
 	
 	// memory mapper
 #if defined(_MZ800)
@@ -370,7 +389,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	for(int i = 0; i < 4; i++) {
 		io->set_iomap_alias_rw(0xf4 + i, sio_qd, z80_sio_addr[i]);
 	}
-	
+
+#if !defined(_MZ800)
+	io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+#endif
+
 #if defined(_MZ800) || defined(_MZ1500)
 	// z80pio/sio
 	static const int z80_pio_addr[4] = {1, 3, 0, 2};
