@@ -67,6 +67,8 @@ private:
 
 	_TCHAR sdcard_path[_MAX_PATH];
 
+	DEVICE* d_midi;
+
 	void setup();
 	byte rcv4bit(bool wait);
 	byte rcv1byte(void);
@@ -120,6 +122,10 @@ public:
 	void setFlg(bool flag);
 	bool getChk();
 	bool terminate;
+	void set_context_midi(DEVICE* device)
+	{
+		d_midi = device;
+	}
 };
 
 #endif
