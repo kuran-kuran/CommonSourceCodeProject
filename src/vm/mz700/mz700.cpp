@@ -29,6 +29,7 @@
 #if !defined(_MZ800)
 #include "../cmu800.h"
 #endif
+#include "../mz80k_sd.h"
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -51,6 +52,7 @@
 #include "../mz1p17.h"
 #include "../prnfile.h"
 #include "psg.h"
+#include "mz1500sd.h"
 #endif
 #endif
 #if defined(_MZ700) || defined(_MZ1500)
@@ -131,12 +133,15 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	psg_l->set_device_name(_T("SN76489AN PSG (Left)"));
 	psg_r = new SN76489AN(this, emu);
 	psg_r->set_device_name(_T("SN76489AN PSG (Right)"));
+	mz1500sd = new MZ1500_SD(this, emu);
 #endif
 	pio_int = new Z80PIO(this, emu);
 	sio_rs = new Z80SIO(this, emu);
 	
 #if defined(_MZ1500)
 	psg = new PSG(this, emu);
+	MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
+	mz1500sd->set_context_mz80k_sd(mz80k_sd);
 #endif
 #endif
 #if defined(_MZ700) || defined(_MZ1500)
@@ -347,7 +352,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	// floppy drives
 	FILEIO *fio = new FILEIO();
-	if(fio->IsFileExisting(create_local_path(_T("CMOS.BIN"))) == false)
+	if((fio->IsFileExisting(create_local_path(_T("CMOS.BIN"))) == false) &&
+	   (fio->IsFileExisting(create_local_path(_T("MZ1500SD.ROM"))) == false))
 	{
 		io->set_iomap_range_rw(0xd8, 0xdb, fdc);
 		io->set_iomap_range_w(0xdc, 0xdf, floppy);
@@ -382,6 +388,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0xe9, psg);
 	io->set_iomap_single_w(0xf2, psg_l);
 	io->set_iomap_single_w(0xf3, psg_r);
+	io->set_iomap_range_rw(0xd8, 0xdb, mz1500sd);
 #endif
 	
 	// quick disk

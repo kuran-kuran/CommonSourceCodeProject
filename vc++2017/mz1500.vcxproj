@@ -345,10 +345,12 @@
     <ClCompile Include="..\src\vm\mz700\kanji.cpp" />
     <ClCompile Include="..\src\vm\mz700\keyboard.cpp" />
     <ClCompile Include="..\src\vm\mz700\memory.cpp" />
+    <ClCompile Include="..\src\vm\mz700\mz1500sd.cpp" />
     <ClCompile Include="..\src\vm\mz700\mz700.cpp" />
     <ClCompile Include="..\src\vm\mz700\psg.cpp" />
     <ClCompile Include="..\src\vm\mz700\quickdisk.cpp" />
     <ClCompile Include="..\src\vm\mz700\ramfile.cpp" />
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\not.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
@@ -391,10 +393,12 @@
     <ClInclude Include="..\src\vm\mz700\kanji.h" />
     <ClInclude Include="..\src\vm\mz700\keyboard.h" />
     <ClInclude Include="..\src\vm\mz700\memory.h" />
+    <ClInclude Include="..\src\vm\mz700\mz1500sd.h" />
     <ClInclude Include="..\src\vm\mz700\mz700.h" />
     <ClInclude Include="..\src\vm\mz700\psg.h" />
     <ClInclude Include="..\src\vm\mz700\quickdisk.h" />
     <ClInclude Include="..\src\vm\mz700\ramfile.h" />
+    <ClInclude Include="..\src\vm\mz80k_sd.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\not.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />

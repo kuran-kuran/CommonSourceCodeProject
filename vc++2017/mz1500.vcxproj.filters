@@ -176,6 +176,12 @@
     <ClCompile Include="..\src\vm\mz700\floppy.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\mz700\mz1500sd.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
@@ -297,6 +303,12 @@
     </ClInclude>
     <ClInclude Include="..\src\vm\mz700\floppy.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz700\mz1500sd.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz80k_sd.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

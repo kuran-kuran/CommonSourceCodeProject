@@ -91,6 +91,7 @@
 #if !defined(_MZ800)
 #define USE_MIDI
 #define USE_CMU800
+#define USE_MZ80K_SD
 #endif
 
 #if defined(_MZ700) || defined(_MZ1500)
@@ -223,6 +224,7 @@ class SN76489AN;
 class Z80PIO;
 #if defined(_MZ1500)
 class PSG;
+class MZ1500_SD;
 #endif
 #endif
 #if defined(_MZ700) || defined(_MZ1500)
@@ -270,6 +272,7 @@ protected:
 	NOT* not_strobe;
 	SN76489AN* psg_l;
 	SN76489AN* psg_r;
+	MZ1500_SD* mz1500sd;
 #endif
 	Z80PIO* pio_int;
 	Z80SIO* sio_rs;	// RS-232C

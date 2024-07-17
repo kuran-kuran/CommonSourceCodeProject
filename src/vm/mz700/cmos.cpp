@@ -21,10 +21,15 @@ void CMOS::initialize()
 	memset(data_buffer, 0, DATA_SIZE);
 	data_buffer[0] = 1;
 	modified = false;
+	read_only = false;
 	
 	// load cmos image
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_READ_BINARY)) {
+    if(fio->Fopen(create_local_path(_T("MZ1500SD.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(data_buffer, DATA_SIZE, 1);
+		fio->Fclose();
+		read_only = true;
+	} else if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_READ_BINARY)) {
 		fio->Fread(data_buffer, DATA_SIZE, 1);
 		fio->Fclose();
 	}
@@ -34,7 +39,7 @@ void CMOS::initialize()
 void CMOS::release()
 {
 	// save cmos image
-	if(modified) {
+	if(!read_only && modified) {
 		FILEIO* fio = new FILEIO();
 		if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_WRITE_BINARY)) {
 			fio->Fwrite(data_buffer, DATA_SIZE, 1);
@@ -62,7 +67,7 @@ void CMOS::write_io8(uint32_t addr, uint32_t data)
 		data_addr = (data_addr & 0xff00) | data;
 		break;
 	case 0xfa:
-		if(data_buffer[data_addr & ADDR_MASK] != data) {
+		if(!read_only && data_buffer[data_addr & ADDR_MASK] != data) {
 			data_buffer[data_addr & ADDR_MASK] = data;
 			modified = true;
 		}

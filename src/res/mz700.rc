@@ -196,6 +196,8 @@ BEGIN
             MENUITEM "Play CMT Noise",          ID_VM_SOUND_NOISE_CMT
             MENUITEM "Play CMT Signal",         ID_VM_SOUND_TAPE_SIGNAL
             MENUITEM "Play CMT Voice",          ID_VM_SOUND_TAPE_VOICE
+            MENUITEM SEPARATOR
+            MENUITEM "CMU-800",                 ID_VM_SOUND_CMU800
         END
         POPUP "Display"
         BEGIN

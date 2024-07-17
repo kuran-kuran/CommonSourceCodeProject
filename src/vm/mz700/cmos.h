@@ -21,6 +21,7 @@ class CMOS : public DEVICE
 private:
 	uint8_t *data_buffer;
 	uint32_t data_addr;
+	bool read_only;
 	bool modified;
 	
 public:
