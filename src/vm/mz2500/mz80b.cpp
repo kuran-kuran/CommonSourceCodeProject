@@ -167,6 +167,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	cmu800->set_context_event(event);
 
 	MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
+	mz80k_sd->set_context_midi(midi);
 	mz2000sd->set_context_mz80k_sd(mz80k_sd);
 
 #ifdef SUPPORT_QUICK_DISK

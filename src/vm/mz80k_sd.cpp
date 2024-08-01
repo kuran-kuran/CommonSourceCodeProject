@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include "mz80k_sd.h"
+#include "midi.h"
 
 void MZ80K_SD::initialize()
 {
@@ -1242,7 +1243,7 @@ void MZ80K_SD::SendMidi(void)
 	{
 		byte data = rcv1byte();
 		// todo To MIDI
-//		Serial.write(data);
+		d_midi->write_signal(SIG_MIDI_OUT, data, 0xFF);
 	}
 }
 
