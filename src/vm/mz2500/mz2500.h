@@ -95,6 +95,7 @@ class MEMORY;
 class MOUSE;
 class MZ1E26;
 class MZ1E30;
+class MZ1R12;
 class MZ1R13;
 class MZ1R37;
 class PRINTER;
@@ -136,6 +137,7 @@ protected:
 	MOUSE* mouse;
 	MZ1E26* mz1e26;
 	MZ1E30* mz1e30;
+	MZ1R12* mz1r12;
 	MZ1R13* mz1r13;
 	MZ1R37* mz1r37;
 	PRINTER* printer;

@@ -118,6 +118,10 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #else
+	if((config.dipswitch & 16) && fio->Fopen(create_local_path(_T("MZ80K_SD.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ext, 0x800, 1);
+		fio->Fclose();
+	}
 	if((config.dipswitch & 8) && fio->Fopen(create_local_path(_T("MZ1R12.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(ext, 0x800, 1);
 		fio->Fclose();
