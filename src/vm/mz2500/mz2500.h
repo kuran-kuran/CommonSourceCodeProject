@@ -47,6 +47,7 @@
 #define USE_SCANLINE
 #define USE_SOUND_VOLUME	7
 #define USE_JOYSTICK
+#define USE_JOYSTICK_TYPE   8
 #define USE_MOUSE
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
@@ -54,6 +55,7 @@
 #define USE_STATE
 #define USE_MIDI
 #define USE_CMU800
+#define USE_SD_DONGLE
 
 #include "../../common.h"
 #include "../../fileio.h"

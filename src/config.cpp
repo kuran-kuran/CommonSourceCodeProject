@@ -460,7 +460,7 @@ void load_config(const _TCHAR* config_path)
 		config.cmu800_tempo = MyGetPrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
 	#endif
 	// sd card
-	#ifdef USE_MZ80K_SD
+	#if defined(USE_MZ80K_SD) || defined(USE_SD_DONGLE)
 		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(_T("")), config.sdcard_path, _MAX_PATH, config_path);
 	#endif
 }
@@ -709,7 +709,7 @@ void save_config(const _TCHAR* config_path)
 		MyWritePrivateProfileInt(_T("Cmu800Midi"), _T("Tempo"), config.cmu800_tempo, config_path);
 	#endif
 	// sd card
-	#ifdef USE_MZ80K_SD
+	#if defined(USE_MZ80K_SD) || defined(USE_SD_DONGLE)
 		MyWritePrivateProfileString(_T("SDCard"), _T("SDCardPath"), config.sdcard_path, config_path);
 	#endif
 

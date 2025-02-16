@@ -249,7 +249,7 @@ typedef struct {
 	#endif
 
 	// sd card
-	#if defined(USE_MZ80K_SD)
+	#if defined(USE_MZ80K_SD) || defined(USE_SD_DONGLE)
 		_TCHAR sdcard_path[_MAX_PATH];
 	#endif
 
