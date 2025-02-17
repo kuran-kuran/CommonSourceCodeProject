@@ -231,7 +231,7 @@
     <ClCompile Include="..\src\win32\osd_midi.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\SD_dongle.cpp">
+    <ClCompile Include="..\src\vm\sd_dongle.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -416,7 +416,7 @@
     <ClInclude Include="..\src\vm\cmu800.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\SD_dongle.h">
+    <ClInclude Include="..\src\vm\sd_dongle.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
   </ItemGroup>

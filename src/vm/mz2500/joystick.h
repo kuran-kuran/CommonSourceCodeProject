@@ -13,12 +13,14 @@
 #include "../vm.h"
 #include "../../emu.h"
 #include "../device.h"
+#include "../sd_dongle.h"
 
 class JOYSTICK : public DEVICE
 {
 private:
 	uint32_t mode;
 	const uint32_t* joy_stat;
+	SDDONGLE* d_sdDongle;
 public:
 	JOYSTICK(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
@@ -31,6 +33,12 @@ public:
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
 	bool process_state(FILEIO* state_fio, bool loading);
+
+	// unique function
+	void set_context_sdDongle(DEVICE* device)
+	{
+		d_sdDongle = device;
+	}
 };
 
 #endif

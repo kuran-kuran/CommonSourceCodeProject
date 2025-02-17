@@ -104,6 +104,7 @@ class PRINTER;
 class SERIAL;
 class TIMER;
 class CMU800;
+class SDDONGLE;
 
 class VM : public VM_TEMPLATE
 {

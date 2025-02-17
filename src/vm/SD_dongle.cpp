@@ -17,13 +17,13 @@
 #include "SD_dongle.h"
 #include "midi.h"
 
-void SD_dongle::initialize()
+void SDDONGLE::initialize()
 {
 	terminate = false;
 	initialized = false;
 }
 
-void SD_dongle::release()
+void SDDONGLE::release()
 {
 	if(initialized == false)
 	{
@@ -41,7 +41,7 @@ void SD_dongle::release()
 	initialized = false;
 }
 
-void SD_dongle::reset()
+void SDDONGLE::reset()
 {
 	release();
 	terminate = false;
@@ -57,18 +57,18 @@ void SD_dongle::reset()
 	ResetEvent(signalTransfer);
 	rcvComplete = false;
 	setup();
-	hSD_dongleThread = (HANDLE)_beginthreadex(NULL, 0, SD_dongle::loop_thread, this, 0, NULL);
+	hSD_dongleThread = (HANDLE)_beginthreadex(NULL, 0, SDDONGLE::loop_thread, this, 0, NULL);
 	initialized = true;
 }
 
-void SD_dongle::digitalWrite(int pin, int data, int from)
+void SDDONGLE::digitalWrite(int pin, int data, int from)
 {
 	EnterCriticalSection(&cs[pin]);
 	gpio[pin] = data & 1;
 	LeaveCriticalSection(&cs[pin]);
 }
 
-int SD_dongle::digitalRead(int pin, int from)
+int SDDONGLE::digitalRead(int pin, int from)
 {
 	if(terminate == true)
 	{
@@ -80,13 +80,13 @@ int SD_dongle::digitalRead(int pin, int from)
 	return data;
 }
 
-void SD_dongle::setFlg(bool flag)
+void SDDONGLE::setFlg(bool flag)
 {
 	digitalWrite(CHKPIN, flag, 1);
 	SetEvent(signalEmuToThread);
 }
 
-bool SD_dongle::getChk()
+bool SDDONGLE::getChk()
 {
 	WaitForSingleObject(signalThreadToEmu, INFINITE);
 	bool chk = digitalRead(FLGPIN, 1) == 1;
@@ -97,8 +97,8 @@ bool SD_dongle::getChk()
 	return chk;
 }
 
-void SD_dongle::sdinit(void){
-  // SDåˆæœŸåŒ–
+void SDDONGLE::sdinit(void){
+  // SD‰Šú‰»
 //  if( !SD.begin(CABLESELECTPIN,8) )
 //  {
 ////    Serial.println("Failed : SD.begin");
@@ -110,7 +110,7 @@ void SD_dongle::sdinit(void){
 ////    Serial.println("START");
 }
 
-void SD_dongle::setup()
+void SDDONGLE::setup()
 {
 ////  Serial.begin(9600);
 // CS=pin10
@@ -118,12 +118,12 @@ void SD_dongle::setup()
 /*
 	pinMode(CABLESELECTPIN,OUTPUT);
 	pinMode( CHKPIN,INPUT);  //CHK
-	pinMode( PB2PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿
-	pinMode( PB3PIN,OUTPUT); //é€ä¿¡ãƒ‡ãƒ¼ã‚¿
+	pinMode( PB2PIN,OUTPUT); //‘—Mƒf[ƒ^
+	pinMode( PB3PIN,OUTPUT); //‘—Mƒf[ƒ^
 	pinMode( FLGPIN,OUTPUT); //FLG
 
-	pinMode( PA0PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿
-	pinMode( PA1PIN,INPUT_PULLUP); //å—ä¿¡ãƒ‡ãƒ¼ã‚¿
+	pinMode( PA0PIN,INPUT_PULLUP); //óMƒf[ƒ^
+	pinMode( PA1PIN,INPUT_PULLUP); //óMƒf[ƒ^
 
 	digitalWrite(PB2PIN,LOW);
 	digitalWrite(PB3PIN,LOW);
@@ -137,25 +137,29 @@ void SD_dongle::setup()
 	sdinit();
 }
 
-//2BITå—ä¿¡
-byte SD_dongle::rcv2bit(void)
+//2BITóM
+byte SDDONGLE::rcv2bit(void)
 {
-//LOWã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
-	while(digitalRead(CHKPIN) != LOW){
+//LOW‚É‚È‚é‚Ü‚Åƒ‹[ƒv
+	WaitForSingleObject(signalEmuToThread, INFINITE);
+	if(terminate == true) {
+		throw _T("terminate");
 	}
-//å—ä¿¡
+//	while(digitalRead(CHKPIN) != LOW){
+//	}
+//óM
 	byte j_data = digitalRead(PA0PIN)+digitalRead(PA1PIN)*2;
-//FLGã‚’ã‚»ãƒƒãƒˆ
+//FLG‚ğƒZƒbƒg
 	digitalWrite(FLGPIN,LOW);
 	SetEvent(signalThreadToEmu);
-//HIGHã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
+//HIGH‚É‚È‚é‚Ü‚Åƒ‹[ƒv
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
 		throw _T("terminate");
 	}
 //	while(digitalRead(CHKPIN) == LOW){
 //	}
-//FLGã‚’ãƒªã‚»ãƒƒãƒˆ
+//FLG‚ğƒŠƒZƒbƒg
 	ResetEvent(signalTransfer);
 	rcvComplete = true;
 	digitalWrite(FLGPIN,HIGH);
@@ -164,8 +168,8 @@ byte SD_dongle::rcv2bit(void)
 	return(j_data);
 }
 
-//1BYTEå—ä¿¡
-byte SD_dongle::rcv1byte(void)
+//1BYTEóM
+byte SDDONGLE::rcv1byte(void)
 {
 	if (sendMode == 1)
 	{
@@ -180,37 +184,38 @@ byte SD_dongle::rcv1byte(void)
 	return(~i_data);
 }
 
-//2BITé€ä¿¡
+//2BIT‘—M
 // todo
-void SD_dongle::snd2bit(byte j_data)
+void SDDONGLE::snd2bit(byte j_data)
 {
 	digitalWrite(PB2PIN,(j_data)&0x01);
 	digitalWrite(PB3PIN,(j_data>>1)&0x01);
-//FLGã‚’ã‚»ãƒƒãƒˆ
+//FLG‚ğƒZƒbƒg
 	digitalWrite(FLGPIN,LOW);
-//LOWã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
+	SetEvent(signalThreadToEmu);
+//LOW‚É‚È‚é‚Ü‚Åƒ‹[ƒv
 //	while(digitalRead(CHKPIN) != LOW){
 //	}
-	SetEvent(signalThreadToEmu);
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
 		throw _T("terminate");
 	}
 	digitalWrite(FLGPIN,HIGH);
 	SetEvent(signalThreadToEmu);
-//HIGHã«ãªã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ—
+//HIGH‚É‚È‚é‚Ü‚Åƒ‹[ƒv
 //	while(digitalRead(CHKPIN) == LOW){
 //	}
 	WaitForSingleObject(signalEmuToThread, INFINITE);
 	if(terminate == true) {
 		throw _T("terminate");
 	}
-//FLGã‚’ãƒªã‚»ãƒƒãƒˆ
+//FLG‚ğƒŠƒZƒbƒg
 	digitalWrite(FLGPIN,HIGH);
+	SetEvent(signalThreadToEmu);
 }
 
-//1BYTEé€ä¿¡
-void SD_dongle::snd1byte(byte i_data)
+//1BYTE‘—M
+void SDDONGLE::snd1byte(byte i_data)
 {
 	if (sendMode == 2)
 	{
@@ -223,23 +228,23 @@ void SD_dongle::snd1byte(byte i_data)
 	sendMode = 1;
 }
 
-//SDã‚«ãƒ¼ãƒ‰ã‹ã‚‰èª­è¾¼
-void SD_dongle::f_load(void)
+//SDƒJ[ƒh‚©‚ç“Ç
+void SDDONGLE::f_load(void)
 {
 	int wk1 = 0;
 	unsigned int lp1;
-//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾—
+//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
 	receive_name(f_name);
-//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã‘ã‚Œã°ERROR
+//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¯‚ê‚ÎERROR
 	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³
+//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
 		FILEIO* file = new FILEIO();
 		bool result = file->Fopen( create_sdcard_path(f_name), FILEIO_READ_BINARY );
 		if( true == result ){
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 			snd1byte(0x00);
 
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºå–å¾—
+//ƒtƒ@ƒCƒ‹ƒTƒCƒYæ“¾
 			f_length = file->FileLength();
 			f_length2 = f_length % 256;
 			f_length1 = f_length / 256;
@@ -247,7 +252,7 @@ void SD_dongle::f_load(void)
 			snd1byte(f_length1);
 
 			if(rcv1byte()==0x00){
-//ãƒ‡ãƒ¼ã‚¿é€ä¿¡
+//ƒf[ƒ^‘—M
 				if(f_length>0){
 					for (lp1 = 1;lp1 <= f_length;lp1++){
 						wk1 = file->Fgetc();
@@ -258,46 +263,46 @@ void SD_dongle::f_load(void)
 			file->Fclose();
 			sdinit();
 		} else {
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
+//ó‘ÔƒR[ƒh‘—M(ERROR)
 			snd1byte(0xFF);
 			sdinit();
 		}
 	} else {
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(FILE NOT FIND ERROR)
+//ó‘ÔƒR[ƒh‘—M(FILE NOT FIND ERROR)
 		snd1byte(0xF1);
 		sdinit();
 	}
 }
 
-//SDã‚«ãƒ¼ãƒ‰ã«æ›¸ãè¾¼ã¿
-void SD_dongle::f_save(void)
+//SDƒJ[ƒh‚É‘‚«‚İ
+void SDDONGLE::f_save(void)
 {
 	int wk1 = 0;
 	unsigned long lp1,fmode,s_adrs,s_adrs1,s_adrs2,g_adrs,g_adrs1,g_adrs2;
 	std::string buf11,buf22;
-//ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å–å¾—
+//ƒtƒ@ƒCƒ‹ƒl[ƒ€æ“¾
 	receive_name(f_name);
 
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚¿ã‚¤ãƒ—å–å¾—
+//ƒtƒ@ƒCƒ‹ƒ^ƒCƒvæ“¾
 	fmode = rcv1byte();
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºå–å¾—
+//ƒtƒ@ƒCƒ‹ƒTƒCƒYæ“¾
 	f_length1 = rcv1byte();
 	f_length2 = rcv1byte();
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºç®—å‡º
+//ƒtƒ@ƒCƒ‹ƒTƒCƒYZo
 	f_length = f_length1*256+f_length2;
-//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾—
+//ƒXƒ^[ƒgƒAƒhƒŒƒXæ“¾
 	s_adrs1 = rcv1byte();
 	s_adrs2 = rcv1byte();
-//ã‚¹ã‚¿ãƒ¼ãƒˆã‚¢ãƒ‰ãƒ¬ã‚¹ç®—å‡º
+//ƒXƒ^[ƒgƒAƒhƒŒƒXZo
 	s_adrs = s_adrs1*256+s_adrs2;
-//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹å–å¾—
+//ÀsƒAƒhƒŒƒXæ“¾
 	g_adrs1 = rcv1byte();
 	g_adrs2 = rcv1byte();
-//å®Ÿè¡Œã‚¢ãƒ‰ãƒ¬ã‚¹ç®—å‡º
+//ÀsƒAƒhƒŒƒXZo
 	g_adrs = g_adrs1*256+g_adrs2;
 	std::string fname = f_name;
 
-//fmodeã«ã‚ˆã‚Šãƒ•ã‚¡ã‚¤ãƒ«åä¿®æ­£
+//fmode‚É‚æ‚èƒtƒ@ƒCƒ‹–¼C³
 	switch(fmode){
 	case 1:
 		sprintf(buf1,"%04x",s_adrs);
@@ -316,15 +321,15 @@ void SD_dongle::f_save(void)
 		break;
 	}
 
-//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã™ã‚Œã°delete
+//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚·‚ê‚Îdelete
 	if (FILEIO::IsFileExisting(create_sdcard_path(f_name)) == true){
 			FILEIO::RemoveFile(create_sdcard_path(f_name));
 	}
-//ãƒ•ã‚¡ã‚¤ãƒ«ã‚ªãƒ¼ãƒ—ãƒ³
+//ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“
 	FILEIO* file = new FILEIO();
 	bool result = file->Fopen( create_sdcard_path(f_name), FILEIO_WRITE_BINARY );
 	if( true == result ){
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 		snd1byte(0x00);
 		if(rcv1byte()==0x00){
 			if(f_length>0){
@@ -336,14 +341,14 @@ void SD_dongle::f_save(void)
 		}
 		file->Fclose();
 	} else {
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
+//ó‘ÔƒR[ƒh‘—M(ERROR)
 		snd1byte(0xFF);
 		sdinit();
 	}
 }
 
-//æ¯”è¼ƒæ–‡å­—åˆ—å–å¾— 32+1æ–‡å­—ã¾ã§å–å¾—ã€ãŸã ã—ãƒ€ãƒ–ãƒ«ã‚³ãƒ¼ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ã¯ç„¡è¦–ã™ã‚‹
-void SD_dongle::receive_name(char *f_name)
+//”äŠr•¶š—ñæ“¾ 32+1•¶š‚Ü‚Åæ“¾A‚½‚¾‚µƒ_ƒuƒ‹ƒR[ƒe[ƒVƒ‡ƒ“‚Í–³‹‚·‚é
+void SDDONGLE::receive_name(char *f_name)
 {
 	char r_data;
 	unsigned int lp2 = 0;
@@ -356,9 +361,9 @@ void SD_dongle::receive_name(char *f_name)
 	}
 }
 
-//f_nameã¨c_nameã‚’c_nameã«0x00ãŒå‡ºã‚‹ã¾ã§æ¯”è¼ƒ
+//f_name‚Æc_name‚ğc_name‚É0x00‚ªo‚é‚Ü‚Å”äŠr
 //FILENAME COMPARE
-bool SD_dongle::f_match(char *f_name,char *c_name)
+bool SDDONGLE::f_match(char *f_name,char *c_name)
 {
 	bool flg1 = true;
 	unsigned int lp1 = 0;
@@ -374,8 +379,8 @@ bool SD_dongle::f_match(char *f_name,char *c_name)
 	return flg1;
 }
 
-//å°æ–‡å­—->å¤§æ–‡å­—
-char SD_dongle::upper(char c)
+//¬•¶š->‘å•¶š
+char SDDONGLE::upper(char c)
 {
 	if('a' <= c && c <= 'z'){
 		c = c - ('a' - 'A');
@@ -383,8 +388,8 @@ char SD_dongle::upper(char c)
 	return c;
 }
 
-// charã‹ã‚‰_TCHARã«å¤‰æ›
-_TCHAR* SD_dongle::create_tchar_text(char* text)
+// char‚©‚ç_TCHAR‚É•ÏŠ·
+_TCHAR* SDDONGLE::create_tchar_text(char* text)
 {
 	static _TCHAR temp_text[_MAX_PATH];
 #ifdef _UNICODE
@@ -397,8 +402,8 @@ _TCHAR* SD_dongle::create_tchar_text(char* text)
 	return temp_text;
 }
 
-// charã‹ã‚‰_TCHARã«å¤‰æ›
-char* SD_dongle::create_char_text(const _TCHAR* text)
+// char‚©‚ç_TCHAR‚É•ÏŠ·
+char* SDDONGLE::create_char_text(const _TCHAR* text)
 {
 	static char char_temp[_MAX_PATH];
 #ifdef _UNICODE
@@ -409,8 +414,8 @@ char* SD_dongle::create_char_text(const _TCHAR* text)
 	return char_temp;
 }
 
-// SDã‚«ãƒ¼ãƒ‰ã®ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ä½œæˆ
-_TCHAR* SD_dongle::create_sdcard_path(char* f_name)
+// SDƒJ[ƒh‚Ìƒtƒ@ƒCƒ‹ƒpƒXì¬
+_TCHAR* SDDONGLE::create_sdcard_path(char* f_name)
 {
 #ifdef _UNICODE
 	my_tcscpy_s(sdcard_path, config.sdcard_path);
@@ -422,31 +427,31 @@ _TCHAR* SD_dongle::create_sdcard_path(char* f_name)
 	return sdcard_path;
 }
 
-// SD-CARDã®FILELIST
-void SD_dongle::dirlist(void)
+// SD-CARD‚ÌFILELIST
+void SDDONGLE::dirlist(void)
 {
-//æ¯”è¼ƒæ–‡å­—åˆ—å–å¾— 32+1æ–‡å­—ã¾ã§
+//”äŠr•¶š—ñæ“¾ 32+1•¶š‚Ü‚Å
 	receive_name(c_name);
 	FILEIO* file = new FILEIO();
 //	File file2 = SD.open( "/" );
 	if( file != NULL ){
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 		snd1byte(0x00);
 
 		bool entry = file->FindFirst(create_sdcard_path("\\*.mzt"));
 		int cntl2 = 0;
 		unsigned int br_chk =0;
 		int page = 1;
-//å…¨ä»¶å‡ºåŠ›ã®å ´åˆã«ã¯10ä»¶å‡ºåŠ›ã—ãŸã¨ã“ã‚ã§ä¸€æ™‚åœæ­¢ã€ã‚­ãƒ¼å…¥åŠ›ã«ã‚ˆã‚Šç¶™ç¶šã€æ‰“ã¡åˆ‡ã‚Šã‚’é¸æŠ
+//‘SŒo—Í‚Ìê‡‚É‚Í10Œo—Í‚µ‚½‚Æ‚±‚ë‚Åˆê’â~AƒL[“ü—Í‚É‚æ‚èŒp‘±A‘Å‚¿Ø‚è‚ğ‘I‘ğ
 		while (br_chk == 0) {
 			if(entry){
 				const char* name = create_char_text(file->FindFile());
 				strncpy(f_name, name, 36);
 				unsigned int lp1=0;
-//ä¸€ä»¶é€ä¿¡
-//æ¯”è¼ƒæ–‡å­—åˆ—ã§ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ ã‚’å…ˆé ­ã‹ã‚‰æ¯”è¼ƒã—ã¦ä¸€è‡´ã™ã‚‹ã‚‚ã®ã ã‘ã‚’å‡ºåŠ›
+//ˆêŒ‘—M
+//”äŠr•¶š—ñ‚Åƒtƒ@ƒCƒ‹ƒl[ƒ€‚ğæ“ª‚©‚ç”äŠr‚µ‚Äˆê’v‚·‚é‚à‚Ì‚¾‚¯‚ğo—Í
 				if (f_match(f_name,c_name)){
-//sdir[]ã«f_nameã‚’ä¿å­˜
+//sdir[]‚Éf_name‚ğ•Û‘¶
 					strcpy(sdir[cntl2],f_name);
 					snd1byte(0x30+cntl2);
 					snd1byte(0x20);
@@ -458,29 +463,29 @@ void SD_dongle::dirlist(void)
 					cntl2++;
 				}
 			}
-// CNTL2 > è¡¨ç¤ºä»¶æ•°-1
+// CNTL2 > •\¦Œ”-1
 			if (!entry || cntl2 > 9){
-//ç¶™ç¶šãƒ»æ‰“ã¡åˆ‡ã‚Šé¸æŠæŒ‡ç¤ºè¦æ±‚
+//Œp‘±E‘Å‚¿Ø‚è‘I‘ğw¦—v‹
 				snd1byte(0xfe);
 
-//é¸æŠæŒ‡ç¤ºå—ä¿¡(0:ç¶™ç¶š B:å‰ãƒšãƒ¼ã‚¸ ä»¥å¤–:æ‰“ã¡åˆ‡ã‚Š)
+//‘I‘ğw¦óM(0:Œp‘± B:‘Oƒy[ƒW ˆÈŠO:‘Å‚¿Ø‚è)
 				br_chk = rcv1byte();
-//å‰ãƒšãƒ¼ã‚¸å‡¦ç†
+//‘Oƒy[ƒWˆ—
 				if (br_chk==0x42 || br_chk==0x62){
-//å…ˆé ­ãƒ•ã‚¡ã‚¤ãƒ«ã¸
+//æ“ªƒtƒ@ƒCƒ‹‚Ö
 					file->FindRrewind();
-//entryå€¤æ›´æ–°
+//entry’lXV
 					entry = file->FindNext();
-//ã‚‚ã†ä¸€åº¦å…ˆé ­ãƒ•ã‚¡ã‚¤ãƒ«ã¸
+//‚à‚¤ˆê“xæ“ªƒtƒ@ƒCƒ‹‚Ö
 					file->FindRrewind();
 					if(page <= 2){
-//ç¾åœ¨ãƒšãƒ¼ã‚¸ãŒ1ãƒšãƒ¼ã‚¸åˆã¯2ãƒšãƒ¼ã‚¸ãªã‚‰1ãƒšãƒ¼ã‚¸ç›®ã«æˆ»ã‚‹å‡¦ç†
+//Œ»İƒy[ƒW‚ª1ƒy[ƒW–”‚Í2ƒy[ƒW‚È‚ç1ƒy[ƒW–Ú‚É–ß‚éˆ—
 						page = 0;
 					} else {
-//ç¾åœ¨ãƒšãƒ¼ã‚¸ãŒ3ãƒšãƒ¼ã‚¸ä»¥é™ãªã‚‰å‰ã€…ãƒšãƒ¼ã‚¸ã¾ã§ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿é£›ã°ã™
+//Œ»İƒy[ƒW‚ª3ƒy[ƒWˆÈ~‚È‚ç‘OXƒy[ƒW‚Ü‚Å‚Ìƒtƒ@ƒCƒ‹‚ğ“Ç‚İ”ò‚Î‚·
 						page = page -2;
 						cntl2=0;
-//page*è¡¨ç¤ºä»¶æ•°
+//page*•\¦Œ”
 						while(cntl2 < page*10){
 							entry = file->FindNext();
 							if (f_match(f_name,c_name)){
@@ -490,7 +495,7 @@ void SD_dongle::dirlist(void)
 					}
 					br_chk=0;
 				}
-//1ï½0ã¾ã§ã®æ•°å­—ã‚­ãƒ¼ãŒæŠ¼ã•ã‚ŒãŸã‚‰sdir[]ã‹ã‚‰è©²å½“ã™ã‚‹ãƒ•ã‚¡ã‚¤ãƒ«åã‚’é€ä¿¡
+//1`0‚Ü‚Å‚Ì”šƒL[‚ª‰Ÿ‚³‚ê‚½‚çsdir[]‚©‚çŠY“–‚·‚éƒtƒ@ƒCƒ‹–¼‚ğ‘—M
 				if(br_chk>=0x30 && br_chk<=0x39){
 					bool result = file->Fopen( sdir[br_chk-0x30], FILEIO_READ_BINARY );
 					if( result == true ){
@@ -507,69 +512,69 @@ void SD_dongle::dirlist(void)
 				page++;
 				cntl2 = 0;
 			}
-//ãƒ•ã‚¡ã‚¤ãƒ«ãŒã¾ã ã‚ã‚‹ãªã‚‰æ¬¡èª­ã¿è¾¼ã¿ã€ãªã‘ã‚Œã°æ‰“ã¡åˆ‡ã‚ŠæŒ‡ç¤º
+//ƒtƒ@ƒCƒ‹‚ª‚Ü‚¾‚ ‚é‚È‚çŸ“Ç‚İ‚İA‚È‚¯‚ê‚Î‘Å‚¿Ø‚èw¦
 			if (entry){
 				entry = file->FindNext();
 			}else{
 				br_chk=1;
 			}
 		}
-//å‡¦ç†çµ‚äº†æŒ‡ç¤º
+//ˆ—I—¹w¦
 		snd1byte(0x00);
 	}else{
 		snd1byte(0xf1);
 	}
 }
 
-void SD_dongle::loop()
+void SDDONGLE::loop()
 {
 	digitalWrite(PB2PIN,LOW);
 	digitalWrite(PB3PIN,LOW);
 	digitalWrite(FLGPIN,LOW);
-//ã‚³ãƒãƒ³ãƒ‰å–å¾—å¾…ã¡
+//ƒRƒ}ƒ“ƒhæ“¾‘Ò‚¿
 ////  Serial.print("cmd:");
 	byte cmd = rcv1byte();
 ////  Serial.println(cmd,HEX);
 	if (eflg == false){
 		switch(cmd) {
-//80hã§SDã‚«ãƒ¼ãƒ‰ã‹ã‚‰Load
+//80h‚ÅSDƒJ[ƒh‚©‚çLoad
 		case 0x80:
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 ////  Serial.println("LOAD START");
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 			snd1byte(0x00);
 			f_load();
 			break;
-//81hã§SDã‚«ãƒ¼ãƒ‰ã«save
+//81h‚ÅSDƒJ[ƒh‚Ésave
 		case 0x81:
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 ////  Serial.println("SAVE START");
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 			snd1byte(0x00);
 			f_save();
 			break;
-//82hã§SDã‚«ãƒ¼ãƒ‰ãƒ•ã‚¡ã‚¤ãƒ«ä¸€è¦§
+//82h‚ÅSDƒJ[ƒhƒtƒ@ƒCƒ‹ˆê——
 		case 0x82:
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 ////  Serial.println("SD DIR START");
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(OK)
+//ó‘ÔƒR[ƒh‘—M(OK)
 			snd1byte(0x00);
 			sdinit();
 			dirlist();
 			break;
 		default:
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(CMD ERROR)
+//ó‘ÔƒR[ƒh‘—M(CMD ERROR)
 			snd1byte(0xF4);
 		}
 	} else {
-//çŠ¶æ…‹ã‚³ãƒ¼ãƒ‰é€ä¿¡(ERROR)
+//ó‘ÔƒR[ƒh‘—M(ERROR)
 		snd1byte(0xF0);
 		sdinit();
 	}
 }
 
-// ãƒã‚¤ã‚¯ãƒ­ç§’å˜ä½ã§å¾…ã¤
-void SD_dongle::usleep(DWORD waitTime)
+// ƒ}ƒCƒNƒ•b’PˆÊ‚Å‘Ò‚Â
+void SDDONGLE::usleep(DWORD waitTime)
 {
 	LARGE_INTEGER perfCnt;
 	LARGE_INTEGER start;
@@ -583,9 +588,9 @@ void SD_dongle::usleep(DWORD waitTime)
 	while((now.QuadPart - start.QuadPart) / float(perfCnt.QuadPart) * 1000 * 1000 < waitTime);
 }
 
-unsigned __stdcall SD_dongle::loop_thread(void* param)
+unsigned __stdcall SDDONGLE::loop_thread(void* param)
 {
-	SD_dongle* sdDongle = (SD_dongle*)param;
+	SDDONGLE* sdDongle = (SDDONGLE*)param;
 	try
 	{
 		while(!sdDongle->terminate) {

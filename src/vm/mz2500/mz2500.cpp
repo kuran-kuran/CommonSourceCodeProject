@@ -33,6 +33,7 @@
 #include "../z80pio.h"
 #include "../z80sio.h"
 #include "../midi.h"
+#include "../sd_dongle.h"
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -108,6 +109,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	floppy = new FLOPPY(this, emu);
 	interrupt = new INTERRUPT(this, emu);
 	joystick = new JOYSTICK(this, emu);
+	if(config.joystick_type == 1)
+	{
+		SDDONGLE* sdDongle = new SDDONGLE(this, emu);
+		joystick->set_context_sdDongle(sdDongle);
+	}
 	keyboard = new KEYBOARD(this, emu);
 	memory = new MEMORY(this, emu);
 	mouse = new MOUSE(this, emu);

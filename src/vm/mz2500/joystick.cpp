@@ -17,11 +17,24 @@ void JOYSTICK::initialize()
 
 void JOYSTICK::write_io8(uint32_t addr, uint32_t data)
 {
+	if(config.joystick_type == 1) {
+		// SD-dongle
+		d_sdDongle->digitalWrite(0,0);
+	} else if(config.joystick_type == 2) {
+		return;
+	}
 	mode = data;
 }
 
 uint32_t JOYSTICK::read_io8(uint32_t addr)
 {
+	if(config.joystick_type == 1) {
+		// SD-dongle
+		d_sdDongle->digitalWrite(0,0);
+	} else if(config.joystick_type == 2) {
+		// –¢Ú‘±
+		return 0xFF;
+	}
 	uint32_t val = 0x3f;
 	int num = (mode & 0x40) ? 1 : 0;
 	bool dir = true;

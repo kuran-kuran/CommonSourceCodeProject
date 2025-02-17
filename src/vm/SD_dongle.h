@@ -29,7 +29,7 @@ typedef unsigned char byte;
 #define PA1PIN          (17)
 #define GPIO_CNT        (18)
 
-class SD_dongle : public DEVICE
+class SDDONGLE : public DEVICE
 {
 private:
 	outputs_t outputs;
@@ -39,7 +39,7 @@ private:
 	char sdir[10][40];
 	FILEIO* file;
 	unsigned long f_length,f_length2,f_length1;
-	// ãƒ•ã‚¡ã‚¤ãƒ«åã¯ã€ãƒ­ãƒ³ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ãƒãƒ¼ãƒ å½¢å¼å¯¾å¿œ
+	// ƒtƒ@ƒCƒ‹–¼‚ÍAƒƒ“ƒOƒtƒ@ƒCƒ‹ƒl[ƒ€Œ`®‘Î‰
 	bool eflg;
 	uint8_t gpio[GPIO_CNT];
 
@@ -75,13 +75,13 @@ private:
 	void usleep(DWORD waitTime);
 	static unsigned __stdcall loop_thread(void* param);
 public:
-	SD_dongle(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
+	SDDONGLE(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		initialize_output_signals(&outputs);
 		set_device_name(_T("SD_dongle"));
 		initialized = false;
 	}
-	~SD_dongle() {}
+	~SDDONGLE() {}
 
 	// common functions
 	void initialize();
