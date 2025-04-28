@@ -248,8 +248,8 @@ void SDDONGLE::f_load(void)
 			f_length = file->FileLength();
 			f_length2 = f_length % 256;
 			f_length1 = f_length / 256;
-			snd1byte(f_length2);
-			snd1byte(f_length1);
+			snd1byte((byte)f_length2);
+			snd1byte((byte)f_length1);
 
 			if(rcv1byte()==0x00){
 //データ送信

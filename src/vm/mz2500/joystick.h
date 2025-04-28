@@ -37,7 +37,7 @@ public:
 	// unique function
 	void set_context_sdDongle(DEVICE* device)
 	{
-		d_sdDongle = device;
+		d_sdDongle = (SDDONGLE*)device;
 	}
 };
 

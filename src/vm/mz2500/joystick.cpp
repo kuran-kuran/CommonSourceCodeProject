@@ -30,7 +30,7 @@ uint32_t JOYSTICK::read_io8(uint32_t addr)
 {
 	if(config.joystick_type == 1) {
 		// SD-dongle
-		d_sdDongle->digitalWrite(0,0);
+		return d_sdDongle->digitalRead(0,0);
 	} else if(config.joystick_type == 2) {
 		// –¢Ú‘±
 		return 0xFF;
