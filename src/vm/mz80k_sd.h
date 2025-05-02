@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Skelton for retropc emulator
 
 	Author : @yanatoku
@@ -55,6 +55,21 @@ private:
 	uint32_t concatSize;
 	bool eflg;
 	uint8_t gpio[GPIO_CNT];
+	// D88 image
+	char d88Name[40];
+	bool isD88State; // 0:未使用, 1:オープンしている
+	bool reverse;
+	FILEIO* d88File;
+	int seekInfoPointer;
+	int seekDataPointer;
+	int seekDataOffset;
+	char c;
+	char h;
+	char r;
+	char n;
+	short numberOfSector;
+	short sizeOfData;
+	short sectorsPerTrack;
 
 	// thread
 	HANDLE hMz80kSdThread;
@@ -78,6 +93,7 @@ private:
 	_TCHAR* create_tchar_text(char* text);
 	char* create_char_text(const _TCHAR* text);
 	_TCHAR* create_sdcard_path(char* f_name);
+	// MZ2000_SD標準Api
 	void f_save(void);
 	void f_load(void);
 	void astart(void);
@@ -92,6 +108,7 @@ private:
 	void mon_lhead(void);
 	void mon_ldata(void);
 	void boot(void);
+	// Concat Api
 	void ConcatFileOpen();
 	void ConcatFileRead();
 	void ConcatFileSkip();
@@ -99,7 +116,25 @@ private:
 	void ConcatFileTop();
 	void ConcatFileClose();
 	void ConcatFileState(void);
+	// MIDI Api
 	void SendMidi(void);
+	// D88 Api
+	bool D88Open(const char* path, bool r);
+	void D88Close(void);
+	void D88SetSectorsPerTrack(short num);
+	bool D88Seek(char track, char sector);
+	bool D88SeekLba(int lba);
+	int D88GetSectorSize(void);
+	unsigned char D88Read(void);
+	void D88Write(unsigned char data);
+	// D88 image
+	void d88FileList(void);
+	void d88OpenRead(void);
+	void d88OpenWrite(void);
+	void d88Close(void);
+	void d88ReadLba(void);
+	void d88WriteLba(void);
+	// メインループ
 	void loop();
 	static unsigned __stdcall loop_thread(void* param);
 public:

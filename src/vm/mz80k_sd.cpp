@@ -1,4 +1,4 @@
-/*
+﻿/*
 	Skelton for retropc emulator
 
 	Author : @yanatoku
@@ -20,10 +20,24 @@ void MZ80K_SD::initialize()
 	terminate = false;
 	initialized = false;
 	m_lop = 128;
+	// concat file
 	isConcatState = 0; // 0:not use, 1: opened
 	concatFile = NULL;
 	concatPos = 0;
 	concatSize = 0;
+	// D88 image
+	isD88State = false; // false:未使用, true:オープンしている
+	reverse = false;
+	seekInfoPointer = 0;
+	seekDataPointer = 0;
+	seekDataOffset = 0;
+	c = 0;
+	h = 0;
+	r = 0;
+	n = 0;
+	numberOfSector = 0;
+	sizeOfData = 0;
+	sectorsPerTrack = 0;
 }
 
 void MZ80K_SD::release()
@@ -1247,6 +1261,262 @@ void MZ80K_SD::SendMidi(void)
 	}
 }
 
+// D88関連イメージ処理
+bool MZ80K_SD::D88Open(const char* path, bool r)
+{
+	if(isD88State == 1) {
+		d88File->Fclose();
+	}
+	bool result = concatFile->Fopen( create_sdcard_path(concatName), FILEIO_READ_BINARY );
+	if(result == false) {
+		return false;
+	}
+	// 変数初期化
+	seekInfoPointer = 0;
+	seekDataPointer = 0;
+	seekDataOffset = 0;
+	c = 0;
+	h = 0;
+	r = 0;
+	n = 0;
+	numberOfSector = 0;
+	sizeOfData = 0;
+	sectorsPerTrack = 0;
+	// 最初のセクタにシークしてみる
+	D88Seek(0, 1);
+	sectorsPerTrack = numberOfSector;
+	reverse = r;
+	return true;
+}
+
+void MZ80K_SD::D88Close(void)
+{
+	concatFile->Fclose();
+}
+
+void MZ80K_SD::D88SetSectorsPerTrack(short num)
+{
+	sectorsPerTrack = num;
+}
+
+// track:  0 -
+// sector: 1 -
+bool MZ80K_SD::D88Seek(char track, char sector)
+{
+	int cyl = track / 2;
+	int hed = track % 2;
+	if(reverse == true)
+	{
+		hed = 1 - hed;
+	}
+	int seekTrack = cyl * 2 + hed;
+	int seek = 32 + seekTrack * 4;
+	unsigned char buffer;
+	d88File->Fseek(seek, FILEIO_SEEK_SET);
+	buffer = d88File->Fgetc();
+	int offset = (int)buffer;
+	buffer = d88File->Fgetc();
+	offset = offset | buffer << 8;
+	buffer = d88File->Fgetc();
+	offset = offset | buffer << 16;
+	buffer = d88File->Fgetc();
+	offset = offset | buffer << 24;
+	// offset: start of track
+	int i = 1;
+	for(;;)
+	{
+		// search sector
+		d88File->Fseek(offset, FILEIO_SEEK_SET);
+		c = d88File->Fgetc();
+		h = d88File->Fgetc();
+		r = d88File->Fgetc();
+		n = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		numberOfSector = buffer;
+		buffer = d88File->Fgetc();
+		numberOfSector = numberOfSector | buffer << 8;
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		buffer = d88File->Fgetc();
+		sizeOfData = buffer;
+		buffer = d88File->Fgetc();
+		sizeOfData = sizeOfData | buffer << 8;
+		if(r == sector)
+		{
+			break;
+		}
+		++ i;
+		if(i >= numberOfSector)
+		{
+			return false;
+		}
+		offset += 16;
+		offset += sizeOfData;
+	}
+	seekInfoPointer = offset;
+	seekDataPointer = offset + 16;
+	// seek data area
+	d88File->Fseek(seekDataPointer, FILEIO_SEEK_SET);
+	seekDataOffset = 0;
+	return true;
+}
+
+bool MZ80K_SD::D88SeekLba(int lba)
+{
+	int track = lba / sectorsPerTrack;
+	int sector = lba % sectorsPerTrack + 1;
+	return D88Seek(track, sector);
+}
+
+int MZ80K_SD::D88GetSectorSize(void)
+{
+	return (int)sizeOfData;
+}
+
+unsigned char MZ80K_SD::D88Read(void)
+{
+	if(seekDataOffset >= sizeOfData)
+	{
+		return 0;
+	}
+	unsigned char buffer = d88File->Fgetc();
+	++ seekDataOffset;
+	if(reverse == true)
+	{
+		buffer = buffer ^ 255;
+	}
+	return buffer;
+}
+
+void MZ80K_SD::D88Write(unsigned char data)
+{
+	if(seekDataOffset >= sizeOfData)
+	{
+		return;
+	}
+	d88File->Fputc(data);
+	++ seekDataOffset;
+}
+
+// D88ファイル一覧
+// 0E8h
+void MZ80K_SD::d88FileList(void)
+{
+}
+
+// D88読み込みOpen
+// 0E9h
+void MZ80K_SD::d88OpenRead(void)
+{
+	// ファイルネーム取得
+	for (unsigned int lp1 = 0; lp1 <= 32; lp1 ++)
+	{
+		d88Name[lp1] = rcv1byte();
+	}
+	addmzt(d88Name);
+	//ファイルオープン
+	if(D88Open(d88Name, true) == true)
+	{
+		//状態コード送信(OK)
+		snd1byte(0x00);
+		isD88State = 1; // オープンしている
+	}
+	else
+	{
+		// 状態コード送信(FILE NOT FIND ERROR)
+		snd1byte(0xF1);
+	}
+}
+
+// D88書き込みOpen
+// 0EAh
+void MZ80K_SD::d88OpenWrite(void)
+{
+	// ファイルネーム取得
+	for (unsigned int lp1 = 0; lp1 <= 32; lp1 ++)
+	{
+		d88Name[lp1] = rcv1byte();
+	}
+	addmzt(d88Name);
+	//ファイルオープン
+	if(D88Open(d88Name, true) == true)
+	{
+		//状態コード送信(OK)
+		snd1byte(0x00);
+		isD88State = 1; // オープンしている
+	}
+	else
+	{
+		// 状態コード送信(FILE NOT FIND ERROR)
+		snd1byte(0xF1);
+	}
+}
+
+// D88Close
+// 0EBh
+void MZ80K_SD::d88Close(void)
+{
+	if(isD88State == 0)
+	{
+		snd1byte(0xFF);
+		return;
+	}
+	else
+	{
+		D88Close();
+	}
+	isD88State = 0;
+	snd1byte(0x00);
+}
+
+// D88セクタ読み込み
+// 0ECh
+void MZ80K_SD::d88ReadLba(void)
+{
+	unsigned short lba = rcv1byte();
+	lba |= rcv1byte() * 256;
+	if(isConcatState == 0)
+	{
+		snd1byte(0xFF);
+		return;
+	}
+	D88SeekLba((int)lba);
+	for(int i = 0; i < 256; ++ i)
+	{
+		unsigned char data = D88Read();
+		snd1byte(data);
+	}
+	// 読み込み終了
+	snd1byte(0x00);
+}
+
+// D88セクタ書き込み
+// 0EDh
+void MZ80K_SD::d88WriteLba(void)
+{
+	unsigned short lba = rcv1byte();
+	lba |= rcv1byte() * 256;
+	if(isConcatState == 0)
+	{
+		snd1byte(0xFF);
+		return;
+	}
+	D88SeekLba((int)lba);
+	for(int i = 0; i < 256; ++ i)
+	{
+		unsigned char data = rcv1byte();
+		D88Write(data);
+	}
+	// 書き込み終了
+	snd1byte(0x00);
+}
+
 void MZ80K_SD::loop()
 {
 	try
@@ -1414,6 +1684,42 @@ void MZ80K_SD::loop()
 	//状態コード送信(OK)
 					snd1byte(0x00);
 					SendMidi();
+					break;
+
+	// 0E8hでD88ファイル一覧
+				case 0xE8:
+					snd1byte(0x00);
+					d88FileList();
+					break;
+
+	// 0E8hでD88ファイルを読み込みモードでオープン
+				case 0xE9:
+					snd1byte(0x00);
+					d88OpenRead();
+					break;
+
+	// 0E8hでD88ファイルを書き込みモードでオープン
+				case 0xEA:
+					snd1byte(0x00);
+					d88OpenWrite();
+					break;
+
+	// 0EBhでD88ファイルを閉じる
+				case 0xEB:
+					snd1byte(0x00);
+					d88Close();
+					break;
+
+	// 0EChでD88ファイルのセクタデータをLBA指定で読み込む
+				case 0xEC:
+					snd1byte(0x00);
+					d88ReadLba();
+					break;
+
+	// 0EDhでD88ファイルのセクタデータをLBA指定で書き込む
+				case 0xED:
+					snd1byte(0x00);
+					d88WriteLba();
 					break;
 
 				default:

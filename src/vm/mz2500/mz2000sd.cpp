@@ -72,6 +72,9 @@ uint32_t MZ2000_SD::read_io8(uint32_t addr)
 {
 	uint32_t result = 0xff;
 	switch(addr & 0xff) {
+	case 0xa0:
+		result = 13;
+		break;
 	case 0xa1:
 		// receive data (8bit) 
 		result = d_mz80ksd->digitalRead(PB0PIN);
