@@ -509,7 +509,11 @@ void MZ80K_SD::astart(void){
 }
 
 // SD-CARDのFILELIST
-void MZ80K_SD::dirlist(void){
+void MZ80K_SD::dirlist(char type){
+	const char* typeArray[2][2] = {
+		{"mzt", "MZT"},
+		{"d88", "D88"}
+	};
 //比較文字列取得 32+1文字まで 
 	for (unsigned int lp1 = 0;lp1 <= 32;lp1++){
 		c_name[lp1] = rcv1byte();
@@ -518,7 +522,7 @@ void MZ80K_SD::dirlist(void){
 	}
 //
 	FILEIO* file = new FILEIO();
-	bool entry = file->FindFirst(create_sdcard_path("\\*.mzt"));
+	bool entry = file->FindFirst(create_sdcard_path("\\*.*"));
 	int cntl2 = 0;
 	unsigned int br_chk =0;
 	int page = 1;
@@ -530,7 +534,7 @@ void MZ80K_SD::dirlist(void){
 			unsigned int lp1=0;
 //一件送信 
 //比較文字列でファイルネームを先頭10文字まで比較して一致するものだけを出力 
-			if (f_match(f_name,c_name)){
+			if (f_match(f_name,c_name) && (strstr(f_name, typeArray[type][0]) || strstr(f_name, typeArray[type][1]))){
 				while (lp1<=36 && f_name[lp1]!=0x00){
 					snd1byte(upper(f_name[lp1]));
 					lp1++;
@@ -1569,7 +1573,7 @@ void MZ80K_SD::loop()
 	////	Serial.println("FILE LIST START");
 	//状態コード送信(OK)
 					snd1byte(0x00);
-					dirlist();
+					dirlist(0);
 					break;
 	//84hでファイルDelete
 				case 0x84:
@@ -1689,7 +1693,7 @@ void MZ80K_SD::loop()
 	// 0E8hでD88ファイル一覧
 				case 0xE8:
 					snd1byte(0x00);
-					d88FileList();
+					dirlist(1);
 					break;
 
 	// 0E8hでD88ファイルを読み込みモードでオープン

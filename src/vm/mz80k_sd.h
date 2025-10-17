@@ -97,7 +97,7 @@ private:
 	void f_save(void);
 	void f_load(void);
 	void astart(void);
-	void dirlist(void);
+	void dirlist(char type);
 	bool f_match(char *f_name,char *c_name);
 	void f_del(void);
 	void f_ren(void);
