@@ -329,6 +329,7 @@ public:
 	void update_screen(HDC hdc);
 #endif
 	void capture_screen();
+	void capture_screen2(int num);
 	bool start_record_video(int fps);
 	void stop_record_video();
 	bool is_video_recording();

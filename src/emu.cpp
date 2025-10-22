@@ -1580,6 +1580,11 @@ void EMU::capture_screen()
 	osd->capture_screen();
 }
 
+void EMU::capture_screen2(int num)
+{
+	osd->capture_screen2(num);
+}
+
 bool EMU::start_record_video(int fps)
 {
 	return osd->start_record_video(fps);

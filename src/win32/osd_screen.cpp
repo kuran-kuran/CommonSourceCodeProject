@@ -1368,6 +1368,12 @@ void OSD::capture_screen()
 	write_bitmap_to_file(&vm_screen_buffer, create_date_file_path(_T("png")));
 }
 
+void OSD::capture_screen2(int num)
+{
+	//	write_bitmap_to_file(&vm_screen_buffer, create_date_file_path(_T("bmp")));
+	write_bitmap_to_file(&vm_screen_buffer, create_local_path(_T("%04d.png"), num));
+}
+
 bool OSD::start_record_video(int fps)
 {
 	if(fps > 0) {
@@ -1740,7 +1746,23 @@ void OSD::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 		// save as png file
 		CLSID encoderClsid;
 		if(GetEncoderClsid(L"image/png", &encoderClsid)) {
-			Bitmap image(bitmap->hBmp, (HPALETTE)GetStockObject(DEFAULT_PALETTE));
+			Bitmap original(bitmap->hBmp, (HPALETTE)GetStockObject(DEFAULT_PALETTE));
+			Bitmap image(320, 200, original.GetPixelFormat());
+//			Graphics graphics(&image);
+//			graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+//			graphics.DrawImage(&original, 0, 0, 320, 200);
+			for(UINT y = 0; y < 200; ++ y)
+			{
+				for(UINT x = 0; x < 320; ++ x)
+				{
+					// 元画像の対応するピクセル位置を計算
+					UINT srcX = x * original.GetWidth() / 320;
+					UINT srcY = y * original.GetHeight() / 200;
+					Color color;
+					original.GetPixel(srcX, srcY, &color);
+					image.SetPixel(x, y, color);
+				}
+			}
 #ifdef _UNICODE
 			image.Save(file_path, &encoderClsid, NULL);
 #else
@@ -1751,4 +1773,3 @@ void OSD::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 		}
 	}
 }
-

@@ -65,6 +65,7 @@ private:
 	bool width80, reverse;
 	bool vgate;
 	bool hblank;
+	int32_t capture_screen_num;
 	
 #ifdef _MZ80B
 	// PIO-3039
@@ -112,6 +113,8 @@ public:
 	void load_dat_image(const _TCHAR* file_path);
 	bool load_mzt_image(const _TCHAR* file_path);
 	void draw_screen();
+
+	void get_gvram(uint8_t* buffer, uint32_t size);
 };
 
 #endif
