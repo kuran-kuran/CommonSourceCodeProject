@@ -1371,7 +1371,12 @@ void OSD::capture_screen()
 void OSD::capture_screen2(int num)
 {
 	//	write_bitmap_to_file(&vm_screen_buffer, create_date_file_path(_T("bmp")));
-	write_bitmap_to_file(&vm_screen_buffer, create_local_path(_T("%04d.png"), num));
+	write_bitmap_to_file(&vm_screen_buffer, create_local_path(_T("output\\%04d.png"), num));
+}
+
+void OSD::set_png_to_vram(uint8_t* vram, int num)
+{
+	set_file_to_vram(vram, create_local_path(_T("input\\%04d.png"), num));
 }
 
 bool OSD::start_record_video(int fps)
@@ -1751,10 +1756,8 @@ void OSD::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 //			Graphics graphics(&image);
 //			graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
 //			graphics.DrawImage(&original, 0, 0, 320, 200);
-			for(UINT y = 0; y < 200; ++ y)
-			{
-				for(UINT x = 0; x < 320; ++ x)
-				{
+			for(UINT y = 0; y < 200; ++ y) {
+				for(UINT x = 0; x < 320; ++ x) {
 					// 元画像の対応するピクセル位置を計算
 					UINT srcX = x * original.GetWidth() / 320;
 					UINT srcY = y * original.GetHeight() / 200;
@@ -1770,6 +1773,45 @@ void OSD::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 			MultiByteToWideChar(CP_ACP, 0, file_path, -1, wszFilePath, _MAX_PATH);
 			image.Save(wszFilePath, &encoderClsid, NULL);
 #endif
+		}
+	}
+}
+
+void OSD::set_file_to_vram(uint8_t* vram, const _TCHAR *file_path)
+{
+#ifdef _UNICODE
+	Bitmap png(file_path);
+#else
+	WCHAR wszFilePath[_MAX_PATH];
+	MultiByteToWideChar(CP_ACP, 0, file_path, -1, wszFilePath, _MAX_PATH);
+	Bitmap png(wszFilePath);
+#endif
+	if(png.GetLastStatus() != Ok) {
+		return;
+	}
+	int index = 0;
+	for(UINT y = 0; y < 200; ++ y) {
+		for(UINT x = 0; x < 320; x += 8) {
+			uint8_t byte = 0;
+			for(UINT xx = 0; xx < 8; ++ xx) {
+				// 元画像の対応するピクセル位置を計算
+				UINT srcX = x * png.GetWidth() / 320 + xx;
+				UINT srcY = y * png.GetHeight() / 200;
+				Color color;
+				png.GetPixel(srcX, srcY, &color);
+				BYTE alpha = color.GetAlpha();
+				BYTE red = color.GetRed();
+				BYTE green = color.GetGreen();
+				BYTE blue = color.GetBlue();
+				uint8_t bit = 0;
+				if((red != 0) || (green != 0) || (blue != 0))
+				{
+					bit = 0x80;
+				}
+				byte = (byte >> 1) | bit;
+			}
+			vram[index] = byte;
+			++ index;
 		}
 	}
 }

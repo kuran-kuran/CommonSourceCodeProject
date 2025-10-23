@@ -74,7 +74,8 @@ void MEMORY::initialize()
 	back_color = 0;
 	text_color = vram_mask = 7;
 	width80 = vgate = reverse = false;
-	capture_screen_num = 0;
+	capture_screen_num = 1;
+	load_png_num = 1;
 	
 #ifndef _MZ80B
 	for(int i = 0; i < 8; i++) {
@@ -185,7 +186,8 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 	case 0xf4:
 		if(data & 0x80)
 		{
-			capture_screen_num = 0;
+			capture_screen_num = 1;
+			load_png_num = 1;
 			break;
 		}
 	case 0xf5:
@@ -194,10 +196,20 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 			if(emu) {
 				emu->capture_screen2(capture_screen_num);
 				++ capture_screen_num;
-				break;
 			}
+			break;
 		}
 	case 0xf6:
+		if(data & 0x80)
+		{
+			if(emu) {
+				emu->set_png_to_vram(vram, load_png_num);
+				update_vram_map();
+				draw_screen();
+				++ load_png_num;
+			}
+			break;
+		}
 	case 0xf7:
 		if(vram_page != (data & 7)) {
 			uint8_t prev_page = vram_page;
@@ -681,8 +693,3 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 	}
 	return true;
 }
-
-void MEMORY::get_gvram(uint8_t* buffer, uint32_t size)
-{
-}
-

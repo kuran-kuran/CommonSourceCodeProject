@@ -1580,6 +1580,11 @@ void EMU::capture_screen()
 	osd->capture_screen();
 }
 
+void EMU::set_png_to_vram(uint8_t* vram, int num)
+{
+	osd->set_png_to_vram(vram, num);
+}
+
 void EMU::capture_screen2(int num)
 {
 	osd->capture_screen2(num);

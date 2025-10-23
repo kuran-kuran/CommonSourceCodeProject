@@ -626,6 +626,7 @@ public:
 #endif
 	void capture_screen();
 	void capture_screen2(int num);
+	void set_png_to_vram(uint8_t* vram, int num);
 	bool start_record_video(int fps);
 	void stop_record_video();
 	void restart_record_video();
@@ -709,6 +710,7 @@ public:
 	void stretch_bitmap(bitmap_t *dest, int dest_x, int dest_y, int dest_width, int dest_height, bitmap_t *source, int source_x, int source_y, int source_width, int source_height);
 #endif
 	void write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path);
+	void set_file_to_vram(uint8_t* vram, const _TCHAR *file_path);
 	
 	// common socket
 #ifdef USE_SOCKET
