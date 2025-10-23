@@ -89,10 +89,11 @@ private:
 	byte rcv1byte(void);
 	void snd1byte(uint8_t i_data);
 	char upper(char c);
-	void addmzt(char *f_name);
+	void addmzt(char* f_name);
+	void addD88(char* f_name);
 	_TCHAR* create_tchar_text(char* text);
 	char* create_char_text(const _TCHAR* text);
-	_TCHAR* create_sdcard_path(char* f_name);
+	_TCHAR* create_sdcard_path(const char* f_name);
 	// MZ2000_SD標準Api
 	void f_save(void);
 	void f_load(void);
@@ -119,7 +120,7 @@ private:
 	// MIDI Api
 	void SendMidi(void);
 	// D88 Api
-	bool D88Open(const char* path, bool r);
+	bool D88Open(const char* path, bool rev);
 	void D88Close(void);
 	void D88SetSectorsPerTrack(short num);
 	bool D88Seek(char track, char sector);

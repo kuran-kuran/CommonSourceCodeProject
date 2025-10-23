@@ -26,6 +26,7 @@ void MZ80K_SD::initialize()
 	concatPos = 0;
 	concatSize = 0;
 	// D88 image
+	d88File = NULL;
 	isD88State = false; // false:未使用, true:オープンしている
 	reverse = false;
 	seekInfoPointer = 0;
@@ -55,10 +56,15 @@ void MZ80K_SD::release()
 		DeleteCriticalSection(&cs[i]);
 	}
 	hMz80kSdThread = NULL;
-	if(concatFile != NULL)
+	if (concatFile != NULL)
 	{
 		delete concatFile;
 		concatFile = NULL;
+	}
+	if (d88File != NULL)
+	{
+		delete d88File;
+		d88File = NULL;
 	}
 	initialized = false;
 }
@@ -81,6 +87,7 @@ void MZ80K_SD::reset()
 	setup();
 	hMz80kSdThread = (HANDLE)_beginthreadex(NULL, 0, MZ80K_SD::loop_thread, this, 0, NULL);
 	concatFile = new FILEIO();
+	d88File = new FILEIO();
 	initialized = true;
 }
 
@@ -276,6 +283,28 @@ void MZ80K_SD::addmzt(char *f_name){
 	f_name[lp1] = 0x00;
 }
 
+//ファイル名の最後が「.mzt」でなければ付加 
+void MZ80K_SD::addD88(char* f_name) {
+	unsigned int lp1 = 0;
+	while (f_name[lp1] != 0x0D) {
+		lp1++;
+	}
+	if (lp1 < 4 ||
+		f_name[lp1 - 4] != '.' ||
+		(f_name[lp1 - 3] != 'D' &&
+			f_name[lp1 - 3] != 'd') ||
+		(f_name[lp1 - 2] != '8' &&
+			f_name[lp1 - 2] != '8') ||
+		(f_name[lp1 - 1] != '8' &&
+			f_name[lp1 - 1] != '8') ){
+		f_name[lp1++] = '.';
+		f_name[lp1++] = 'd';
+		f_name[lp1++] = '8';
+		f_name[lp1++] = '8';
+	}
+	f_name[lp1] = 0x00;
+}
+
 // charから_TCHARに変換
 _TCHAR* MZ80K_SD::create_tchar_text(char* text)
 {
@@ -303,7 +332,7 @@ char* MZ80K_SD::create_char_text(const _TCHAR* text)
 }
 
 // SDカードのファイルパス作成
-_TCHAR* MZ80K_SD::create_sdcard_path(char* f_name)
+_TCHAR* MZ80K_SD::create_sdcard_path(const char* f_name)
 {
 #ifdef _UNICODE
 	my_tcscpy_s(sdcard_path, config.sdcard_path);
@@ -1266,12 +1295,12 @@ void MZ80K_SD::SendMidi(void)
 }
 
 // D88関連イメージ処理
-bool MZ80K_SD::D88Open(const char* path, bool r)
+bool MZ80K_SD::D88Open(const char* path, bool rev)
 {
-	if(isD88State == 1) {
+	if(isD88State == true) {
 		d88File->Fclose();
 	}
-	bool result = concatFile->Fopen( create_sdcard_path(concatName), FILEIO_READ_BINARY );
+	bool result = d88File->Fopen( create_sdcard_path(path), FILEIO_READ_BINARY );
 	if(result == false) {
 		return false;
 	}
@@ -1289,13 +1318,13 @@ bool MZ80K_SD::D88Open(const char* path, bool r)
 	// 最初のセクタにシークしてみる
 	D88Seek(0, 1);
 	sectorsPerTrack = numberOfSector;
-	reverse = r;
+	reverse = rev;
 	return true;
 }
 
 void MZ80K_SD::D88Close(void)
 {
-	concatFile->Fclose();
+	d88File->Fclose();
 }
 
 void MZ80K_SD::D88SetSectorsPerTrack(short num)
@@ -1408,12 +1437,6 @@ void MZ80K_SD::D88Write(unsigned char data)
 	++ seekDataOffset;
 }
 
-// D88ファイル一覧
-// 0E8h
-void MZ80K_SD::d88FileList(void)
-{
-}
-
 // D88読み込みOpen
 // 0E9h
 void MZ80K_SD::d88OpenRead(void)
@@ -1423,13 +1446,13 @@ void MZ80K_SD::d88OpenRead(void)
 	{
 		d88Name[lp1] = rcv1byte();
 	}
-	addmzt(d88Name);
+	addD88(d88Name);
 	//ファイルオープン
 	if(D88Open(d88Name, true) == true)
 	{
 		//状態コード送信(OK)
 		snd1byte(0x00);
-		isD88State = 1; // オープンしている
+		isD88State = true; // オープンしている
 	}
 	else
 	{
@@ -1447,13 +1470,13 @@ void MZ80K_SD::d88OpenWrite(void)
 	{
 		d88Name[lp1] = rcv1byte();
 	}
-	addmzt(d88Name);
+	addD88(d88Name);
 	//ファイルオープン
 	if(D88Open(d88Name, true) == true)
 	{
 		//状態コード送信(OK)
 		snd1byte(0x00);
-		isD88State = 1; // オープンしている
+		isD88State = true; // オープンしている
 	}
 	else
 	{
@@ -1466,7 +1489,7 @@ void MZ80K_SD::d88OpenWrite(void)
 // 0EBh
 void MZ80K_SD::d88Close(void)
 {
-	if(isD88State == 0)
+	if(isD88State == false)
 	{
 		snd1byte(0xFF);
 		return;
@@ -1475,7 +1498,7 @@ void MZ80K_SD::d88Close(void)
 	{
 		D88Close();
 	}
-	isD88State = 0;
+	isD88State = false;
 	snd1byte(0x00);
 }
 
@@ -1485,15 +1508,19 @@ void MZ80K_SD::d88ReadLba(void)
 {
 	unsigned short lba = rcv1byte();
 	lba |= rcv1byte() * 256;
-	if(isConcatState == 0)
+	if(isD88State == false)
 	{
 		snd1byte(0xFF);
 		return;
 	}
+	snd1byte(0x00);
 	D88SeekLba((int)lba);
 	for(int i = 0; i < 256; ++ i)
 	{
 		unsigned char data = D88Read();
+		char temp[1024];
+		sprintf(temp, "i: %d, data: %x\n", i, data);
+		OutputDebugStringA(temp);
 		snd1byte(data);
 	}
 	// 読み込み終了
@@ -1506,11 +1533,12 @@ void MZ80K_SD::d88WriteLba(void)
 {
 	unsigned short lba = rcv1byte();
 	lba |= rcv1byte() * 256;
-	if(isConcatState == 0)
+	if(isD88State == false)
 	{
 		snd1byte(0xFF);
 		return;
 	}
+	snd1byte(0x00);
 	D88SeekLba((int)lba);
 	for(int i = 0; i < 256; ++ i)
 	{
