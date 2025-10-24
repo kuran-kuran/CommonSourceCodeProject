@@ -329,8 +329,8 @@ public:
 	void update_screen(HDC hdc);
 #endif
 	void capture_screen();
-	void capture_screen2(int num);
-	void set_png_to_vram(uint8_t* vram, int num);
+	void set_vram_to_png(uint8_t* vram, int page, int num);
+	void set_png_to_vram(uint8_t* vram, int page, int num);
 	bool start_record_video(int fps);
 	void stop_record_video();
 	bool is_video_recording();

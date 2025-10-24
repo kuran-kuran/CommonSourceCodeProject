@@ -1368,15 +1368,16 @@ void OSD::capture_screen()
 	write_bitmap_to_file(&vm_screen_buffer, create_date_file_path(_T("png")));
 }
 
-void OSD::capture_screen2(int num)
+void OSD::set_vram_to_png(uint8_t* vram, int page, int num)
 {
 	//	write_bitmap_to_file(&vm_screen_buffer, create_date_file_path(_T("bmp")));
-	write_bitmap_to_file(&vm_screen_buffer, create_local_path(_T("output\\%04d.png"), num));
+//	write_bitmap_to_file(&vm_screen_buffer, create_local_path(_T("output\\%04d.png"), num));
+	write_vram_to_file(vram, page, create_local_path(_T("output\\%04d.png"), num));
 }
 
-void OSD::set_png_to_vram(uint8_t* vram, int num)
+void OSD::set_png_to_vram(uint8_t* vram, int page, int num)
 {
-	set_file_to_vram(vram, create_local_path(_T("input\\%04d.png"), num));
+	set_file_to_vram(vram, page, create_local_path(_T("input\\%04d.png"), num));
 }
 
 bool OSD::start_record_video(int fps)
@@ -1777,7 +1778,42 @@ void OSD::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 	}
 }
 
-void OSD::set_file_to_vram(uint8_t* vram, const _TCHAR *file_path)
+void OSD::write_vram_to_file(uint8_t* vram, int page, const _TCHAR* file_path)
+{
+	Bitmap image(320, 200, PixelFormat32bppARGB);
+	int index = (page - 1) * 16384;
+	for (UINT y = 0; y < 200; ++y) {
+		for (UINT x = 0; x < 40; ++x) {
+			uint8_t byte = vram[index];
+			++ index;
+			for (UINT xx = 0; xx < 8; ++xx) {
+				// 元画像の対応するピクセル位置を計算
+				int pixel = (byte & 0x80);
+				byte <<= 1;
+				if (pixel == 0)
+				{
+					image.SetPixel(x * 8 + 7 - xx, y, Color(255, 0, 0, 0));
+				}
+				else
+				{
+					image.SetPixel(x * 8 + 7 - xx, y, Color(255, 255, 255, 255));
+				}
+			}
+		}
+	}
+	CLSID encoderClsid;
+	if (GetEncoderClsid(L"image/png", &encoderClsid)) {
+#ifdef _UNICODE
+		image.Save(file_path, &encoderClsid, NULL);
+#else
+		WCHAR wszFilePath[_MAX_PATH];
+		MultiByteToWideChar(CP_ACP, 0, file_path, -1, wszFilePath, _MAX_PATH);
+		image.Save(wszFilePath, &encoderClsid, NULL);
+#endif
+	}
+}
+
+void OSD::set_file_to_vram(uint8_t* vram, int page, const _TCHAR *file_path)
 {
 #ifdef _UNICODE
 	Bitmap png(file_path);
@@ -1789,13 +1825,13 @@ void OSD::set_file_to_vram(uint8_t* vram, const _TCHAR *file_path)
 	if(png.GetLastStatus() != Ok) {
 		return;
 	}
-	int index = 0;
+	int index = (page - 1) * 16384;
 	for(UINT y = 0; y < 200; ++ y) {
 		for(UINT x = 0; x < 320; x += 8) {
 			uint8_t byte = 0;
 			for(UINT xx = 0; xx < 8; ++ xx) {
 				// 元画像の対応するピクセル位置を計算
-				UINT srcX = x * png.GetWidth() / 320 + xx;
+				UINT srcX = (x + xx) * png.GetWidth() / 320;
 				UINT srcY = y * png.GetHeight() / 200;
 				Color color;
 				png.GetPixel(srcX, srcY, &color);
@@ -1804,7 +1840,7 @@ void OSD::set_file_to_vram(uint8_t* vram, const _TCHAR *file_path)
 				BYTE green = color.GetGreen();
 				BYTE blue = color.GetBlue();
 				uint8_t bit = 0;
-				if((red != 0) || (green != 0) || (blue != 0))
+				if ((red > 224) || (green > 224) || (blue > 224))
 				{
 					bit = 0x80;
 				}

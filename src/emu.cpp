@@ -1580,14 +1580,14 @@ void EMU::capture_screen()
 	osd->capture_screen();
 }
 
-void EMU::set_png_to_vram(uint8_t* vram, int num)
+void EMU::set_png_to_vram(uint8_t* vram, int page, int num)
 {
-	osd->set_png_to_vram(vram, num);
+	osd->set_png_to_vram(vram, page, num);
 }
 
-void EMU::capture_screen2(int num)
+void EMU::set_vram_to_png(uint8_t* vram, int page, int num)
 {
-	osd->capture_screen2(num);
+	osd->set_vram_to_png(vram, page, num);
 }
 
 bool EMU::start_record_video(int fps)

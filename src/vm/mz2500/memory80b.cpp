@@ -194,7 +194,14 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 		if(data & 0x80)
 		{
 			if(emu) {
-				emu->capture_screen2(capture_screen_num);
+				int page = data & 3;
+				if (page <= 0) {
+					page = 1;
+				}
+				if (page > 2) {
+					page = 2;
+				}
+				emu->set_vram_to_png(vram, page, capture_screen_num);
 				++ capture_screen_num;
 			}
 			break;
@@ -203,7 +210,14 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 		if(data & 0x80)
 		{
 			if(emu) {
-				emu->set_png_to_vram(vram, load_png_num);
+				int page = data & 3;
+				if (page <= 0) {
+					page = 1;
+				}
+				if (page > 2) {
+					page = 2;
+				}
+				emu->set_png_to_vram(vram, page, load_png_num);
 				update_vram_map();
 				draw_screen();
 				++ load_png_num;
