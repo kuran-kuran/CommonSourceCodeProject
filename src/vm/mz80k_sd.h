@@ -103,7 +103,7 @@ private:
 	void f_del(void);
 	void f_ren(void);
 	void f_dump(void);
-	void f_copy(void);
+	void f_copy(char type);
 	void mon_whead(void);
 	void mon_wdata(void);
 	void mon_lhead(void);
