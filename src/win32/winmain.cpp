@@ -2220,11 +2220,6 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 			break;
 		}
 	}
-
-	char temp[1024];
-	sprintf(temp, "id = %d\n", id);
-	OutputDebugStringA(temp);
-
 	if(id >= ID_CONTROL_MENU_START && id <= ID_CONTROL_MENU_END) {
 		update_control_menu(hMenu);
 	}
