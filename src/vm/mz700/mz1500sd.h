@@ -20,8 +20,8 @@ class MZ1500_SD : public DEVICE
 private:
 	uint64_t file_position;
 	MZ80K_SD* d_mz80ksd;
-	bool initD8Port;
-	bool initDAPort;
+	bool initA0Port;
+	bool initA2Port;
 
 public:
 	MZ1500_SD(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)

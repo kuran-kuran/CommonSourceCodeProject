@@ -388,7 +388,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0xe9, psg);
 	io->set_iomap_single_w(0xf2, psg_l);
 	io->set_iomap_single_w(0xf3, psg_r);
-	io->set_iomap_range_rw(0xd8, 0xdb, mz1500sd);
+	io->set_iomap_range_rw(0xa0, 0xa3, mz1500sd);
 #endif
 	
 	// quick disk

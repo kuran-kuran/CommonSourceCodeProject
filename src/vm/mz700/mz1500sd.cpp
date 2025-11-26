@@ -1,8 +1,8 @@
 /*
-SHARP MZ-1500 Emulator 'EmuZ-1500'
+SHARP MZ-2200 Emulator 'EmuZ-2200'
 
 Author : kuran_kuran
-Date   : 2024.07.09-
+Date   : 2024.05.28-
 
 [ MZ1500_SD (SD Storage) ]
 */
@@ -12,8 +12,8 @@ Date   : 2024.07.09-
 void MZ1500_SD::initialize()
 {
 	file_position = 0;
-	initD8Port = false;
-	initDAPort = false;
+	initA0Port = false;
+	initA2Port = false;
 }
 
 void MZ1500_SD::release()
@@ -33,9 +33,9 @@ void MZ1500_SD::write_io8(uint32_t addr, uint32_t data)
 	unsigned int write_data = 0;
 	unsigned int write_bit = 0;
 	switch(addr & 0xff) {
-	case 0xd8:
-		if(initD8Port == false) {
-			initD8Port = true;
+	case 0xa0:
+		if(initA0Port == false) {
+			initA0Port = true;
 			return;
 		}
 		// send data (low 4bit) 
@@ -44,15 +44,15 @@ void MZ1500_SD::write_io8(uint32_t addr, uint32_t data)
 		d_mz80ksd->digitalWrite(PA2PIN, (data >> 2) & 1);
 		d_mz80ksd->digitalWrite(PA3PIN, (data >> 3) & 1);
 		break;
-	case 0xda:
-		if(initDAPort == false) {
-			initDAPort = true;
+	case 0xa2:
+		if(initA2Port == false) {
+			initA2Port = true;
 			return;
 		}
 		// b2 FLG handshake
 		d_mz80ksd->setFlg((data >> 2) & 1);
 		break;
-	case 0xdb:
+	case 0xa3:
 		// 8255 setting or set bit
 		if(data < 128) {
 			// set bit. b2 FLG handshake
@@ -61,8 +61,8 @@ void MZ1500_SD::write_io8(uint32_t addr, uint32_t data)
 			}
 		} else {
 			// 8255 setting
-			initD8Port = false;
-			initDAPort = false;
+			initA0Port = false;
+			initA2Port = false;
 		}
 		break;
 	}
@@ -72,7 +72,10 @@ uint32_t MZ1500_SD::read_io8(uint32_t addr)
 {
 	uint32_t result = 0xff;
 	switch(addr & 0xff) {
-	case 0xd9:
+	case 0xa0:
+		result = 13;
+		break;
+	case 0xa1:
 		// receive data (8bit) 
 		result = d_mz80ksd->digitalRead(PB0PIN);
 		result |= (d_mz80ksd->digitalRead(PB1PIN) << 1);
@@ -83,7 +86,7 @@ uint32_t MZ1500_SD::read_io8(uint32_t addr)
 		result |= (d_mz80ksd->digitalRead(PB6PIN) << 6);
 		result |= (d_mz80ksd->digitalRead(PB7PIN) << 7);
 		break;
-	case 0xda:
+	case 0xa2:
 		// b7 CHK handshake
 		result = 0;
 		result |= d_mz80ksd->getChk() << 7;
