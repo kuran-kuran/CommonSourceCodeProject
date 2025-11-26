@@ -926,7 +926,7 @@ void MZ80K_SD::mon_wdata(void){
 	if( true == result ){
 //状態コード送信(OK)
 		snd1byte(0x00);
-//ヘッダを飛ばす
+//ファイルの最後に飛ばす
  		file->Fseek(0, FILEIO_SEEK_END);
 //実データ
 		long lp1 = 0;
