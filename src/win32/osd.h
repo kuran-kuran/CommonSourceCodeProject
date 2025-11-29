@@ -560,6 +560,8 @@ public:
 	void key_up(int code, bool extended);
 	void key_down_native(int code, bool repeat);
 	void key_up_native(int code);
+	void reset_keycode_conv();
+	void update_keycode_conv(int index, uint8_t code);
 	void key_lost_focus()
 	{
 		lost_focus = true;

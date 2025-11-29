@@ -265,6 +265,8 @@ public:
 	void key_down(int code, bool extended, bool repeat);
 	void key_up(int code, bool extended);
 	void key_char(char code);
+	void reset_keycode_conv();
+	void update_keycode_conv(int index, uint8_t code);
 #ifdef USE_KEY_LOCKED
 	bool get_caps_locked();
 	bool get_kana_locked();

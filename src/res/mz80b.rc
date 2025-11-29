@@ -228,6 +228,13 @@ BEGIN
             MENUITEM "MZ-1P17 (MZ-3)",          ID_VM_PRINTER_TYPE2
             MENUITEM "None",                    ID_VM_PRINTER_TYPE3
         END
+        POPUP "Keyboard"
+        BEGIN
+            MENUITEM "Default",                       ID_VM_KEYBOARD_TYPE0
+            MENUITEM "Tenkey[/] to [00]",             ID_VM_KEYBOARD_TYPE1
+            MENUITEM "Tenkey[1][2][3] to [0][00][.]", ID_VM_KEYBOARD_TYPE2
+            MENUITEM "Tenkey[0] to [00]",             ID_VM_KEYBOARD_TYPE3
+        END
     END
     POPUP "Host"
     BEGIN

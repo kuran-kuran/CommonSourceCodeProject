@@ -44,6 +44,7 @@ void KEYBOARD::initialize()
 {
 	key_stat = emu->get_key_buffer();
 	column = 0;
+	keyboard_type = 0;
 	register_frame_event(this);
 }
 
@@ -57,6 +58,12 @@ void KEYBOARD::write_signal(int id, uint32_t data, uint32_t mask)
 
 void KEYBOARD::event_frame()
 {
+#if defined(USE_KEYBOARD_TYPE)
+	if(keyboard_type != config.keyboard_type) {
+		keyboard_type = config.keyboard_type;
+		set_keycode_preset(keyboard_type);
+	}
+#endif
 	// update key status
 	memset(keys, 0xff, sizeof(keys));
 	for(int i = 0; i < MAX_COLUMN; i++) {
@@ -91,3 +98,28 @@ bool KEYBOARD::process_state(FILEIO* state_fio, bool loading)
 	return true;
 }
 
+void KEYBOARD::set_keycode_preset(int type)
+{
+	switch(type)
+	{
+	case 0: // Default
+		emu->reset_keycode_conv();
+		break;
+	case 1: // Tenkey[/] to [00]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x6f, 0x6c);
+		break;
+	case 2: // Tenkey[1][2][3] to [0][00][.]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x61, 0x60);
+		emu->update_keycode_conv(0x62, 0x6c);
+		emu->update_keycode_conv(0x63, 0x6e);
+		emu->update_keycode_conv(0x60, 0);
+		emu->update_keycode_conv(0x6e, 0);
+		break;
+	case 3: // Tenkey[0] to [00]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x60, 0x6c);
+		break;
+	}
+}

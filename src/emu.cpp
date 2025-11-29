@@ -455,6 +455,16 @@ void EMU::key_char(char code)
 #endif
 }
 
+void EMU::reset_keycode_conv()
+{
+	osd->reset_keycode_conv();
+}
+
+void EMU::update_keycode_conv(int index, uint8_t code)
+{
+	osd->update_keycode_conv(index, code);
+}
+
 #ifdef USE_KEY_LOCKED
 bool EMU::get_caps_locked()
 {

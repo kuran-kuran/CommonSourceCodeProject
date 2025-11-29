@@ -68,6 +68,9 @@
 #define USE_MIDI
 #define USE_CMU800
 #define USE_MZ80K_SD
+#define USE_DEVICE_TYPE 9 // EMM0 EMM1 EMM2 EMM3 EMMSIZE320 EMMSIZE512 EMMSIZE1M EMMSIZE8M EMMSIZE16M
+#define KEYBOARD_TYPE_DEFAULT 0
+#define USE_KEYBOARD_TYPE	4
 
 #include "../../common.h"
 #include "../../fileio.h"
