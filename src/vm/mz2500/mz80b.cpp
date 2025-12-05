@@ -42,6 +42,7 @@
 #include "printer.h"
 #include "timer.h"
 #include "mz2000sd.h"
+#include "pio3034.h"
 
 #ifdef SUPPORT_QUICK_DISK
 #include "../z80sio.h"
@@ -91,6 +92,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	timer = new TIMER(this, emu);
 	cmu800 = new CMU800(this, emu);
 	mz2000sd = new MZ2000_SD(this, emu);
+	pio3034_0 = new PIO3034(this, emu);
+	pio3034_1 = new PIO3034(this, emu);
+	pio3034_2 = new PIO3034(this, emu);
+	pio3034_3 = new PIO3034(this, emu);
 
 #ifdef SUPPORT_QUICK_DISK
 	sio = new Z80SIO(this, emu);
@@ -258,7 +263,25 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 	io->set_iomap_range_rw(0x90, 0x9c, cmu800);
-	io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
+	if(config.mz2000_sd) {
+		io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
+	}
+	else if(config.emm0) {
+		pio3034_0->set_base_port_number(0xa0);
+		io->set_iomap_range_rw(0xa0, 0xa3, pio3034_0);
+	}
+	if(config.emm1) {
+		pio3034_1->set_base_port_number(0xa4);
+		io->set_iomap_range_rw(0xa4, 0xa7, pio3034_1);
+	}
+	if(config.emm2) {
+		pio3034_2->set_base_port_number(0xa8);
+		io->set_iomap_range_rw(0xa8, 0xab, pio3034_2);
+	}
+	if(config.emm3) {
+		pio3034_3->set_base_port_number(0xac);
+		io->set_iomap_range_rw(0xac, 0xaf, pio3034_3);
+	}
 
 	io->set_iowait_range_rw(0xd8, 0xdf, 1);
 	io->set_iowait_range_rw(0xe8, 0xeb, 1);

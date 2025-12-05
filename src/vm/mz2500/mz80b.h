@@ -68,9 +68,17 @@
 #define USE_MIDI
 #define USE_CMU800
 #define USE_MZ80K_SD
-#define USE_DEVICE_TYPE 9 // EMM0 EMM1 EMM2 EMM3 EMMSIZE320 EMMSIZE512 EMMSIZE1M EMMSIZE8M EMMSIZE16M
 #define KEYBOARD_TYPE_DEFAULT 0
-#define USE_KEYBOARD_TYPE	4
+#define USE_KEYBOARD_TYPE	  4
+#define DRIVE_TYPE_DEFAULT 0
+#define MZ2000_SD_DEFAULT true
+#define EMM0_DEFAULT false
+#define EMM1_DEFAULT false
+#define EMM2_DEFAULT false
+#define EMM3_DEFAULT false
+#define USE_EMM_TYPE	 5
+#define EMM_SIZE_DEFAULT 0
+#define USE_EMM_SIZE 4
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -108,6 +116,7 @@ class MZ1R13;
 class PRINTER;
 class TIMER;
 class MZ2000_SD;
+class PIO3034;
 
 #ifdef SUPPORT_QUICK_DISK
 class Z80SIO;
@@ -147,6 +156,10 @@ protected:
 	PRINTER* printer;
 	TIMER* timer;
 	MZ2000_SD* mz2000sd;
+	PIO3034* pio3034_0;
+	PIO3034* pio3034_1;
+	PIO3034* pio3034_2;
+	PIO3034* pio3034_3;
 	
 #ifdef SUPPORT_QUICK_DISK
 	Z80SIO* sio;

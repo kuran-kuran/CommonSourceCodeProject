@@ -30,6 +30,9 @@ void MZ2000_SD::reset()
 
 void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 {
+	if(!config.mz2000_sd) {
+		return;
+	}
 	unsigned int write_data = 0;
 	unsigned int write_bit = 0;
 	switch(addr & 0xff) {
@@ -71,6 +74,9 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 uint32_t MZ2000_SD::read_io8(uint32_t addr)
 {
 	uint32_t result = 0xff;
+	if(!config.mz2000_sd) {
+		return result;
+	}
 	switch(addr & 0xff) {
 	case 0xa0:
 		result = 13;

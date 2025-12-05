@@ -39,6 +39,8 @@ void MZ80K_SD::initialize()
 	numberOfSector = 0;
 	sizeOfData = 0;
 	sectorsPerTrack = 0;
+	signalEmuToThread = NULL;
+	signalThreadToEmu = NULL;
 }
 
 void MZ80K_SD::release()
@@ -48,9 +50,25 @@ void MZ80K_SD::release()
 		return;
 	}
 	terminate = true;
-	SetEvent(signalEmuToThread);
-	SetEvent(signalThreadToEmu);
+	if(signalEmuToThread != NULL)
+	{
+		SetEvent(signalEmuToThread);
+	}
+	if(signalThreadToEmu != NULL)
+	{
+		SetEvent(signalThreadToEmu);
+	}
 	WaitForSingleObject(hMz80kSdThread, INFINITE);
+	if(signalEmuToThread != NULL)
+	{
+		CloseHandle(signalEmuToThread);
+		signalEmuToThread = NULL;
+	}
+	if(signalThreadToEmu != NULL)
+	{
+		CloseHandle(signalThreadToEmu);
+		signalThreadToEmu = NULL;
+	}
 	for(int i = 0; i < GPIO_CNT; ++ i)
 	{
 		DeleteCriticalSection(&cs[i]);
@@ -983,7 +1001,6 @@ void MZ80K_SD::mon_lhead(void){
 
 //04F8H MONITOR リード データ代替処理 
 void MZ80K_SD::mon_ldata(void){
-	addmzt(m_name);
 //ファイルが存在しなければERROR
 	if (FILEIO::IsFileExisting(create_sdcard_path(m_name)) == true){
 		snd1byte(0x00);

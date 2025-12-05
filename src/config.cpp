@@ -80,6 +80,28 @@ void initialize_config()
 	#if defined(USE_SERIAL_TYPE) && defined(SERIAL_TYPE_DEFAULT)
 		config.serial_type = SERIAL_TYPE_DEFAULT;
 	#endif
+	#if defined(USE_EMM_TYPE)
+		#if defined(MZ2000_SD_DEFAULT)
+			config.mz2000_sd = MZ2000_SD_DEFAULT;
+		#endif
+		#if defined(EMM0_DEFAULT)
+			config.emm0 = EMM0_DEFAULT;
+		#endif
+		#if defined(EMM1_DEFALUT)
+			config.emm1 = EMM1_DEFAULT;
+		#endif
+		#if defined(EMM2_DEFALUT)
+			config.emm2 = EMM2_DEFAULT;
+		#endif
+		#if defined(EMM3_DEFALUT)
+			config.emm3 = EMM3_DEFAULT;
+		#endif
+	#endif
+	#if defined(USE_EMM_SIZE)
+		#if defined(EMM_SIZE_DEFAULT)
+			config.emm_size = EMM_SIZE_DEFAULT;
+		#endif
+	#endif
 	#if defined(USE_FLOPPY_DISK)
 		for(int drv = 0; drv < USE_FLOPPY_DISK; drv++) {
 			#if defined(CORRECT_DISK_TIMING_DEFAULT)
@@ -233,6 +255,16 @@ void load_config(const _TCHAR* config_path)
 	#ifdef USE_SERIAL_TYPE
 		config.serial_type = MyGetPrivateProfileInt(_T("Control"), _T("SerialType"), config.serial_type, config_path);
 	#endif
+	#ifdef USE_EMM_TYPE
+		config.mz2000_sd = MyGetPrivateProfileBool(_T("Control"), _T("MZ2000_SD"), config.mz2000_sd, config_path);
+		config.emm0 = MyGetPrivateProfileBool(_T("Control"), _T("Emm0"), config.emm0, config_path);
+		config.emm1 = MyGetPrivateProfileBool(_T("Control"), _T("Emm1"), config.emm1, config_path);
+		config.emm2 = MyGetPrivateProfileBool(_T("Control"), _T("Emm2"), config.emm2, config_path);
+		config.emm3 = MyGetPrivateProfileBool(_T("Control"), _T("Emm3"), config.emm3, config_path);
+	#endif
+	#if defined(USE_EMM_SIZE)
+		config.emm_size = MyGetPrivateProfileInt(_T("Control"), _T("EmmSize"), config.emm_size, config_path);
+	#endif
 	#ifdef USE_FLOPPY_DISK
 		for(int drv = 0; drv < USE_FLOPPY_DISK; drv++) {
 			config.correct_disk_timing[drv] = MyGetPrivateProfileBool(_T("Control"), create_string(_T("CorrectDiskTiming%d"), drv + 1), config.correct_disk_timing[drv], config_path);
@@ -380,7 +412,7 @@ void load_config(const _TCHAR* config_path)
 			int tmp_l = MyGetPrivateProfileInt(_T("Sound"), create_string(_T("VolumeLeft%d"), i + 1), config.sound_volume_l[i], config_path);
 			int tmp_r = MyGetPrivateProfileInt(_T("Sound"), create_string(_T("VolumeRight%d"), i + 1), config.sound_volume_r[i], config_path);
 			#ifdef _USE_QT
-				// Note: when using balance , levels are -40�}20db to 0�}20db.
+				// Note: when using balance , levels are -40+-20db to 0+-20db.
 				config.sound_volume_l[i] = max(-60, min(20, tmp_l));
 				config.sound_volume_r[i] = max(-60, min(20, tmp_r));
 			#else
@@ -507,6 +539,16 @@ void save_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_SERIAL_TYPE
 		MyWritePrivateProfileInt(_T("Control"), _T("SerialType"), config.serial_type, config_path);
+	#endif
+	#ifdef USE_EMM_TYPE
+		MyWritePrivateProfileBool(_T("Control"), _T("MZ2000_SD"), config.mz2000_sd, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("Emm0"), config.emm0, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("Emm1"), config.emm1, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("Emm2"), config.emm2, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("Emm3"), config.emm3, config_path);
+	#endif
+	#if defined(USE_EMM_SIZE)
+		MyWritePrivateProfileInt(_T("Control"), _T("EmmSize"), config.emm_size, config_path);
 	#endif
 	#ifdef USE_FLOPPY_DISK
 		for(int drv = 0; drv < USE_FLOPPY_DISK; drv++) {
@@ -762,6 +804,16 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#ifdef USE_SERIAL_TYPE
 		state_fio->StateValue(config.serial_type);
+	#endif
+	#ifdef USE_EMM_TYPE
+		state_fio->StateValue(config.mz2000_sd);
+		state_fio->StateValue(config.emm0);
+		state_fio->StateValue(config.emm1);
+		state_fio->StateValue(config.emm2);
+		state_fio->StateValue(config.emm3);
+	#endif
+	#ifdef USE_EMM_SIZE
+		state_fio->StateValue(config.emm_size);
 	#endif
 	#ifdef USE_FLOPPY_DISK
 		for(int drv = 0; drv < USE_FLOPPY_DISK; drv++) {
