@@ -25,13 +25,14 @@ private:
 	uint8_t base_port_number;
 	uint8_t ram[16 * 1024 * 1024];
 	uint32_t address;
-	uint32_t crc32;
+	bool update;
 	
 public:
 	PIO3034(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		base_port_number = 0xa0;
 		address = 0;
+		update = false;
 		set_device_name(_T("PIO-3034 EMM"));
 	}
 	~PIO3034() {}

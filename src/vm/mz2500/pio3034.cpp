@@ -36,7 +36,7 @@ void PIO3034::initialize()
 		fio->Fclose();
 	}
 	delete fio;
-	crc32 = get_crc32(ram, size_tbl[config.emm_size]);
+	update = false;
 }
 
 void PIO3034::release()
@@ -47,7 +47,7 @@ void PIO3034::release()
 	file_name[8] = '0' + index;
 	bool emms[] = {config.emm0, config.emm1, config.emm2, config.emm3};
 	bool enable_emm = (index < 4) && emms[index];
-	if(enable_emm && (crc32 != get_crc32(ram, size_tbl[config.emm_size]))) {
+	if(enable_emm && update) {
 		long file_size = 0;
 		if(fio->Fopen(create_local_path(file_name), FILEIO_READ_BINARY)) {
 			fio->Fseek(0, FILEIO_SEEK_END);
@@ -101,6 +101,7 @@ void PIO3034::write_io8(uint32_t addr, uint32_t data)
 	else if(base_port_number + 3 == port_number) {
 		ram[address] = data;
 		address = (address + 1) % size_tbl[config.emm_size];
+		update = true;
 	}
 }
 
@@ -140,6 +141,6 @@ bool PIO3034::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(base_port_number);
 	state_fio->StateArray(ram, sizeof(ram), 1);
 	state_fio->StateValue(address);
-	state_fio->StateValue(crc32);
+	state_fio->StateValue(update);
 	return true;
 }
