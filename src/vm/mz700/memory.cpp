@@ -83,11 +83,16 @@
 }
 
 #if defined(_MZ800)
-#define IPL_FILE_NAME	"MZ700IPL.ROM"
-#define EXT_FILE_NAME	"MZ800IPL.ROM"
+#define IPL_FILE_NAME		"MZ700IPL.ROM"
+#define EXT_FILE_NAME		"MZ800IPL.ROM"
+#elif defined(_MZ1500)
+#define IPL_FILE_NAME_1ST	"IPL1500.ROM"
+#define IPL_FILE_NAME_2ND	"IPL.ROM"
+#define EXT_FILE_NAME		"EXT.ROM"
 #else
-#define IPL_FILE_NAME	"IPL.ROM"
-#define EXT_FILE_NAME	"EXT.ROM"
+#define IPL_FILE_NAME_1ST	"IPL700.ROM"
+#define IPL_FILE_NAME_2ND	"IPL.ROM"
+#define EXT_FILE_NAME		"EXT.ROM"
 #endif
 
 void MEMORY::initialize()
@@ -108,10 +113,24 @@ void MEMORY::initialize()
 	
 	// load rom images
 	FILEIO* fio = new FILEIO();
+#if defined(IPL_FILE_NAME)
 	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME)), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
+#else
+	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME_1ST)), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#endif
+#if defined(IPL_FILE_NAME_2ND)
+	else if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME_2ND)), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#endif
+
 #if defined(_MZ800) || defined(_MZ1500)
 	if(fio->Fopen(create_local_path(_T(EXT_FILE_NAME)), FILEIO_READ_BINARY)) {
 		fio->Fread(ext, sizeof(ext), 1);
@@ -135,7 +154,18 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #endif
-	if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
+#if defined(_MZ700)
+	if(fio->Fopen(create_local_path(_T("FONT700.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#else defined(_MZ1500)
+	if(fio->Fopen(create_local_path(_T("FONT1500.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#endif
+	else if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(font, sizeof(font), 1);
 		fio->Fclose();
 	}
