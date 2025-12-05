@@ -58,7 +58,18 @@ void MEMORY::initialize()
 	memset(ipl, 0xff, sizeof(ipl));
 	
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
+#ifndef _MZ80B
+	if(fio->Fopen(create_local_path(_T("IPL2000.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#else
+	if(fio->Fopen(create_local_path(_T("IPL80B.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#endif
+	else if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
