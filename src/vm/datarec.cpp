@@ -82,8 +82,14 @@ void DATAREC::reset()
 void DATAREC::release()
 {
 	close_file();
-	delete play_fio;
-	delete rec_fio;
+	if(play_fio != NULL) {
+		delete play_fio;
+		play_fio = NULL;
+	}
+	if(rec_fio != NULL) {
+		delete rec_fio;
+		rec_fio = NULL;
+	}
 }
 
 void DATAREC::write_signal(int id, uint32_t data, uint32_t mask)
@@ -614,10 +620,10 @@ void DATAREC::close_tape()
 
 void DATAREC::close_file()
 {
-	if(play_fio->IsOpened()) {
+	if((play_fio != NULL) && (play_fio->IsOpened())) {
 		play_fio->Fclose();
 	}
-	if(rec_fio->IsOpened()) {
+	if((rec_fio != NULL) && (rec_fio->IsOpened())) {
 		if(rec) {
 			if(is_tap) {
 				for(int i = 0; i < buffer_ptr; i += 8) {

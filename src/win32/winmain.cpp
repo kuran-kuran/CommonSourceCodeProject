@@ -837,6 +837,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 #ifdef USE_CMU800
 		case ID_VM_SOUND_CMU800:
 			config.cmu800 = !config.cmu800;
+			emu->reset();
+			update_toplevel_menu(hWnd, hMenu);
 			break;
 #endif
 #ifdef USE_FLOPPY_DISK
@@ -895,6 +897,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		case ID_VM_SERIAL_TYPE0: case ID_VM_SERIAL_TYPE1: case ID_VM_SERIAL_TYPE2: case ID_VM_SERIAL_TYPE3:
 		case ID_VM_SERIAL_TYPE4: case ID_VM_SERIAL_TYPE5: case ID_VM_SERIAL_TYPE6: case ID_VM_SERIAL_TYPE7:
 			config.serial_type = LOWORD(wParam) - ID_VM_SERIAL_TYPE0;
+			break;
+#endif
+#ifdef USE_EMM_TYPE
+		case ID_VM_EMM_TYPE0: case ID_VM_EMM_TYPE1: case ID_VM_EMM_TYPE2: case ID_VM_EMM_TYPE3:
+		case ID_VM_EMM_TYPE4:
+			{
+				int emm_type = LOWORD(wParam) - ID_VM_EMM_TYPE0;
+				switch(emm_type)
+				{
+				case 0:
+					config.mz2000_sd = !config.mz2000_sd;
+					config.emm0 = config.mz2000_sd ? false : config.emm0;
+					break;
+				case 1:
+					config.emm0 = !config.emm0;
+					config.mz2000_sd = config.emm0 ? false : config.mz2000_sd;
+					break;
+				case 2:
+					config.emm1 = !config.emm1;
+					break;
+				case 3:
+					config.emm2 = !config.emm2;
+					break;
+				case 4:
+					config.emm3 = !config.emm3;
+					break;
+				}
+				emu->reset();
+				update_toplevel_menu(hWnd, hMenu);
+			}
+			break;
+		case ID_VM_EMM_SIZE_TYPE0: case ID_VM_EMM_SIZE_TYPE1: case ID_VM_EMM_SIZE_TYPE2: case ID_VM_EMM_SIZE_TYPE3:
+			config.emm_size = LOWORD(wParam) - ID_VM_EMM_SIZE_TYPE0;
+			emu->reset();
+			update_toplevel_menu(hWnd, hMenu);
 			break;
 #endif
 		case ID_HOST_REC_MOVIE_60FPS: case ID_HOST_REC_MOVIE_30FPS: case ID_HOST_REC_MOVIE_15FPS:
@@ -1973,6 +2010,22 @@ void update_vm_serial_menu(HMENU hMenu)
 }
 #endif
 
+#ifdef USE_EMM_TYPE
+void update_vm_emm_menu(HMENU hMenu)
+{
+	CheckMenuItem(hMenu, ID_VM_EMM_TYPE0, config.mz2000_sd ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(hMenu, ID_VM_EMM_TYPE1, config.emm0 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(hMenu, ID_VM_EMM_TYPE2, config.emm1 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(hMenu, ID_VM_EMM_TYPE3, config.emm2 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(hMenu, ID_VM_EMM_TYPE4, config.emm3 ? MF_CHECKED : MF_UNCHECKED);
+#ifdef USE_EMM_SIZE
+	if(config.emm_size >= 0 && config.emm_size < USE_EMM_SIZE) {
+		CheckMenuRadioItem(hMenu, ID_VM_EMM_SIZE_TYPE0, ID_VM_EMM_SIZE_TYPE0 + USE_EMM_SIZE - 1, ID_VM_EMM_SIZE_TYPE0 + config.emm_size, MF_BYCOMMAND);
+	}
+#endif
+}
+#endif
+
 void update_host_menu(HMENU hMenu)
 {
 	bool now_rec = true, now_stop = true;
@@ -2475,6 +2528,11 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 #ifdef USE_SERIAL_TYPE
 	else if(id >= ID_VM_SERIAL_MENU_START && id <= ID_VM_SERIAL_MENU_END) {
 		update_vm_serial_menu(hMenu);
+	}
+#endif
+#ifdef USE_EMM_TYPE
+	else if(id >= ID_VM_EMM_MENU_START && id <= ID_VM_EMM_MENU_END) {
+		update_vm_emm_menu(hMenu);
 	}
 #endif
 	else if(id >= ID_HOST_MENU_START && id <= ID_HOST_MENU_END) {

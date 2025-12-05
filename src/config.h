@@ -113,6 +113,16 @@ typedef struct {
 	#if defined(USE_SHARED_DLL) || defined(USE_SERIAL_TYPE)
 		int serial_type;
 	#endif
+	#if defined(USE_SHARED_DLL) || defined(USE_EMM_TYPE)
+		bool mz2000_sd;
+		bool emm0;
+		bool emm1;
+		bool emm2;
+		bool emm3;
+	#endif
+	#if defined(USE_EMM_SIZE)
+		int emm_size;
+	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_FLOPPY_DISK)
 		bool correct_disk_timing[/*USE_FLOPPY_DISK_TMP*/16];
 		bool ignore_disk_crc[/*USE_FLOPPY_DISK_TMP*/16];

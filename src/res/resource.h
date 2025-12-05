@@ -223,7 +223,9 @@
 #define ID_VM_DEVICE_TYPE5              41066
 #define ID_VM_DEVICE_TYPE6              41067
 #define ID_VM_DEVICE_TYPE7              41068
-#define ID_VM_DEVICE_MENU_END           41068
+#define ID_VM_DEVICE_TYPE8              41069
+#define ID_VM_DEVICE_TYPE9              41070
+#define ID_VM_DEVICE_MENU_END           41070
 
 #define ID_VM_DRIVE_MENU_START          41071
 #define ID_VM_DRIVE_TYPE0               41071
@@ -319,6 +321,21 @@
 #define ID_VM_SERIAL_TYPE6              41157
 #define ID_VM_SERIAL_TYPE7              41158
 #define ID_VM_SERIAL_MENU_END           41158
+
+#define ID_VM_EMM_MENU_START            41161
+#define ID_VM_EMM_TYPE0                 41161
+#define ID_VM_EMM_TYPE1                 41162
+#define ID_VM_EMM_TYPE2                 41163
+#define ID_VM_EMM_TYPE3                 41164
+#define ID_VM_EMM_TYPE4                 41165
+#define ID_VM_EMM_TYPE5                 41166
+#define ID_VM_EMM_TYPE6                 41167
+#define ID_VM_EMM_TYPE7                 41168
+#define ID_VM_EMM_SIZE_TYPE0            41171
+#define ID_VM_EMM_SIZE_TYPE1            41172
+#define ID_VM_EMM_SIZE_TYPE2            41173
+#define ID_VM_EMM_SIZE_TYPE3            41174
+#define ID_VM_EMM_MENU_END              41168
 
 #define ID_HOST_MENU_START              41201
 #define ID_HOST_REC_MOVIE_60FPS         41201

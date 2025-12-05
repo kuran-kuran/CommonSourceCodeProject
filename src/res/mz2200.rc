@@ -245,6 +245,19 @@ BEGIN
             MENUITEM "Cursor key to [8][2][4][6]",    ID_VM_KEYBOARD_TYPE4
             MENUITEM "Cursor key to [5][00][1][3]",   ID_VM_KEYBOARD_TYPE5
         END
+        POPUP "Storage"
+        BEGIN
+            MENUITEM "MZ2000_SD I/O Port A0h-A3h",    ID_VM_EMM_TYPE0
+            MENUITEM "PIO-3034  I/O Port A0h-A3h",    ID_VM_EMM_TYPE1
+            MENUITEM "PIO-3034  I/O Port A4h-A7h",    ID_VM_EMM_TYPE2
+            MENUITEM "PIO-3034  I/O Port A8h-ABh",    ID_VM_EMM_TYPE3
+            MENUITEM "PIO-3034  I/O Port ACh-AFh",    ID_VM_EMM_TYPE4
+            MENUITEM SEPARATOR
+            MENUITEM "PIO-3034 320KB",                ID_VM_EMM_SIZE_TYPE0
+            MENUITEM "PIO-3034 512KB",                ID_VM_EMM_SIZE_TYPE1
+            MENUITEM "PIO-3034 8MB",                  ID_VM_EMM_SIZE_TYPE2
+            MENUITEM "PIO-3034 16MB",                 ID_VM_EMM_SIZE_TYPE3
+        END
     END
     POPUP "Host"
     BEGIN

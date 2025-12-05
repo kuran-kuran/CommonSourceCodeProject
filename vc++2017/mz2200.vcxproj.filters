@@ -185,6 +185,9 @@
     <ClCompile Include="..\src\vm\midi.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\mz2500\pio3034.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
@@ -317,6 +320,9 @@
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\cmu800.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz2500\pio3034.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
   </ItemGroup>

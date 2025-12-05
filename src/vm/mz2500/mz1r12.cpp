@@ -23,7 +23,7 @@ void MZ1R12::initialize()
 		read_only = true;
 	} else
 #endif
-	if(fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
+	if(config.mz2000_sd && fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 		read_only = true;
