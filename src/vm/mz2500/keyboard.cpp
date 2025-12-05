@@ -121,5 +121,27 @@ void KEYBOARD::set_keycode_preset(int type)
 		emu->reset_keycode_conv();
 		emu->update_keycode_conv(0x60, 0x6c);
 		break;
+	case 4: // Cursor key to [8][2][4][6]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x26, 0x68); // up
+		emu->update_keycode_conv(0x28, 0x62); // down
+		emu->update_keycode_conv(0x25, 0x64); // left
+		emu->update_keycode_conv(0x27, 0x66); // right
+		emu->update_keycode_conv(0x68, 0x26); // up
+		emu->update_keycode_conv(0x62, 0x28); // down
+		emu->update_keycode_conv(0x64, 0x25); // left
+		emu->update_keycode_conv(0x66, 0x27); // right
+		break;
+	case 5: // Cursor key to [5][00][1][3]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x26, 0x65); // up
+		emu->update_keycode_conv(0x28, 0x6c); // down
+		emu->update_keycode_conv(0x25, 0x61); // left
+		emu->update_keycode_conv(0x27, 0x63); // right
+		emu->update_keycode_conv(0x65, 0x26); // up
+		emu->update_keycode_conv(0x6c, 0x28); // down
+		emu->update_keycode_conv(0x61, 0x25); // left
+		emu->update_keycode_conv(0x63, 0x27); // right
+		break;
 	}
 }
