@@ -61,6 +61,14 @@
 
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+	enable_cmu800 = config.cmu800;
+	enable_mz2000sd = config.mz2000_sd;
+	enable_emm0 = config.emm0;
+	enable_emm1 = config.emm1;
+	enable_emm2 = config.emm2;
+	enable_emm3 = config.emm3;
+	emm_size = config.emm_size;
+
 	// create devices
 	first_device = last_device = NULL;
 	dummy = new DEVICE(this, emu);	// must be 1st device
@@ -326,6 +334,13 @@ DEVICE* VM::get_device(int id)
 
 void VM::reset()
 {
+	if(config.mz2000_sd) {
+		io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
+	}
+	else if(config.emm0) {
+		pio3034_0->set_base_port_number(0xa0);
+		io->set_iomap_range_rw(0xa0, 0xa3, pio3034_0);
+	}
 	// reset all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->reset();
@@ -604,8 +619,28 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
+	bool needsReset = false;
+	if((enable_cmu800 != config.cmu800) ||
+	(enable_mz2000sd != config.mz2000_sd) ||
+	(enable_emm0 != config.emm0) ||
+	(enable_emm1 != config.emm1) ||
+	(enable_emm2 != config.emm2) ||
+	(enable_emm3 != config.emm3) ||
+	(emm_size != config.emm_size)) {
+		enable_cmu800 = config.cmu800;
+		enable_mz2000sd = config.mz2000_sd;
+		enable_emm0 = config.emm0;
+		enable_emm1 = config.emm1;
+		enable_emm2 = config.emm2;
+		enable_emm3 = config.emm3;
+		emm_size = config.emm_size;
+		needsReset = true;
+	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
+	}
+	if (needsReset) {
+		reset();
 	}
 }
 

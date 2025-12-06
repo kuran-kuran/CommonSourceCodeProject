@@ -837,7 +837,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 #ifdef USE_CMU800
 		case ID_VM_SOUND_CMU800:
 			config.cmu800 = !config.cmu800;
-			emu->reset();
 			update_toplevel_menu(hWnd, hMenu);
 			break;
 #endif
@@ -924,14 +923,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 					config.emm3 = !config.emm3;
 					break;
 				}
-				emu->reset();
-				update_toplevel_menu(hWnd, hMenu);
+				if(emu) {
+					emu->update_config();
+				}
 			}
 			break;
 		case ID_VM_EMM_SIZE_TYPE0: case ID_VM_EMM_SIZE_TYPE1: case ID_VM_EMM_SIZE_TYPE2: case ID_VM_EMM_SIZE_TYPE3:
 			config.emm_size = LOWORD(wParam) - ID_VM_EMM_SIZE_TYPE0;
-			emu->reset();
-			update_toplevel_menu(hWnd, hMenu);
+			if(emu) {
+				emu->update_config();
+			}
 			break;
 #endif
 		case ID_HOST_REC_MOVIE_60FPS: case ID_HOST_REC_MOVIE_30FPS: case ID_HOST_REC_MOVIE_15FPS:

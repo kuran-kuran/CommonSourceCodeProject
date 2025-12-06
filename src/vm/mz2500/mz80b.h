@@ -172,7 +172,15 @@ protected:
 	I8259* pic_16;
 	MZ1M01* mz1m01;
 #endif
-	
+
+	bool enable_cmu800;
+	bool enable_mz2000sd;
+	bool enable_emm0;
+	bool enable_emm1;
+	bool enable_emm2;
+	bool enable_emm3;
+	int emm_size;
+
 public:
 	// ----------------------------------------
 	// initialize

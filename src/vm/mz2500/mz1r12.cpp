@@ -23,11 +23,14 @@ void MZ1R12::initialize()
 		read_only = true;
 	} else
 #endif
+#if !defined(_MZ2500)
 	if(config.mz2000_sd && fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 		read_only = true;
-	} else if(fio->Fopen(create_local_path(_T("MZ-1R12.BIN")), FILEIO_READ_BINARY)) {
+	} else
+#endif
+	if(fio->Fopen(create_local_path(_T("MZ-1R12.BIN")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 	}
@@ -47,6 +50,11 @@ void MZ1R12::release()
 		}
 		delete fio;
 	}
+}
+
+void MZ1R12::reset()
+{
+	initialize();
 }
 
 void MZ1R12::write_io8(uint32_t addr, uint32_t data)

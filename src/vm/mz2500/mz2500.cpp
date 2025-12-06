@@ -613,8 +613,16 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
+	bool boot_mode_changed = (boot_mode != config.boot_mode);
+	monitor_type = config.monitor_type;
+	boot_mode = config.boot_mode;
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
+	}
+
+	// if boot mode is changed, perform IPL reset
+	if (boot_mode_changed) {
+		reset();
 	}
 }
 
