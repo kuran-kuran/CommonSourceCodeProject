@@ -80,6 +80,11 @@ void initialize_config()
 	#if defined(USE_SERIAL_TYPE) && defined(SERIAL_TYPE_DEFAULT)
 		config.serial_type = SERIAL_TYPE_DEFAULT;
 	#endif
+	#ifdef USE_ENABLE_BOOT
+		config.enable_boot_mz1r12 = ENABLE_BOOT_MZ1R12_DEFAULT;
+		config.enable_boot_mz1e18 = ENABLE_BOOT_MZ1E18_DEFAULT;
+		config.enable_boot_mz2000_sd = ENABLE_BOOT_MZ2000_SD_DEFAULT;
+	#endif
 	#if defined(USE_EMM_TYPE)
 		#if defined(MZ2000_SD_DEFAULT)
 			config.mz2000_sd = MZ2000_SD_DEFAULT;
@@ -254,6 +259,11 @@ void load_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_SERIAL_TYPE
 		config.serial_type = MyGetPrivateProfileInt(_T("Control"), _T("SerialType"), config.serial_type, config_path);
+	#endif
+	#ifdef USE_ENABLE_BOOT
+	config.enable_boot_mz1r12 = MyGetPrivateProfileBool(_T("Control"), _T("EnableBootMZ1R12"), config.enable_boot_mz1r12, config_path);
+	config.enable_boot_mz1e18 = MyGetPrivateProfileBool(_T("Control"), _T("EnableBootMZ1E18"), config.enable_boot_mz1e18, config_path);
+	config.enable_boot_mz2000_sd = MyGetPrivateProfileBool(_T("Control"), _T("EnableBootMZ2000SD"), config.enable_boot_mz2000_sd, config_path);
 	#endif
 	#ifdef USE_EMM_TYPE
 		config.mz2000_sd = MyGetPrivateProfileBool(_T("Control"), _T("MZ2000_SD"), config.mz2000_sd, config_path);
@@ -540,6 +550,11 @@ void save_config(const _TCHAR* config_path)
 	#ifdef USE_SERIAL_TYPE
 		MyWritePrivateProfileInt(_T("Control"), _T("SerialType"), config.serial_type, config_path);
 	#endif
+	#ifdef USE_ENABLE_BOOT
+		MyWritePrivateProfileBool(_T("Control"), _T("EnableBootMZ1R12"), config.enable_boot_mz1r12, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("EnableBootMZ1E18"), config.enable_boot_mz1e18, config_path);
+		MyWritePrivateProfileBool(_T("Control"), _T("EnableBootMZ2000SD"), config.enable_boot_mz2000_sd, config_path);
+	#endif
 	#ifdef USE_EMM_TYPE
 		MyWritePrivateProfileBool(_T("Control"), _T("MZ2000_SD"), config.mz2000_sd, config_path);
 		MyWritePrivateProfileBool(_T("Control"), _T("Emm0"), config.emm0, config_path);
@@ -804,6 +819,11 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#ifdef USE_SERIAL_TYPE
 		state_fio->StateValue(config.serial_type);
+	#endif
+	#ifdef USE_ENABLE_BOOT
+		state_fio->StateValue(config.enable_boot_mz1r12);
+		state_fio->StateValue(config.enable_boot_mz1e18);
+		state_fio->StateValue(config.enable_boot_mz2000_sd);
 	#endif
 	#ifdef USE_EMM_TYPE
 		state_fio->StateValue(config.mz2000_sd);

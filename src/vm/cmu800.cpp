@@ -57,6 +57,19 @@ void CMU800::reset_midi()
 		d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
 	}
+	// 全チャンネルクラビネットに変更
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC2, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC3, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC4, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	base_clock = 0;
 	memset(toggle, 0, sizeof(toggle));
 	memset(counter, 0, sizeof(counter));
@@ -232,7 +245,7 @@ uint32_t CMU800::read_io8(uint32_t addr)
 			base_clock = d_event->get_current_clock();
 		}
 		uint32_t cpu_clock = d_event->get_event_clocks();
-		uint32_t half = cpu_clock / config.cmu800_tempo;
+		uint32_t half = cpu_clock / (config.cmu800_tempo * 80 / 100);
 		uint32_t length = half * 2;
 		uint32_t clock = d_event->get_current_clock() - base_clock;
 		return (clock % length) >= half ? 0xF0 : 0;

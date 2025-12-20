@@ -17,23 +17,27 @@ void MZ1R12::initialize()
 	
 	FILEIO* fio = new FILEIO();
 #ifndef _MZ80B
-	if(fio->Fopen(create_local_path(_T("MZ-1E18.ROM")), FILEIO_READ_BINARY)) {
+#ifdef USE_ENABLE_BOOT
+	if(config.enable_boot_mz1e18 && fio->Fopen(create_local_path(_T("MZ-1E18.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 		read_only = true;
 	} else
+#endif
 #endif
 #if !defined(_MZ2500)
-	if(config.mz2000_sd && fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
+	if(config.enable_boot_mz2000_sd && fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 		read_only = true;
 	} else
 #endif
-	if(fio->Fopen(create_local_path(_T("MZ-1R12.BIN")), FILEIO_READ_BINARY)) {
+#ifdef USE_ENABLE_BOOT
+	if(config.enable_boot_mz1r12 && fio->Fopen(create_local_path(_T("MZ-1R12.BIN")), FILEIO_READ_BINARY)) {
 		fio->Fread(sram, sizeof(sram), 1);
 		fio->Fclose();
 	}
+#endif
 	delete fio;
 	
 	address = 0;

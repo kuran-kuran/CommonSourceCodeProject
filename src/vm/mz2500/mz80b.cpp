@@ -62,12 +62,20 @@
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
 	enable_cmu800 = config.cmu800;
+#if defined(USE_ENABLE_BOOT)
+	enable_boot_mz1r12 = config.enable_boot_mz1r12;
+	enable_boot_mz1e18 = config.enable_boot_mz1e18;
+#endif
+#ifdef USE_EMM_TYPE
 	enable_mz2000sd = config.mz2000_sd;
 	enable_emm0 = config.emm0;
 	enable_emm1 = config.emm1;
 	enable_emm2 = config.emm2;
 	enable_emm3 = config.emm3;
+#endif
+#ifdef USE_EMM_SIZE
 	emm_size = config.emm_size;
+#endif
 
 	// create devices
 	first_device = last_device = NULL;
@@ -621,6 +629,9 @@ void VM::update_config()
 {
 	bool needsReset = false;
 	if((enable_cmu800 != config.cmu800) ||
+	(enable_boot_mz1r12 != config.enable_boot_mz1r12) ||
+	(enable_boot_mz1e18 != config.enable_boot_mz1e18) ||
+	(enable_boot_mz2000sd != config.enable_boot_mz2000_sd) ||
 	(enable_mz2000sd != config.mz2000_sd) ||
 	(enable_emm0 != config.emm0) ||
 	(enable_emm1 != config.emm1) ||

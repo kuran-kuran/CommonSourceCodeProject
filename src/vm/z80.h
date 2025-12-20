@@ -134,6 +134,7 @@ public:
 	void reset();
 	void special_reset();
 	int run(int clock);
+	void DebugCheck();
 	void write_signal(int id, uint32_t data, uint32_t mask);
 	uint32_t read_signal(int id);
 	void set_intr_line(bool line, bool pending, uint32_t bit)

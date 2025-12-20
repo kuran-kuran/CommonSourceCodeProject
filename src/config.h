@@ -113,6 +113,11 @@ typedef struct {
 	#if defined(USE_SHARED_DLL) || defined(USE_SERIAL_TYPE)
 		int serial_type;
 	#endif
+	#if defined(USE_SHARED_DLL) || defined(USE_ENABLE_BOOT)
+		bool enable_boot_mz1r12;
+		bool enable_boot_mz1e18;
+		bool enable_boot_mz2000_sd;
+	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_EMM_TYPE)
 		bool mz2000_sd;
 		bool emm0;

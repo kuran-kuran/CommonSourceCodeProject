@@ -12,6 +12,7 @@
 #ifdef USE_DEBUGGER
 #include "debugger.h"
 #endif
+#include <vector>
 
 #ifndef CPU_START_ADDR
 #define CPU_START_ADDR	0
@@ -2143,6 +2144,27 @@ uint32_t Z80::read_signal(int id)
 	return 0;
 }
 
+// デバッグ用
+uint16_t beforePC = 0;
+std::vector<uint16_t> list;
+void Z80::DebugCheck(void)
+{
+	if(beforePC < 0x0251 || beforePC > 0x0561) {
+		if(PC >= 0x0251 && PC <= 0x0561) {
+			int wait_clock = 0;
+			uint8_t beforeMem = d_mem->read_data8w(beforePC, &wait_clock);
+			if(beforeMem != 0xC9) { // RETだったら無視
+				list.push_back(PC);
+			}
+		}
+	}
+	if(beforePC > 0xFFFF)
+	{
+		list.clear();
+	}
+	beforePC = PC;
+}
+
 int Z80::run(int clock)
 {
 	if(clock == -1) {
@@ -2183,6 +2205,7 @@ int Z80::run(int clock)
 			// run only one opcode
 			icount = event_icount = in_op_icount = 0;
 			run_one_opecode();
+//			DebugCheck();
 			if(wait || wait_icount > 0) {
 				event_icount = (-icount) - in_op_icount;
 				#ifdef _DEBUG
@@ -2236,6 +2259,7 @@ int Z80::run(int clock)
 						tmp_icount = icount;
 					#endif
 					run_one_opecode();
+//					DebugCheck();
 					#ifdef USE_DEBUGGER
 						total_icount += tmp_icount - icount;
 					#endif

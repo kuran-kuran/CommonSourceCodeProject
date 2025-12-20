@@ -323,19 +323,22 @@
 #define ID_VM_SERIAL_MENU_END           41158
 
 #define ID_VM_EMM_MENU_START            41161
-#define ID_VM_EMM_TYPE0                 41161
-#define ID_VM_EMM_TYPE1                 41162
-#define ID_VM_EMM_TYPE2                 41163
-#define ID_VM_EMM_TYPE3                 41164
-#define ID_VM_EMM_TYPE4                 41165
-#define ID_VM_EMM_TYPE5                 41166
-#define ID_VM_EMM_TYPE6                 41167
-#define ID_VM_EMM_TYPE7                 41168
-#define ID_VM_EMM_SIZE_TYPE0            41171
-#define ID_VM_EMM_SIZE_TYPE1            41172
-#define ID_VM_EMM_SIZE_TYPE2            41173
-#define ID_VM_EMM_SIZE_TYPE3            41174
-#define ID_VM_EMM_MENU_END              41168
+#define ID_VM_ENABLE_BOOT_TYPE0         41161
+#define ID_VM_ENABLE_BOOT_TYPE1         41162
+#define ID_VM_ENABLE_BOOT_TYPE2         41163
+#define ID_VM_EMM_TYPE0                 41164
+#define ID_VM_EMM_TYPE1                 41165
+#define ID_VM_EMM_TYPE2                 41166
+#define ID_VM_EMM_TYPE3                 41167
+#define ID_VM_EMM_TYPE4                 41168
+#define ID_VM_EMM_TYPE5                 41169
+#define ID_VM_EMM_TYPE6                 41170
+#define ID_VM_EMM_TYPE7                 41171
+#define ID_VM_EMM_SIZE_TYPE0            41172
+#define ID_VM_EMM_SIZE_TYPE1            41173
+#define ID_VM_EMM_SIZE_TYPE2            41174
+#define ID_VM_EMM_SIZE_TYPE3            41175
+#define ID_VM_EMM_MENU_END              41175
 
 #define ID_HOST_MENU_START              41201
 #define ID_HOST_REC_MOVIE_60FPS         41201

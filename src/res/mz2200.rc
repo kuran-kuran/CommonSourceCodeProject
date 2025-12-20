@@ -247,11 +247,15 @@ BEGIN
         END
         POPUP "Storage"
         BEGIN
-            MENUITEM "MZ2000_SD I/O Port A0h-A3h",    ID_VM_EMM_TYPE0
-            MENUITEM "PIO-3034  I/O Port A0h-A3h",    ID_VM_EMM_TYPE1
-            MENUITEM "PIO-3034  I/O Port A4h-A7h",    ID_VM_EMM_TYPE2
-            MENUITEM "PIO-3034  I/O Port A8h-ABh",    ID_VM_EMM_TYPE3
-            MENUITEM "PIO-3034  I/O Port ACh-AFh",    ID_VM_EMM_TYPE4
+            MENUITEM "Enable boot MZ-1R12",                    ID_VM_ENABLE_BOOT_TYPE0
+            MENUITEM "Enable boot MZ-1E18",                    ID_VM_ENABLE_BOOT_TYPE1
+            MENUITEM "Enable boot MZ2000_SD",                  ID_VM_ENABLE_BOOT_TYPE2
+            MENUITEM SEPARATOR
+            MENUITEM "MZ2000_SD I/O Port A0h-A3h",             ID_VM_EMM_TYPE0
+            MENUITEM "PIO-3034  I/O Port A0h-A3h",             ID_VM_EMM_TYPE1
+            MENUITEM "PIO-3034  I/O Port A4h-A7h",             ID_VM_EMM_TYPE2
+            MENUITEM "PIO-3034  I/O Port A8h-ABh",             ID_VM_EMM_TYPE3
+            MENUITEM "PIO-3034  I/O Port ACh-AFh",             ID_VM_EMM_TYPE4
             MENUITEM SEPARATOR
             MENUITEM "PIO-3034 320KB",                ID_VM_EMM_SIZE_TYPE0
             MENUITEM "PIO-3034 512KB",                ID_VM_EMM_SIZE_TYPE1

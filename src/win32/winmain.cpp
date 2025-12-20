@@ -900,26 +900,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 #endif
 #ifdef USE_EMM_TYPE
 		case ID_VM_EMM_TYPE0: case ID_VM_EMM_TYPE1: case ID_VM_EMM_TYPE2: case ID_VM_EMM_TYPE3:
-		case ID_VM_EMM_TYPE4:
+		case ID_VM_EMM_TYPE4: case ID_VM_EMM_TYPE5: case ID_VM_EMM_TYPE6: case ID_VM_EMM_TYPE7:
 			{
 				int emm_type = LOWORD(wParam) - ID_VM_EMM_TYPE0;
 				switch(emm_type)
 				{
 				case 0:
-					config.mz2000_sd = !config.mz2000_sd;
-					config.emm0 = config.mz2000_sd ? false : config.emm0;
+					config.enable_boot_mz1r12 = !config.enable_boot_mz1r12;
+					config.enable_boot_mz1e18 = config.enable_boot_mz1r12 ? false : config.enable_boot_mz1e18;
+					config.enable_boot_mz2000_sd = config.enable_boot_mz1r12 ? false : config.enable_boot_mz2000_sd;
 					break;
 				case 1:
+					config.enable_boot_mz1e18 = !config.enable_boot_mz1e18;
+					config.enable_boot_mz1r12 = config.enable_boot_mz1e18 ? false : config.enable_boot_mz1r12;
+					config.enable_boot_mz2000_sd = config.enable_boot_mz1e18 ? false : config.enable_boot_mz2000_sd;
+					break;
+				case 2:
+					config.enable_boot_mz2000_sd = !config.enable_boot_mz2000_sd;
+					config.enable_boot_mz1r12 = config.enable_boot_mz2000_sd ? false : config.enable_boot_mz1r12;
+					config.enable_boot_mz1e18 = config.enable_boot_mz2000_sd ? false : config.enable_boot_mz1e18;
+					break;
+				case 3:
+					config.mz2000_sd = !config.enable_boot_mz2000_sd;
+					config.emm0 = config.mz2000_sd ? false : config.emm0;
+					break;
+				case 4:
 					config.emm0 = !config.emm0;
 					config.mz2000_sd = config.emm0 ? false : config.mz2000_sd;
 					break;
-				case 2:
+				case 5:
 					config.emm1 = !config.emm1;
 					break;
-				case 3:
+				case 6:
 					config.emm2 = !config.emm2;
 					break;
-				case 4:
+				case 7:
 					config.emm3 = !config.emm3;
 					break;
 				}
@@ -2014,6 +2029,10 @@ void update_vm_serial_menu(HMENU hMenu)
 #ifdef USE_EMM_TYPE
 void update_vm_emm_menu(HMENU hMenu)
 {
+#ifdef USE_ENABLE_BOOT
+	int select =(config.enable_boot_mz1e18 ? 1 : 0) + (config.enable_boot_mz2000_sd ? 2 : 0);
+	CheckMenuRadioItem(hMenu, ID_VM_ENABLE_BOOT_TYPE0, ID_VM_ENABLE_BOOT_TYPE0 + USE_ENABLE_BOOT - 1, ID_VM_ENABLE_BOOT_TYPE0 + select, MF_BYCOMMAND);
+#endif
 	CheckMenuItem(hMenu, ID_VM_EMM_TYPE0, config.mz2000_sd ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VM_EMM_TYPE1, config.emm0 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(hMenu, ID_VM_EMM_TYPE2, config.emm1 ? MF_CHECKED : MF_UNCHECKED);

@@ -69,14 +69,18 @@
 #define USE_CMU800
 #define USE_MZ80K_SD
 #define KEYBOARD_TYPE_DEFAULT 0
-#define USE_KEYBOARD_TYPE	6
+#define USE_KEYBOARD_TYPE 6
 #define DRIVE_TYPE_DEFAULT 0
+#define USE_ENABLE_BOOT 3
+#define ENABLE_BOOT_MZ1R12_DEFAULT false
+#define ENABLE_BOOT_MZ1E18_DEFAULT false
+#define ENABLE_BOOT_MZ2000_SD_DEFAULT true
 #define MZ2000_SD_DEFAULT true
 #define EMM0_DEFAULT false
 #define EMM1_DEFAULT false
 #define EMM2_DEFAULT false
 #define EMM3_DEFAULT false
-#define USE_EMM_TYPE	 5
+#define USE_EMM_TYPE 5
 #define EMM_SIZE_DEFAULT 0
 #define USE_EMM_SIZE 4
 
@@ -174,6 +178,9 @@ protected:
 #endif
 
 	bool enable_cmu800;
+	bool enable_boot_mz1r12;
+	bool enable_boot_mz1e18;
+	bool enable_boot_mz2000sd;
 	bool enable_mz2000sd;
 	bool enable_emm0;
 	bool enable_emm1;
