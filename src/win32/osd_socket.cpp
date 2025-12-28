@@ -64,6 +64,9 @@ void OSD::update_socket()
 			if(size > size0 + size1) {
 				size = size0 + size1;
 			}
+			if(!buf0 || !buf1 || !size) {
+				continue;
+			}
 			char* src = &recv_buffer[i][recv_r_ptr[i]];
 			recv_r_ptr[i] += size;
 			
@@ -176,7 +179,7 @@ void OSD::send_socket_data(int ch)
 		int size;
 		uint8_t* buf = vm->get_socket_send_buffer(ch, &size);
 		
-		if(!size) {
+		if(!buf || !size) {
 			return;
 		}
 		if(is_tcp[ch]) {

@@ -22,7 +22,7 @@ void I8253::initialize()
 		counter[ch].count_latched = false;
 		counter[ch].low_read = counter[ch].high_read = false;
 		counter[ch].low_write = counter[ch].high_write = false;
-		counter[ch].delay = false;
+		counter[ch].delay = 0;
 		counter[ch].start = false;
 //#ifdef HAS_I8254
 		// 8254 read-back command
@@ -39,7 +39,9 @@ void I8253::reset()
 	}
 }
 
-#define COUNT_VALUE(n) ((counter[n].count_reg == 0) ? 0x10000 : (counter[n].mode == 3 && counter[n].count_reg == 1) ? 0x10001 : counter[n].count_reg)
+#define COUNT_VALUE(n) ((counter[n].count_reg == 0) ? 0x10000 : \
+			(counter[n].mode == 3 && counter[n].count_reg == 1) ? 0x10001 : \
+			counter[n].count_reg)
 
 void I8253::write_io8(uint32_t addr, uint32_t data)
 {
@@ -82,12 +84,12 @@ void I8253::write_io8(uint32_t addr, uint32_t data)
 		if(counter[ch].mode == 0 || counter[ch].mode == 4) {
 			// restart with new count
 			stop_count(ch);
-			counter[ch].delay = true;
+			counter[ch].delay = (counter[ch].prev_in) ? 2 : 1;
 			start_count(ch);
 		} else if(counter[ch].mode == 2 || counter[ch].mode == 3) {
 			// start with new counter after the current count is finished
 			if(!counter[ch].start) {
-				counter[ch].delay = true;
+				counter[ch].delay = (counter[ch].prev_in) ? 2 : 1;
 				start_count(ch);
 			}
 		}
@@ -242,13 +244,18 @@ void I8253::input_clock(int ch, int clock)
 	if(!(counter[ch].start && clock)) {
 		return;
 	}
-	if(counter[ch].delay) {
+	if(counter[ch].delay > 0) {
+		counter[ch].delay--;
 		clock -= 1;
-		counter[ch].delay = false;
-		counter[ch].count = COUNT_VALUE(ch);
+		if(counter[ch].delay == 0) {
+			counter[ch].count = COUNT_VALUE(ch);
 //#ifdef HAS_I8254
-		counter[ch].null_count = false;
+			counter[ch].null_count = false;
 //#endif
+		}
+		if(clock == 0) {
+			return;
+		}
 	}
 	
 	// update counter
@@ -269,7 +276,7 @@ loop:
 		}
 	}
 	if(counter[ch].count <= 0) {
-		if(counter[ch].mode == 0 || counter[ch].mode == 2 || counter[ch].mode == 3) {
+		if(/*counter[ch].mode == 0 ||*/ counter[ch].mode == 2 || counter[ch].mode == 3) {
 			counter[ch].count += tmp;
 //#ifdef HAS_I8254
 			counter[ch].null_count = false;
@@ -300,7 +307,7 @@ void I8253::input_gate(int ch, bool signal)
 		// restart count
 		stop_count(ch);
 		if(!(counter[ch].mode == 0 || counter[ch].mode == 4)) {
-			counter[ch].delay = true;
+			counter[ch].delay = 1;
 		}
 		start_count(ch);
 		// set output signal
@@ -410,7 +417,7 @@ int I8253::get_next_count(int ch)
 	return counter[ch].count;
 }
 
-#define STATE_VERSION	2
+#define STATE_VERSION	3
 
 bool I8253::process_state(FILEIO* state_fio, bool loading)
 {

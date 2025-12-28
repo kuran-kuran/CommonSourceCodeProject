@@ -1,4 +1,5 @@
 /*
+	SHARP MZ-700 Emulator 'EmuZ-700'
 	SHARP MZ-800 Emulator 'EmuZ-800'
 	SHARP MZ-1500 Emulator 'EmuZ-1500'
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
@@ -6,7 +7,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2011.02.17-
 
-	[ quick disk ]
+	[ MZ-1E14/18/19 ]
 */
 
 #include "quickdisk.h"

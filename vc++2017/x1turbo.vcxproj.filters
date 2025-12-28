@@ -81,13 +81,13 @@
     <ClCompile Include="..\src\win32\osd_input.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\win32\osd_midi.cpp">
+      <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\win32\osd_screen.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\win32\osd_sound.cpp">
-      <Filter>Source Files\OSD Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\win32\osd_midi.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\win32\winmain.cpp">
@@ -218,12 +218,6 @@
     </ClCompile>
     <ClCompile Include="..\src\vm\x1\x1.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vm\midi.cpp">
-      <Filter>Source Files\EMU Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\win32\osd_midi.cpp">
-      <Filter>Source Files\EMU Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -404,9 +398,6 @@
     <ClInclude Include="..\src\res\resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\midi.h">
-      <Filter>Header Files\EMU Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\res\indicator\access_green.bmp">
@@ -426,5 +417,8 @@
     <ResourceCompile Include="..\src\res\x1turbo.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,109 @@
+12/14/2025
+
+[CONFIG] add option_switch for enabling option devices instead of dipswitch
+[EMU] support is_hard_disk_connected() and is_compact_disc_connected()
+[VM/VM_TEMPLATE] add is_hard_disk_connected() and is_compact_disc_connected()
+
+[MZ700] support enabling/disabling option devices
+[MZ80K] support enabling/disabling option devices
+[MZ80B] support enabling/disabling option devices
+[MZ2500] support enabling/disabling option devices
+[PC8801MA/FLOPPY] support enabling/disabling CD-ROM
+
+
+12/8/2025
+
+[EMU/DEBUGGER] support DI command (thanks Mr.kuran_kuran)
+[EMU/SOUND] restart playing sound if it is suspended (thanks Mr.YAT)
+
+[VM/*] improve process_state() for GNU C/Clang (thanks Mr.shikarunochi)
+[VM/CMU800] support CMU-800 (thanks Mr.kuran_kuran)
+[VM/HD46505] support SY6845E
+[VM/PC80S31K] hack: support 1.44MB 2HD
+
+[MZ700] support Kersten & Partner SFD-700 and 80-column display
+[MZ700] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ700/EMM] support 16MB battery backuped EMM
+[MZ80K] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ80B] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ80B] support PIO-3034
+[MZ2200] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ2200] support PIO-3034
+[MZ2500] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ2500/MZ1R12] support MZ-1R12 (thanks Mr.kuran_kuran)
+[PC8801] hack: support 1.44MB 2HD
+[PC9801] hack: support 1.44MB 2HD
+[X1] support serial MIDI port (thanks Mr.MedamaP)
+[X1] hack: support 2DD
+[X1/EMM] support 16MB battery backuped EMM
+[X1TURBO] hack: support 1.44MB 2HD
+[X1TURBO/DISPLAY] improve text screen renderer (thanks Mr.MedamaP)
+
+
+11/30/2025
+
+[BX1/PRINTER] add hack code for printing FORMAT instruction
+[MZ2800/CRTC] fix to render screen correctly after screen mode is changed
+[PC100/IOCTRL] fix keyboard
+
+
+11/24/2025
+
+[VM/SY6522] reimplement based on MAME 0.279
+
+
+11/23/2025
+
+[VM/I386_NP21] don't break executing rep movs/stos instructions (thanks Mr. sava)
+[VM/I386_NP21] improve sgdt/sidt instructions to store whole of base address
+[VM/I386_NP21] fix to catch exception occurred while executing interrupt
+[VM/I8253] improve timing when writing to counter is reflected (thanks Mr.Koucha-Youkan)
+[VM/MC6844] support irq line
+
+[BX1] improve irq line connections
+[BX1/PRINTER] support paper feed key
+[MZ700/MEMORY] improve mapping of ext rom (thanks Mr.Koucha-Youkan)
+[MZ2500/CRTC] improve horizontal scroll (thanks Mr.Koucha-Youkan)
+[MZ2500/ME1E32] support MZ-1E32 (thanks Mr.Koucha-Youkan)
+[RX78/MEMORY] support 32KB ROM cartridge
+[RX78/VDP] improve color palette (thanks Mr.Koucha-Youkan)
+
+
+11/09/2025
+
+[VM/I386] don't set cpl until all reads are finished (thanks Mr. cracyc)
+[VM/I386_NP21] update to Neko Project 21/W ver0.86 rev96 beta8
+[VM/MC6800] Update MAME M6800 core to version 0.279
+
+[BX1/PRINTER] improve for htab/feed and drawing symbols
+[HUX883] support Hudson HuX-883
+[SCV/MEMORY] fix loading cart image
+
+
+9/23/2025
+
+[VM/I86] Update MAME i86 core for DIV/IDIV/NEG instructions
+[VM/I386] Update MAME i386 core to version 0.279
+[VM/I386_NP21] update to Neko Project 21/W ver0.86 rev95 beta7
+
+[SCV/MEMORY] support Pole Position II (thanks MiSTer)
+[SCV/MEMORY] improve memory wait cycles (thanks MiSTer)
+[SCV/VDP] improve VDP timing (thanks MiSTer)
+[SCV/VDP] support RGB palette (thanks MiSTer)
+
+
+4/28/2025
+
+IMPORTANT: The license is changed from "GPL v2" to "GPL v2 or Later"
+
+[EMU/DEBUGGER] improve debugger to record/check cpu mode in trace log
+
+[VM/I386] improve debugger to allow modifying flags by r command
+[VM/I386] improve debugger for calculating code page in protected mode
+[VM/I386_DASM] improve V30 disassembler
+[VM/I386_NP21] update to Neko Project 21/W ver0.86 rev92
+
+
 1/1/2024
 
 [VM/DISK] fix imagedisk importer
@@ -884,7 +990,7 @@
 12/1/2018
 
 [PC8801] enable/disable drawing scan line when monitor type is hireso/standard
-[PC8801/PC88] improve text attributes/rederer (thanks ePC-8801MA‰ü)
+[PC8801/PC88] improve text attributes/rederer (thanks ePC-8801MA  )
 [PC8801/PC88] fix analog back color
 [PC8801/PC88] improve routine to change palette for each scan line
 
@@ -1042,7 +1148,7 @@
 [VM/MB8877] improve for debugger
 [VM/TMS9918] improve for debugger
 [VM/UPD765A] improve for debugger
-[VM/UPD765A] fix read/write commands to check density (thanks PC8801MA‰ü)
+[VM/UPD765A] fix read/write commands to check density (thanks PC8801MA  )
 [VM/UPD765A] fix read diagnostics status for unformat/density mismatch case
 
 [PC8801/PC88] fix underline/upperline attributes
@@ -1137,7 +1243,7 @@
 12/14/2017
 
 [RESOURCE] change accelerators for switching full speed and roman/kana input
-[WINMAIN] fix to call ImmAssociateContext() in WM_ACTIVATE (thanks PC8801MA‰ü)
+[WINMAIN] fix to call ImmAssociateContext() in WM_ACTIVATE (thanks PC8801MA  )
 
 [VM/HD46505] fix to force update event timing when R0-R9 are modified
 [VM/HUC6280] support to show clocks since starting scanline in debugger
@@ -1209,21 +1315,21 @@
 [EMU/DEBUGGER] support ut command (unassemble cpu trace)
 [EMU/DEBUGGER] fix < command to check if command file is correctly opened
 
-[EMU/OSD] fix initialize_screen_buffer() for RGB565 (thanks PC8801MA‰ü)
+[EMU/OSD] fix initialize_screen_buffer() for RGB565 (thanks PC8801MA  )
 [EMU/OSD] improve read_console_input() to get cursor key
 
 [VM/MCS48] support to show total cpu clocks in debugger
 [VM/MCS48] support cpu trace
 [VM/UPD7220] improve vsync/hsync timing
 [VM/UPD7220] improve status register to select vblank/hblank by sync command
-[VM/YM2151] improve not to load mamefm.dll again (thanks PC8801MA‰ü)
-[VM/YM2203] improve not to load mamefm.dll again (thanks PC8801MA‰ü)
+[VM/YM2151] improve not to load mamefm.dll again (thanks PC8801MA  )
+[VM/YM2203] improve not to load mamefm.dll again (thanks PC8801MA  )
 [VM/Z80] support to show total cpu clocks in debugger
 [VM/Z80] support cpu trace
 
-[PC8801MA] support OPN+OPN, OPNA+OPNA, and OPNA+OPN (thanks PC8801MA‰ü)
-[PC8801MA] fix back space key issue (thanks PC8801MA‰ü)
-[PC8801MA] fix bank switch of extrom (thanks PC8801MA‰ü)
+[PC8801MA] support OPN+OPN, OPNA+OPNA, and OPNA+OPN (thanks PC8801MA  )
+[PC8801MA] fix back space key issue (thanks PC8801MA  )
+[PC8801MA] fix bank switch of extrom (thanks PC8801MA  )
 [PC8801MA] fix not to apply digital palette in monochrome and digital mode
 [PC8801MA] fix to apply analog palette in monochrome and analog mode
 [PC8801MA] fix to apply reverse in text attribute to monochrome graphic
@@ -4387,7 +4493,7 @@ Fix typo (regist -> register, recieve -> receive)
 [VM/I8085] support 8080/8085 (based on MAME 8080/8085 core)
 [VM/I86] change class name from X86 to I86
 
-[MULTI8/KEYBOARD] fix the problem that cannot input the kana-character "¨"
+[MULTI8/KEYBOARD] fix the problem that cannot input the kana-character " "
 [TK80] change cpu core from z80 to 8080
 [TK80/MEMORY] change user-defined rom address to $0c00-$7dff
 

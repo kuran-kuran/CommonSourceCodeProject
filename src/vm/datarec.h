@@ -103,8 +103,6 @@ public:
 		initialize_output_signals(&outputs_end);
 		initialize_output_signals(&outputs_top);
 		initialize_output_signals(&outputs_apss);
-		play_fio = NULL;
-		rec_fio = NULL;
 		d_noise_play = NULL;
 		d_noise_stop = NULL;
 		d_noise_fast = NULL;

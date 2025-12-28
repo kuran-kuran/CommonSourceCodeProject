@@ -50,17 +50,36 @@ private:
 	uint32_t clock;
 
 	uint16_t get_counter1_value();
+	void counter2_decrement();
 
 	void set_int(int data);
 	void clear_int(int data);
 	void shift_out();
 	void shift_in();
 
+	void shift_irq_tick();
+	void shift_tick();
+	void t1_tick();
+	void t2_tick();
+	void ca2_tick();
+	void cb2_tick();
+
 	uint8_t input_pa();
 	void output_pa();
+	uint8_t read_pa();
 	uint8_t input_pb();
 	void output_pb();
+	uint8_t read_pb();
 	void output_irq();
+
+	void set_pa_line(int line, int state);
+	void write_pa(uint8_t data);
+	void write_ca1(int state);
+	void write_ca2(int state);
+	void set_pb_line(int line, int state);
+	void write_pb(uint8_t data);
+	void write_cb1(int state);
+	void write_cb2(int state);
 
 	uint8_t m_in_a;
 	int m_in_ca1;
@@ -102,8 +121,10 @@ private:
 	uint32_t m_time2;
 	uint8_t m_t2_active;
 	int m_ca2_timer;
+	int m_cb2_timer;
 
 	int m_shift_timer;
+	int m_shift_irq_timer;
 	uint8_t m_shift_counter;
 
 public:

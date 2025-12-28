@@ -272,6 +272,8 @@ static const int table[256] = {
 void KEYBOARD::initialize()
 {
 	fifo_down = new FIFO(8);
+	
+	register_vline_event(this);
 }
 
 void KEYBOARD::release()
@@ -283,6 +285,13 @@ void KEYBOARD::release()
 void KEYBOARD::reset()
 {
 	fifo_down->clear();
+}
+
+void KEYBOARD::event_vline(int v, int clock)
+{
+	if(!fifo_down->empty()) {
+		d_cpu->write_signal(SIG_CPU_IRQ, 1, 1);
+	}
 }
 
 uint32_t KEYBOARD::read_io8(uint32_t addr)

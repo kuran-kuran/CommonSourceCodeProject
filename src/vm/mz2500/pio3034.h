@@ -3,12 +3,9 @@
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
 
 	Author : Takeda.Toshiya
-	Date   : 2013.03.17-
+	Date   : 2025.12.08 -
 
-	Author : kuran_kuran
-	Date   : 2025.11.30-
-
-	[ PIO-3034 EMM ]
+	[ PIO-3034 ]
 */
 
 #ifndef _PIO3034_H_
@@ -21,19 +18,14 @@
 class PIO3034 : public DEVICE
 {
 private:
-	static size_t size_tbl[USE_EMM_SIZE];
-	uint8_t base_port_number;
-	uint8_t ram[16 * 1024 * 1024];
-	uint32_t address;
-	bool update;
+	uint8_t *data_buffer;
+	uint32_t data_addr;
+	bool modified;
 	
 public:
 	PIO3034(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		base_port_number = 0xa0;
-		address = 0;
-		update = false;
-		set_device_name(_T("PIO-3034 EMM"));
+		set_device_name(_T("PIO-3034"));
 	}
 	~PIO3034() {}
 	
@@ -44,12 +36,7 @@ public:
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
 	bool process_state(FILEIO* state_fio, bool loading);
-
-	// unique function
-	void set_base_port_number(uint32_t port_number)
-	{
-		base_port_number = port_number;
-	}
 };
 
 #endif
+

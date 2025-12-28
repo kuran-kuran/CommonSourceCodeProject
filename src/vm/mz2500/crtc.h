@@ -19,10 +19,13 @@
 #define SIG_CRTC_REVERSE	2
 #define SIG_CRTC_MASK		3
 
+class MEMORY;
+
 class CRTC : public DEVICE
 {
 private:
-	DEVICE *d_mem, *d_int, *d_pio;
+	DEVICE *d_int, *d_pio;
+	MEMORY *d_mem;
 	
 	// config
 	bool scan_line, scan_tmp;
@@ -137,7 +140,7 @@ public:
 	bool process_state(FILEIO* state_fio, bool loading);
 	
 	// unique function
-	void set_context_mem(DEVICE* device)
+	void set_context_mem(MEMORY* device)
 	{
 		d_mem = device;
 	}
@@ -175,6 +178,7 @@ public:
 		pcg3 = ptr + 0x1800;
 	}
 	void draw_screen();
+	bool is_4color_mode();
 };
 
 #endif

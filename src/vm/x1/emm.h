@@ -17,13 +17,20 @@
 #include "../../emu.h"
 #include "../device.h"
 
+#if 0
+// 320KB
 #define EMM_BUFFER_SIZE	0x50000
+#else
+// 16MB
+#define EMM_BUFFER_SIZE	0x1000000
+#endif
 
 class EMM : public DEVICE
 {
 private:
 	uint8_t data_buffer[EMM_BUFFER_SIZE];
 	uint32_t data_addr;
+	bool modified;
 	
 public:
 	EMM(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
@@ -34,6 +41,7 @@ public:
 	
 	// common functions
 	void initialize();
+	void release();
 	void reset();
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);

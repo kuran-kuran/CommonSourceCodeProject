@@ -13,7 +13,11 @@
 #define STACK_FAULT 12
 #define GENERAL_PROTECTION_FAULT 13
 
+#if 0
 #define CPL (cpustate->sregs[CS]&3)
+#else
+#define CPL ((cpustate->rights[SS]>>5)&3)
+#endif
 #define PM (cpustate->msw&1)
 
 static void i80286_trap2(i80286_state *cpustate,UINT32 error);

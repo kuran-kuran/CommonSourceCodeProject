@@ -4,10 +4,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ win32 emulation i/f ]
 */
 
@@ -41,34 +37,14 @@
 #define OSD_SDL
 #elif defined(_WIN32)
 #define OSD_WIN32
-#elif defined(__ANDROID__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#define OSD_ANDROID
 #else
 // oops!
-#endif
-
-#if defined(OSD_ANDROID)
-//#undef USE_AUTO_KEY
-//#undef USE_AUTO_KEY_RELEASE
-//#undef USE_AUTO_KEY_CAPS
-//#undef USE_DEBUGGER
-//#undef USE_STATE
-#undef USE_PRINTER
-#define PRINTER_TYPE_DEFAULT 999
-
-#define SOUND_RATE_DEFAULT	5
 #endif
 
 // OS dependent header files should be included in each osd.h
 // Please do not include them in emu.h
 
-#if defined(OSD_ANDROID)
-#include "Android/osd.h"
-#elif defined(OSD_QT)
+#if defined(OSD_QT)
 #include "qt/osd.h"
 #elif defined(OSD_SDL)
 #include "sdl/osd.h"
@@ -136,8 +112,8 @@ private:
 #ifdef USE_CPU_TYPE
 	int cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	uint32_t dipswitch;
+#ifdef USE_OPTION_SWITCH
+	uint32_t option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	int sound_type;
@@ -219,8 +195,6 @@ public:
 	EMU(class Ui_MainWindow *hwnd, GLDrawClass *hinst, USING_FLAGS *p);
 #elif defined(OSD_WIN32)
 	EMU(HWND hwnd, HINSTANCE hinst);
-#elif defined(OSD_ANDROID)
-    EMU(struct android_app* state);
 #else
 	EMU();
 #endif
@@ -243,6 +217,7 @@ public:
 #endif
 	
 	// drive machine
+	const _TCHAR *device_name();
 	double get_frame_rate();
 	int get_frame_interval();
 	bool is_frame_skippable();
@@ -334,11 +309,7 @@ public:
 	bool start_record_video(int fps);
 	void stop_record_video();
 	bool is_video_recording();
-
-#ifdef USE_TV_CONTROL
-    int special_display_mode;
-#endif
-
+	
 	// sound
 	int get_sound_rate()
 	{
@@ -397,11 +368,7 @@ public:
 	
 	// socket
 #ifdef USE_SOCKET
-#if defined(__ANDROID__)
-	int get_socket(int ch);
-#else
-    SOCKET get_socket(int ch);
-#endif
+	SOCKET get_socket(int ch);
 	void notify_socket_connected(int ch);
 	void notify_socket_disconnected(int ch);
 	bool initialize_socket_tcp(int ch);
@@ -455,9 +422,7 @@ public:
 	_TCHAR message[1024];
 	
 	// misc
-#if !defined(OSD_ANDROID)
 	void sleep(uint32_t ms);
-#endif
 	
 	// user interface
 #ifdef USE_CART
@@ -472,9 +437,7 @@ public:
 		int bank_num;
 		int cur_bank;
 	} d88_file[USE_FLOPPY_DISK];
-
 	bool create_blank_floppy_disk(const _TCHAR* file_path, uint8_t type);
-
 	void open_floppy_disk(int drv, const _TCHAR* file_path, int bank);
 	void close_floppy_disk(int drv);
 	bool is_floppy_disk_connected(int drv);
@@ -487,9 +450,7 @@ public:
 #ifdef USE_QUICK_DISK
 	void open_quick_disk(int drv, const _TCHAR* file_path);
 	void close_quick_disk(int drv);
-#if !defined(__ANDROID__)
 	bool is_quick_disk_connected(int drv);
-#endif
 	bool is_quick_disk_inserted(int drv);
 	uint32_t is_quick_disk_accessed();
 #endif
@@ -497,6 +458,7 @@ public:
 	bool create_blank_hard_disk(const _TCHAR* file_path, int sector_size, int sectors, int surfaces, int cylinders);
 	void open_hard_disk(int drv, const _TCHAR* file_path);
 	void close_hard_disk(int drv);
+	bool is_hard_disk_connected(int drv);
 	bool is_hard_disk_inserted(int drv);
 	uint32_t is_hard_disk_accessed();
 #endif
@@ -519,6 +481,7 @@ public:
 #ifdef USE_COMPACT_DISC
 	void open_compact_disc(int drv, const _TCHAR* file_path);
 	void close_compact_disc(int drv);
+	bool is_compact_disc_connected(int drv);
 	bool is_compact_disc_inserted(int drv);
 	uint32_t is_compact_disc_accessed();
 #endif

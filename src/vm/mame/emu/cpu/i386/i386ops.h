@@ -17,6 +17,7 @@ struct X86_OPCODE {
 #define OP_SSE          0x40
 #define OP_SSE2         0x80
 #define OP_SSE3         0x100
+#define OP_PENTIUM3     0x1000
 #define OP_CYRIX        0x8000
 #define OP_2BYTE        0x80000000
 #define OP_3BYTE66      0x40000000
@@ -189,6 +190,7 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0x99,     OP_I386,                    I386OP(cwd),                    I386OP(cdq),                false},
 	{ 0x9A,     OP_I386,                    I386OP(call_abs16),             I386OP(call_abs32),         false},
 	{ 0x9B,     OP_I386,                    I386OP(wait),                   I386OP(wait),               false},
+	{ 0x9B,     OP_I486,                    I486OP(wait),                   I486OP(wait),               false},
 	{ 0x9C,     OP_I386,                    I386OP(pushf),                  I386OP(pushfd),             false},
 	{ 0x9D,     OP_I386,                    I386OP(popf),                   I386OP(popfd),              false},
 	{ 0x9E,     OP_I386,                    I386OP(sahf),                   I386OP(sahf),               false},
@@ -440,6 +442,7 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0xA0,     OP_2BYTE|OP_I386,           I386OP(push_fs16),              I386OP(push_fs32),          false},
 	{ 0xA1,     OP_2BYTE|OP_I386,           I386OP(pop_fs16),               I386OP(pop_fs32),           false},
 	{ 0xA2,     OP_2BYTE|OP_I486,           I486OP(cpuid),                  I486OP(cpuid),              false},
+	{ 0xA2,     OP_2BYTE|OP_PENTIUM3,       PENTIUM3OP(cpuid),              PENTIUM3OP(cpuid),          false},
 	{ 0xA3,     OP_2BYTE|OP_I386,           I386OP(bt_rm16_r16),            I386OP(bt_rm32_r32),        false},
 	{ 0xA4,     OP_2BYTE|OP_I386,           I386OP(shld16_i8),              I386OP(shld32_i8),          false},
 	{ 0xA5,     OP_2BYTE|OP_I386,           I386OP(shld16_cl),              I386OP(shld32_cl),          false},
@@ -458,13 +461,13 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0xB4,     OP_2BYTE|OP_I386,           I386OP(lfs16),                  I386OP(lfs32),              false},
 	{ 0xB5,     OP_2BYTE|OP_I386,           I386OP(lgs16),                  I386OP(lgs32),              false},
 	{ 0xB6,     OP_2BYTE|OP_I386,           I386OP(movzx_r16_rm8),          I386OP(movzx_r32_rm8),      false},
-	{ 0xB7,     OP_2BYTE|OP_I386,           I386OP(invalid),                I386OP(movzx_r32_rm16),     false},
+	{ 0xB7,     OP_2BYTE|OP_I386,           I386OP(mov_r16_rm16),           I386OP(movzx_r32_rm16),     false},
 	{ 0xBA,     OP_2BYTE|OP_I386,           I386OP(group0FBA_16),           I386OP(group0FBA_32),       true },
 	{ 0xBB,     OP_2BYTE|OP_I386,           I386OP(btc_rm16_r16),           I386OP(btc_rm32_r32),       true },
 	{ 0xBC,     OP_2BYTE|OP_I386,           I386OP(bsf_r16_rm16),           I386OP(bsf_r32_rm32),       false},
 	{ 0xBD,     OP_2BYTE|OP_I386,           I386OP(bsr_r16_rm16),           I386OP(bsr_r32_rm32),       false},
 	{ 0xBE,     OP_2BYTE|OP_I386,           I386OP(movsx_r16_rm8),          I386OP(movsx_r32_rm8),      false},
-	{ 0xBF,     OP_2BYTE|OP_I386,           I386OP(invalid),                I386OP(movsx_r32_rm16),     false},
+	{ 0xBF,     OP_2BYTE|OP_I386,           I386OP(mov_r16_rm16),           I386OP(movsx_r32_rm16),     false},
 	{ 0xC0,     OP_2BYTE|OP_I486,           I486OP(xadd_rm8_r8),            I486OP(xadd_rm8_r8),        true },
 	{ 0xC1,     OP_2BYTE|OP_I486,           I486OP(xadd_rm16_r16),          I486OP(xadd_rm32_r32),      true },
 	{ 0xC2,     OP_2BYTE|OP_SSE,            SSEOP(cmpps_r128_rm128_i8),     SSEOP(cmpps_r128_rm128_i8), false},
@@ -549,6 +552,7 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0x7F,     OP_3BYTEF3|OP_SSE,          SSEOP(movdqu_rm128_r128),       SSEOP(movdqu_rm128_r128),   false},
 	{ 0xAE,     OP_3BYTE66|OP_SSE,          I386OP(invalid),                I386OP(invalid),            false},
 	{ 0xB8,     OP_3BYTEF3|OP_PENTIUM,      PENTIUMOP(popcnt_r16_rm16),     PENTIUMOP(popcnt_r32_rm32), false},
+	{ 0xBC,     OP_3BYTEF3|OP_I386,         I386OP(bsf_r16_rm16),           I386OP(bsf_r32_rm32),       false},
 	{ 0xBC,     OP_3BYTEF3|OP_PENTIUM,      PENTIUMOP(tzcnt_r16_rm16),      PENTIUMOP(tzcnt_r32_rm32),  false},
 	{ 0xC2,     OP_3BYTEF3|OP_SSE,          SSEOP(cmpss_r128_r128m32_i8),   SSEOP(cmpss_r128_r128m32_i8),false},
 	{ 0xC7,     OP_3BYTEF2|OP_SSE,          I386OP(invalid),                I386OP(invalid),            false},
@@ -631,8 +635,8 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0x74,     OP_3BYTE66|OP_SSE2,         SSEOP(pcmpeqb_r128_rm128),      SSEOP(pcmpeqb_r128_rm128),  false},
 	{ 0x75,     OP_3BYTE66|OP_SSE2,         SSEOP(pcmpeqw_r128_rm128),      SSEOP(pcmpeqw_r128_rm128),  false},
 	{ 0x76,     OP_3BYTE66|OP_SSE2,         SSEOP(pcmpeqd_r128_rm128),      SSEOP(pcmpeqd_r128_rm128),  false},
-	{ 0x7C,     OP_3BYTE66|OP_SSE2,         SSEOP(haddpd_r128_rm128),       SSEOP(haddpd_r128_rm128),   false},
-	{ 0x7D,     OP_3BYTE66|OP_SSE2,         SSEOP(hsubpd_r128_rm128),       SSEOP(hsubpd_r128_rm128),   false},
+	{ 0x7C,     OP_3BYTE66|OP_SSE3,         SSEOP(haddpd_r128_rm128),       SSEOP(haddpd_r128_rm128),   false},
+	{ 0x7D,     OP_3BYTE66|OP_SSE3,         SSEOP(hsubpd_r128_rm128),       SSEOP(hsubpd_r128_rm128),   false},
 	{ 0x7E,     OP_3BYTE66|OP_SSE2,         SSEOP(movd_rm32_r128),          SSEOP(movd_rm32_r128),      false},
 	{ 0x7F,     OP_3BYTE66|OP_SSE2,         SSEOP(movdqa_rm128_r128),       SSEOP(movdqa_rm128_r128),   false},
 	{ 0xC2,     OP_3BYTE66|OP_SSE2,         SSEOP(cmppd_r128_rm128_i8),     SSEOP(cmppd_r128_rm128_i8), false},
@@ -640,7 +644,7 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0xC5,     OP_3BYTE66|OP_SSE,          SSEOP(pextrw_reg_r128_i8),      SSEOP(pextrw_reg_r128_i8),  false},
 	{ 0xC6,     OP_3BYTE66|OP_SSE2,         SSEOP(shufpd_r128_rm128_i8),    SSEOP(shufpd_r128_rm128_i8),false},
 	{ 0xC7,     OP_3BYTE66|OP_SSE,          I386OP(invalid),                I386OP(invalid),            false},
-	{ 0xD0,     OP_3BYTE66|OP_SSE2,         SSEOP(addsubpd_r128_rm128),     SSEOP(addsubpd_r128_rm128), false},
+	{ 0xD0,     OP_3BYTE66|OP_SSE3,         SSEOP(addsubpd_r128_rm128),     SSEOP(addsubpd_r128_rm128), false},
 	{ 0xD1,     OP_3BYTE66|OP_SSE2,         SSEOP(psrlw_r128_rm128),        SSEOP(psrlw_r128_rm128),    false},
 	{ 0xD2,     OP_3BYTE66|OP_SSE2,         SSEOP(psrld_r128_rm128),        SSEOP(psrld_r128_rm128),    false},
 	{ 0xD3,     OP_3BYTE66|OP_SSE2,         SSEOP(psrlq_r128_rm128),        SSEOP(psrlq_r128_rm128),    false},

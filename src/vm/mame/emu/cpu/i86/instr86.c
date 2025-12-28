@@ -1885,7 +1885,8 @@ static void PREFIX86(_mov_wsreg)(i8086_state *cpustate)    /* Opcode 0x8c */
 #ifndef I8086
 	if (ModRM & 0x20) { /* HJB 12/13/98 1xx is invalid */
 		cpustate->pc = cpustate->prevpc;
-		return PREFIX86(_invalid)(cpustate);
+		PREFIX86(_invalid)(cpustate);
+		return;
 	}
 
 	PutRMWord(ModRM,cpustate->sregs[(ModRM & 0x38) >> 3]);
@@ -2053,7 +2054,7 @@ static void PREFIX86(_popf)(i8086_state *cpustate)    /* Opcode 0x9d */
 	/* if the IF is set, and an interrupt is pending, signal an interrupt */
 	if (cpustate->IF && cpustate->irq_state) {
 		PREFIX(_interrupt)(cpustate, (UINT32)-1);
-		cpustate->irq_state = 0;
+		cpustate->irq_state = CLEAR_LINE;
 	}
 }
 #endif
@@ -2448,7 +2449,7 @@ static void PREFIX86(_iret)(i8086_state *cpustate)    /* Opcode 0xcf */
 	/* if the IF is set, and an interrupt is pending, signal an interrupt */
 	if (cpustate->IF && cpustate->irq_state) {
 		PREFIX(_interrupt)(cpustate, (UINT32)-1);
-		cpustate->irq_state = 0;
+		cpustate->irq_state = CLEAR_LINE;
 	}
 }
 #endif
@@ -2586,8 +2587,7 @@ static void PREFIX86(_jcxz)(i8086_state *cpustate)    /* Opcode 0xe3 */
 		cpustate->pc += disp;
 /* ASG - can probably assume this is safe
         CHANGE_PC(cpustate->pc);*/
-	} else
-		ICOUNT -= timing.jcxz_nt;
+	} else ICOUNT -= timing.jcxz_nt;
 }
 
 static void PREFIX86(_inal)(i8086_state *cpustate)    /* Opcode 0xe4 */
@@ -2871,7 +2871,7 @@ static void PREFIX(_sti)(i8086_state *cpustate)    /* Opcode 0xfb */
 #else
 		PREFIX86(_interrupt)(cpustate, (UINT32)-1);
 #endif
-		cpustate->irq_state = 0;
+		cpustate->irq_state = CLEAR_LINE;
 	}
 }
 
@@ -2915,10 +2915,11 @@ static void PREFIX86(_f6pre)(i8086_state *cpustate)
 		PutbackRMByte(ModRM,~tmp);
 		break;
 
-		case 0x18:  /* NEG Eb */
+	case 0x18:  /* NEG Eb */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.negnot_r8 : timing.negnot_m8;
 		tmp2=0;
 		SUBB(tmp2,tmp);
+		SetCFB(tmp2);
 		PutbackRMByte(ModRM,tmp2);
 		break;
 	case 0x20:  /* MUL AL, Eb */
@@ -2937,7 +2938,7 @@ static void PREFIX86(_f6pre)(i8086_state *cpustate)
 			cpustate->CarryVal = cpustate->OverVal = (cpustate->regs.b[AH] != 0);
 		}
 		break;
-		case 0x28:  /* IMUL AL, Eb */
+	case 0x28:  /* IMUL AL, Eb */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.imul_r8 : timing.imul_m8;
 		{
 			INT16 result;
@@ -2958,21 +2959,20 @@ static void PREFIX86(_f6pre)(i8086_state *cpustate)
 	case 0x30:  /* DIV AL, Ew */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.div_r8 : timing.div_m8;
 		{
-			UINT16 result;
-
-			result = cpustate->regs.w[AX];
-
 			if (tmp)
 			{
-				if ((result / tmp) > 0xff)
+				UINT32 uresult = cpustate->regs.w[AX];
+				UINT32 uresult2 = uresult % tmp;
+				uresult /= tmp;
+				if (uresult > 0xff)
 				{
 					PREFIX(_interrupt)(cpustate, 0);
 					break;
 				}
 				else
 				{
-					cpustate->regs.b[AH] = result % tmp;
-					cpustate->regs.b[AL] = result / tmp;
+					cpustate->regs.b[AL] = uresult;
+					cpustate->regs.b[AH] = uresult2;
 				}
 			}
 			else
@@ -2985,16 +2985,13 @@ static void PREFIX86(_f6pre)(i8086_state *cpustate)
 	case 0x38:  /* IDIV AL, Ew */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.idiv_r8 : timing.idiv_m8;
 		{
-
-			INT16 result;
-
-			result = cpustate->regs.w[AX];
-
 			if (tmp)
 			{
-				tmp2 = result % (INT16)((INT8)tmp);
-
-				if ((result /= (INT16)((INT8)tmp)) > 0xff)
+				INT32 result = (INT16)cpustate->regs.w[AX];
+				INT32 result2 = result % (INT16)((INT8)tmp);
+				result /= (INT16)((INT8)tmp);
+				INT32 lower_bound = cpustate->MF ? -0x7f : -0x80;
+				if (result > 0xff || result < lower_bound)
 				{
 					PREFIX(_interrupt)(cpustate, 0);
 					break;
@@ -3002,7 +2999,7 @@ static void PREFIX86(_f6pre)(i8086_state *cpustate)
 				else
 				{
 					cpustate->regs.b[AL] = result;
-					cpustate->regs.b[AH] = tmp2;
+					cpustate->regs.b[AH] = result2;
 				}
 			}
 			else
@@ -3048,6 +3045,7 @@ static void PREFIX86(_f7pre)(i8086_state *cpustate)
 		ICOUNT -= (ModRM >= 0xc0) ? timing.negnot_r16 : timing.negnot_m16;
 		tmp2 = 0;
 		SUBW(tmp2,tmp);
+		SetCFW(tmp2);
 		PutbackRMWord(ModRM,tmp2);
 		break;
 	case 0x20:  /* MUL AX, Ew */
@@ -3089,26 +3087,23 @@ static void PREFIX86(_f7pre)(i8086_state *cpustate)
 			SetZF(cpustate->regs.w[AX] | cpustate->regs.w[DX]);
 		}
 		break;
-		case 0x30:  /* DIV AX, Ew */
+	case 0x30:  /* DIV AX, Ew */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.div_r16 : timing.div_m16;
 		{
-			UINT32 result;
-
-			result = (cpustate->regs.w[DX] << 16) + cpustate->regs.w[AX];
-
 			if (tmp)
 			{
-				tmp2 = result % tmp;
-				if ((result / tmp) > 0xffff)
+				UINT32 uresult = (((UINT32)cpustate->regs.w[DX]) << 16) | cpustate->regs.w[AX];
+				UINT32 uresult2 = uresult % tmp;
+				uresult /= tmp;
+				if (uresult > 0xffff)
 				{
 					PREFIX(_interrupt)(cpustate, 0);
 					break;
 				}
 				else
 				{
-					cpustate->regs.w[DX]=tmp2;
-					result /= tmp;
-					cpustate->regs.w[AX]=result;
+					cpustate->regs.w[AX] = uresult;
+					cpustate->regs.w[DX] = uresult2;
 				}
 			}
 			else
@@ -3121,22 +3116,21 @@ static void PREFIX86(_f7pre)(i8086_state *cpustate)
 	case 0x38:  /* IDIV AX, Ew */
 		ICOUNT -= (ModRM >= 0xc0) ? timing.idiv_r16 : timing.idiv_m16;
 		{
-			INT32 result;
-
-			result = (cpustate->regs.w[DX] << 16) + cpustate->regs.w[AX];
-
 			if (tmp)
 			{
-				tmp2 = result % (INT32)((INT16)tmp);
-				if ((result /= (INT32)((INT16)tmp)) > 0xffff)
+				INT32 result = ((UINT32)cpustate->regs.w[DX] << 16) + cpustate->regs.w[AX];
+				INT32 result2 = result % (INT32)((INT16)tmp);
+				result /= (INT32)((INT16)tmp);
+				INT32 lower_bound = cpustate->MF ? -0x7fff : -0x8000;
+				if (result > 0x7fff || result < lower_bound)
 				{
 					PREFIX(_interrupt)(cpustate, 0);
 					break;
 				}
 				else
 				{
-					cpustate->regs.w[AX]=result;
-					cpustate->regs.w[DX]=tmp2;
+					cpustate->regs.w[AX] = result;
+					cpustate->regs.w[DX] = result2;
 				}
 			}
 			else
@@ -3303,7 +3297,8 @@ static void PREFIX86(_ffpre)(i8086_state *cpustate)    /* Opcode 0xff */
 		break;
 	default:
 		tmp = GetRMWord(ModRM);  // 286 doesn't matter but 8086?
-		return PREFIX(_invalid)(cpustate);
+		PREFIX(_invalid)(cpustate);
+		return;
 	}
 }
 

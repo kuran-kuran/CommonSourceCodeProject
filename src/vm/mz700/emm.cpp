@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ emm ]
+	[ PIO-3034 ]
 */
 
 #include "emm.h"
@@ -19,10 +19,12 @@ void EMM::initialize()
 	// init memory
 	data_buffer = (uint8_t *)malloc(DATA_SIZE);
 	memset(data_buffer, 0xff, DATA_SIZE);
+	modified = false;
 	
 	// load emm image
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("EMM.ROM")), FILEIO_READ_BINARY)) {
+	if(fio->Fopen(create_local_path(_T("EMM.ROM")), FILEIO_READ_BINARY) ||
+	   fio->Fopen(create_local_path(_T("EMM.BIN")), FILEIO_READ_BINARY)) {
 		fio->Fread(data_buffer, DATA_SIZE, 1);
 		fio->Fclose();
 	}
@@ -31,6 +33,16 @@ void EMM::initialize()
 
 void EMM::release()
 {
+	// save emm image
+	if(modified) {
+		FILEIO* fio = new FILEIO();
+		if(fio->Fopen(create_local_path(_T("EMM.BIN")), FILEIO_WRITE_BINARY)) {
+			fio->Fwrite(data_buffer, DATA_SIZE, 1);
+			fio->Fclose();
+		}
+		delete fio;
+	}
+	
 	// release memory
 	free(data_buffer);
 }
@@ -53,7 +65,11 @@ void EMM::write_io8(uint32_t addr, uint32_t data)
 		data_addr = (data_addr & 0x00ffff) | (data << 16);
 		break;
 	case 0x03:
-		data_buffer[(data_addr++) & ADDR_MASK] = data;
+		if(data_buffer[data_addr & ADDR_MASK] != (uint8_t)data) {
+			data_buffer[data_addr & ADDR_MASK] = data;
+			modified = true;
+		}
+		data_addr++;
 		break;
 	}
 }
@@ -73,7 +89,7 @@ uint32_t EMM::read_io8(uint32_t addr)
 	return 0xff;
 }
 
-#define STATE_VERSION	1
+#define STATE_VERSION	2
 
 bool EMM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -85,6 +101,7 @@ bool EMM::process_state(FILEIO* state_fio, bool loading)
 	}
 	state_fio->StateArray(data_buffer, DATA_SIZE, 1);
 	state_fio->StateValue(data_addr);
+	state_fio->StateValue(modified);
 	return true;
 }
 

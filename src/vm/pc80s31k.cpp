@@ -147,7 +147,12 @@ void PC80S31K::write_io8(uint32_t addr, uint32_t data)
 		for(int drv = 0; drv < 2; drv++) {
 			uint32_t mode = data >> drv;
 			if(mode & 1) {
-				d_fdc->set_drive_type(drv, DRIVE_TYPE_2HD);
+				// for convenience
+				if(d_fdc->get_media_type(drv) == MEDIA_TYPE_144) {
+					d_fdc->set_drive_type(drv, DRIVE_TYPE_144);
+				} else {
+					d_fdc->set_drive_type(drv, DRIVE_TYPE_2HD);
+				}
 			} else if(mode & 4) {
 				d_fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
 			} else {

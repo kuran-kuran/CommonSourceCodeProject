@@ -64,7 +64,7 @@ void FM7_MAINMEM::reset()
 	bootmode = config.boot_mode & 3;
 #endif
 #if defined(HAS_MMR)
-	if((config.dipswitch & FM7_DIPSW_EXTRAM) != 0) {
+	if((config.option_switch & FM7_OPTSW_EXTRAM) != 0) {
 		extram_connected = true;
 	} else {
 		extram_connected = false;
@@ -74,7 +74,7 @@ void FM7_MAINMEM::reset()
 	if(dictrom_connected) {
 		use_page2_extram = true;
 	} else {
-		use_page2_extram = ((config.dipswitch & FM7_DIPSW_EXTRAM_AV) != 0) ? true : false;
+		use_page2_extram = ((config.option_switch & FM7_OPTSW_EXTRAM_AV) != 0) ? true : false;
 	}
 #endif   
 #ifdef HAS_MMR

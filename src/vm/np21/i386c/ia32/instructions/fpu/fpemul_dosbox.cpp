@@ -46,10 +46,6 @@
  *   拡張倍精度浮動小数点ではなく倍精度浮動小数点で計算されるので実際のx87 FPUより精度が劣ります
  */
 
-#if defined(__ANDROID__) // Medamap
-#include <cmath>
-#endif
-
 //#include "compiler.h"
 #include "../../cpu.h"
 
@@ -479,11 +475,8 @@ static void FPU_FBST(UINT32 addr)
 		p|=0x80;
 	fpu_memorywrite_b(addr+9,p);
 }
-#if defined(__ANDROID__) // Medamap
-#define isinf(x) (!(finite(x) || std::isnan(x)))
-#else
+
 #define isinf(x) (!(_finite(x) || _isnan(x)))
-#endif
 #define isdenormal(x) (_fpclass(x) == _FPCLASS_ND || _fpclass(x) == _FPCLASS_PD)
 
 static void FPU_FADD(UINT op1, UINT op2){
@@ -601,12 +594,8 @@ static void FPU_FST(UINT st, UINT other){
 
 static void FPU_FCOM(UINT st, UINT other){
 	if(((FPU_STAT.tag[st] != TAG_Valid) && (FPU_STAT.tag[st] != TAG_Zero)) || 
-		((FPU_STAT.tag[other] != TAG_Valid) && (FPU_STAT.tag[other] != TAG_Zero)) ||
-#if defined(__ANDROID__) // Medamap
-        (std::isnan(FPU_STAT.reg[st].d64) || std::isnan(FPU_STAT.reg[other].d64))){
-#else
-        (_isnan(FPU_STAT.reg[st].d64) || _isnan(FPU_STAT.reg[other].d64))){
-#endif
+		((FPU_STAT.tag[other] != TAG_Valid) && (FPU_STAT.tag[other] != TAG_Zero)) || 
+		(_isnan(FPU_STAT.reg[st].d64) || _isnan(FPU_STAT.reg[other].d64))){
 		FPU_SET_C3(1);
 		FPU_SET_C2(1);
 		FPU_SET_C0(1);
@@ -633,12 +622,8 @@ static void FPU_FCOM(UINT st, UINT other){
 }
 static void FPU_FCOMI(UINT st, UINT other){
 	if(((FPU_STAT.tag[st] != TAG_Valid) && (FPU_STAT.tag[st] != TAG_Zero)) || 
-		((FPU_STAT.tag[other] != TAG_Valid) && (FPU_STAT.tag[other] != TAG_Zero)) ||
-#if defined(__ANDROID__) // Medamap
-        (std::isnan(FPU_STAT.reg[st].d64) || std::isnan(FPU_STAT.reg[other].d64))){
-#else
-        (_isnan(FPU_STAT.reg[st].d64) || _isnan(FPU_STAT.reg[other].d64))){
-#endif
+		((FPU_STAT.tag[other] != TAG_Valid) && (FPU_STAT.tag[other] != TAG_Zero)) || 
+		(_isnan(FPU_STAT.reg[st].d64) || _isnan(FPU_STAT.reg[other].d64))){
 		CPU_FLAGL = (CPU_FLAGL & ~Z_FLAG) | Z_FLAG;
 		CPU_FLAGL = (CPU_FLAGL & ~P_FLAG) | P_FLAG;
 		CPU_FLAGL = (CPU_FLAGL & ~C_FLAG) | C_FLAG;
@@ -783,20 +768,12 @@ static void FPU_FXAM(void){
 		FPU_SET_C3(1);FPU_SET_C2(0);FPU_SET_C0(1);
 		return;
 	}
-#if defined(__ANDROID__) // Medamap
-    if(std::isnan(FPU_STAT.reg[FPU_STAT_TOP].d64))
-#else
-    if(_isnan(FPU_STAT.reg[FPU_STAT_TOP].d64))
-#endif
+	if(_isnan(FPU_STAT.reg[FPU_STAT_TOP].d64))
 	{
 		FPU_SET_C3(0);FPU_SET_C2(0);FPU_SET_C0(1);
 		return;
 	}
-#if defined(__ANDROID__) // Medamap
-    if(!finite(FPU_STAT.reg[FPU_STAT_TOP].d64))
-#else
-    if(!_finite(FPU_STAT.reg[FPU_STAT_TOP].d64))
-#endif
+	if(!_finite(FPU_STAT.reg[FPU_STAT_TOP].d64))
 	{
 		FPU_SET_C3(0);FPU_SET_C2(1);FPU_SET_C0(1);
 		return;
@@ -982,17 +959,18 @@ void DB_FPU_FXSAVERSTOR(void){
 	UINT32 maddr;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	
-	fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 	switch(idx){
 	case 0: // FXSAVE
+		fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 		maddr = calc_ea_dst(op);
 		FPU_FXSAVE(maddr);
 		break;
 	case 1: // FXRSTOR
+		fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 		maddr = calc_ea_dst(op);
 		FPU_FXRSTOR(maddr);
 		break;
@@ -1209,7 +1187,7 @@ DB_ESC0(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU d8 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1268,7 +1246,7 @@ DB_ESC1(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU d9 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1532,7 +1510,7 @@ DB_ESC2(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU da %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1590,7 +1568,7 @@ DB_ESC3(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU db %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1711,7 +1689,7 @@ DB_ESC4(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU dc %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1772,7 +1750,7 @@ DB_ESC5(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU dd %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1879,7 +1857,7 @@ DB_ESC6(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU de %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1951,7 +1929,7 @@ DB_ESC7(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU df %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);

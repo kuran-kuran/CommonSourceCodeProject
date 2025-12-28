@@ -193,20 +193,20 @@ BEGIN
             MENUITEM "N88 mode"                     ID_VM_BOOT_MODE0
             MENUITEM "N mode"                       ID_VM_BOOT_MODE3
             MENUITEM SEPARATOR
-            MENUITEM "PC-8801-16",                  ID_VM_DIPSWITCH10
+            MENUITEM "PC-8801-16",                  ID_VM_OPTION_SWITCH10
         END
         POPUP "Floppy Drive"
         BEGIN
-            MENUITEM "5inch FD",                    ID_VM_DIPSWITCH6, GRAYED
-            MENUITEM "8inch FD",                    ID_VM_DIPSWITCH7
+            MENUITEM "5inch FD",                    ID_VM_OPTION_SWITCH6, GRAYED
+            MENUITEM "8inch FD",                    ID_VM_OPTION_SWITCH7
         END
         POPUP "Sound"
         BEGIN
             MENUITEM "None",                        ID_VM_SOUND_TYPE0
             MENUITEM "OPN",                         ID_VM_SOUND_TYPE1
             MENUITEM SEPARATOR
-            MENUITEM "GSX-8800",                    ID_VM_DIPSWITCH2
-            MENUITEM "PCG-8100",                    ID_VM_DIPSWITCH3
+            MENUITEM "GSX-8800",                    ID_VM_OPTION_SWITCH2
+            MENUITEM "PCG-8100",                    ID_VM_OPTION_SWITCH3
             MENUITEM "CMD SING",                    ID_VM_DIPSWITCH4
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",              ID_VM_SOUND_NOISE_FDD
@@ -232,7 +232,7 @@ BEGIN
         END
         POPUP "Special Features"
         BEGIN
-            MENUITEM "M88 DiskDrv",                 ID_VM_DIPSWITCH8
+            MENUITEM "M88 DiskDrv",                 ID_VM_OPTION_SWITCH8
             MENUITEM "QUASIS88 Pesudo CMT",         ID_VM_DIPSWITCH9
         END
     END

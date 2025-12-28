@@ -352,12 +352,16 @@ char* MZ80K_SD::create_char_text(const _TCHAR* text)
 // SDカードのファイルパス作成
 _TCHAR* MZ80K_SD::create_sdcard_path(const char* f_name)
 {
+#ifdef USE_SDCARD
 #ifdef _UNICODE
 	my_tcscpy_s(sdcard_path, config.sdcard_path);
 	my_tcscat_s(sdcard_path, create_tchar_text(f_name));
 #else
 	my_tcscpy_s(sdcard_path, config.sdcard_path);
 	my_tcscat_s(sdcard_path, f_name);
+#endif
+#else
+	sdcard_path[0] = '\0';
 #endif
 	return sdcard_path;
 }

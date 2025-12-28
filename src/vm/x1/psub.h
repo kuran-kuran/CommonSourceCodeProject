@@ -32,9 +32,6 @@ private:
 	dll_cur_time_t cur_time;
 	int time_register_id;
 	
-	int time_remote_send_id;
-	uint32_t remote_codes;
-	
 	uint8_t databuf[32][8], *datap;
 	uint8_t mode, inbuf, outbuf;
 	bool ibf, obf;
@@ -59,10 +56,6 @@ private:
 	uint8_t get_key_low();
 	uint16_t get_key(int code, bool repeat);
 	
-	void tv_remocon_code_send();
-	void tv_control(uint8_t tvctrl_code);
-	uint8_t get_tvctrl_code(uint16_t x1_keycode, int win_code);
-
 public:
 	PSUB(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{

@@ -1,6 +1,5 @@
 /*
-	SHARP MZ-80B Emulator 'EmuZ-80B'
-	SHARP MZ-2200 Emulator 'EmuZ-2200'
+	Skelton for retropc emulator
 
 	Author : kuran_kuran
 	Date   : 2024.05.25-
@@ -8,13 +7,14 @@
 	[ AMDEK/RolandDG CMU-800 (MIDI) ]
 */
 
-#include <algorithm>
 #include "cmu800.h"
 #include "midi.h"
 
-uint8_t CMU800::rythm_table[7] = {42, 46, 49, 48, 41, 38, 35};
+#define EVENT_TEMPO	0
 
-std::vector<int> CMU800::counterTable =
+const uint8_t rythm_table[7] = {42, 46, 49, 48, 41, 38, 35};
+
+const int counterTable[] =
 {
 	0x9741, 0x8EBE, 0x86BB, 0x7F2E, 0x780B, 0x714E, 0x6AED, 0x64EC, 0x5F41, 0x59E8, 0x54D9, 0x5015,
 	0x4B95, 0x4754, 0x4353, 0x3F8D, 0x3BFC, 0x389E, 0x356E, 0x326E, 0x2F99, 0x2CED, 0x2A66, 0x2805,
@@ -28,13 +28,99 @@ std::vector<int> CMU800::counterTable =
 	0x004B, 0x0047, 0x0043, 0x003F, 0x003C
 };
 
+#ifndef GENERAL_PARAM_CMU800
+#define GENERAL_PARAM_CMU800 0
+#endif
+#define TEMPO_INI 160
+#define TEMPO_MIN 10
+#define TEMPO_MAX 500
+
+void CMU800::reset()
+{
+	reset_midi();
+}
+
+void CMU800::special_reset()
+{
+	reset_midi();
+}
+
 void CMU800::initialize()
 {
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_10;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_5;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_5;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
+	
+	memset(regs, 0, sizeof(regs));
 	is_reset = false;
+	
+	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800]) <= 0) {
+		tempo_new = TEMPO_INI;
+		config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+	}
+	tempo_freq = tempo_new;
+	register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
+	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
 }
 
 void CMU800::release()
 {
+}
+
+void CMU800::update_config()
+{
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_10) {
+		tempo_new += 10;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_10) {
+		tempo_new -= 10;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_10;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_5) {
+		tempo_new += 5;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_5;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_5) {
+		tempo_new -= 5;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_5;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_1) {
+		tempo_new++;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_1) {
+		tempo_new--;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_160) {
+		tempo_new = 160;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
+	}
+	if(tempo_new > TEMPO_MAX) {
+		tempo_new = TEMPO_MAX;
+	} else if(tempo_new < TEMPO_MIN) {
+		tempo_new = TEMPO_MIN;
+	}
+	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+}
+
+void CMU800::event_callback(int event_id, int err)
+{
+	if(event_id == EVENT_TEMPO) {
+		if(tempo_freq != tempo_new) {
+			tempo_freq = tempo_new;
+			cancel_event(this, tempo_id);
+			register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
+			
+			emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
+		}
+		regs[0x0A] ^= 0xF0;
+	}
 }
 
 void CMU800::reset_midi()
@@ -57,7 +143,19 @@ void CMU800::reset_midi()
 		d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
 	}
-	base_clock = 0;
+	// 全チャンネルクラビネットに変更
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC2, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC3, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC4, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	memset(toggle, 0, sizeof(toggle));
 	memset(counter, 0, sizeof(counter));
 	cv = 0;
@@ -65,20 +163,72 @@ void CMU800::reset_midi()
 	memset(cv_key, 0, sizeof(cv_key));
 	memset(note_on_flag, 0, sizeof(note_on_flag));
 	memset(before_tone, 0, sizeof(before_tone));
-	before_rythm = 0;
+	for(int i = 0; i < 8; ++ i)
+	{
+		key_on[i] = false;
+	}
+	before_rythm = 0xFE;
 	is_reset = true;
+}
+
+void CMU800::note_on_midi8253(int channel)
+{
+	if(key_on[channel] == false)
+	{
+		return;
+	}
+	note_on_midi(channel);
+	key_on[channel] = false;
+}
+
+void CMU800::note_on_midi(int channel)
+{
+	// 8253設定値からcvを求める
+	int val = counter[channel];
+	int back = -1;
+	for(int i = 0; i < array_length(counterTable); ++ i)
+	{
+		if(val >= counterTable[i])
+		{
+			back = i;
+			break;
+		}
+	}
+	if(back != -1)
+	{
+		int front = back - 1;
+		int x = counterTable[front] - val;
+		int y = counterTable[back] - val;
+		if(x * x < y * y)
+		{
+			cv = front;
+		}
+		else
+		{
+			cv = back;
+		}
+	}
+	// note on
+	uint8_t key = cv + 24;
+	// cvを103以内に抑える。下げるときは一度に1オクターブ下げる
+	while(cv > 103)
+	{
+		cv -= 12;
+	}
+	d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
+	d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+	note_on_flag[channel] = 1;
+	cv_key[channel] = key;
 }
 
 void CMU800::write_io8(uint32_t addr, uint32_t data)
 {
-	if(!config.cmu800) {
-		return;
-	}
-	switch(addr & 0xff) {
-		// 8253-1 counter setting (not use)
+	switch(addr & 0xFF) {
 	case 0x90:
 	case 0x91:
 	case 0x92:
+		// 8253-1 counter setting (not use)
 		{
 			int port_number = addr & 0x0F;
 			uint16_t data8 = data & 0xFF;
@@ -86,16 +236,19 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			counter[port_number] |= data8 * (toggle[port_number] == 0 ? 1 : 256);
 			toggle[port_number] = 1 - toggle[port_number];
 			is_reset = false;
+			if(toggle[port_number] == 0)
+			{
+				note_on_midi8253(addr & 0xF);
+			}
 			break;
 		}
-		// 8253-1 setting
 	case 0x93:
-		reset_midi();
+		// 8253-1 setting
 		break;
-		// 8253-2 counter setting (not use)
 	case 0x94:
 	case 0x95:
 	case 0x96:
+		// 8253-2 counter setting (not use)
 		{
 			int port_number = (addr & 0x0F) - 1;
 			uint16_t data8 = data & 0xFF;
@@ -103,14 +256,18 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			counter[port_number] |= data8 * (toggle[port_number] == 0 ? 1 : 256);
 			toggle[port_number] = 1 - toggle[port_number];
 			is_reset = false;
+			if(toggle[port_number] == 0)
+			{
+				note_on_midi8253((addr & 0xF) - 1);
+			}
 			break;
 		}
 		break;
-		// 8253-2 setting
 	case 0x97:
-		reset_midi();
+		// 8253-2 setting
 		break;
 	case 0x98:
+		// 8255 Port A
 		// b0-5 CV-OUT data (not use built-in sound)
 		// b6 TUNE-GATE (unknown)
 		// b7 GATE-DATA (0 = play, 1 = stop)
@@ -122,6 +279,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		is_reset = false;
 		break;
 	case 0x99:
+		// 8255 Port B
 		// built-in rhythm, 1 -> 0 = play the drum
 		// b7 BD (bass drum)
 		// b6 SD (snare drum)
@@ -132,7 +290,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		// b1 CH (close hihat)
 		// b0 Reserve (not use)
 		{
-			uint8_t bitMask = 0b00000010;
+			uint8_t bitMask = 0x02; //0b00000010;
 			for(int32_t i = 0; i < 7; ++ i)
 			{
 				uint8_t beforeBit = before_rythm & bitMask;
@@ -151,6 +309,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			break;
 		}
 	case 0x9A:
+		// 8255 Port C
 		// b0 (1 -> 0 = Setup complete, note on or note off)
 		// b1-3 = channel (0-7)
 		{
@@ -170,39 +329,14 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				{
 					if(cv == 0)
 					{
-						// cvが0の場合は周波数からcvを求める
-						int val = counter[channel];
-						int back = -1;
-						for(int i = 0; i < counterTable.size(); ++ i)
-						{
-							if(val >= counterTable[i])
-							{
-								back = i;
-								break;
-							}
-						}
-						if(back != -1)
-						{
-							int front = back - 1;
-							int x = counterTable[front] - val;
-							int y = counterTable[back] - val;
-							if(x * x < y * y)
-							{
-								cv = front;
-							}
-							else
-							{
-								cv = back;
-							}
-						}
+						// bugfireさんのプレイヤーは既に8253設定済みでcvが0なのですぐに音を鳴らす
+						note_on_midi(channel);
 					}
-					// note on
-					uint8_t key = cv + 24;
-					d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
-					note_on_flag[channel] = 1;
-					cv_key[channel] = key;
+					else
+					{
+						// CMU-800シーケンサーはまだ8253の設定が終わっていないので8253設定時に音を鳴らすためのフラグをセット
+						key_on[channel] = true;
+					}
 				}
 			}
 			before_tone[channel] = data & 0xFF;
@@ -211,33 +345,50 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		}
 	case 0x9B:
 		// 8255 setting
-		reset_midi();
+		if(!(data & 0x80)) {
+			uint32_t val = regs[0x0A];
+			int bit = (data >> 1) & 7;
+			if(data & 1) {
+				val |= 1 << bit;
+			} else {
+				val &= ~(1 << bit);
+			}
+			write_io8(0x9A, val);
+		}
 		break;
-		// dummy port (Nothing to do.)
 	case 0x9C:
+		// dummy port (Nothing to do.)
 		break;
+	}
+	if((addr & 0xFF) == 0x9A) {
+		regs[addr & 0x0F] &= 0xF0;
+		regs[addr & 0x0F] |= data & 0x0F;
+	} else {
+		regs[addr & 0x0F] = data & 0xFF;
 	}
 }
 
 uint32_t CMU800::read_io8(uint32_t addr)
 {
-	if(!config.cmu800) {
-		return 0;
-	}
-	if((addr & 0xff) == 0x9A)
-	{
-		// tempo
-		if(base_clock == 0)
-		{
-			base_clock = d_event->get_current_clock();
-		}
-		uint32_t cpu_clock = d_event->get_event_clocks();
-		uint32_t half = cpu_clock / config.cmu800_tempo;
-		uint32_t length = half * 2;
-		uint32_t clock = d_event->get_current_clock() - base_clock;
-		return (clock % length) >= half ? 0xF0 : 0;
+	switch(addr & 0xFF) {
+	case 0x98:
+	case 0x99:
+	case 0x9A:
+		// 8255 Port
+		return regs[addr & 0x0F];
 	}
 	return 0;
+}
+
+void CMU800::adjust_tempo(int delta)
+{
+	tempo_new += delta;
+	if(tempo_new > TEMPO_MAX) {
+		tempo_new = TEMPO_MAX;
+	} else if(tempo_new < TEMPO_MIN) {
+		tempo_new = TEMPO_MIN;
+	}
+	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 }
 
 #define STATE_VERSION	1
@@ -251,7 +402,7 @@ bool CMU800::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	// save/load status
-	state_fio->StateValue(base_clock);
+	state_fio->StateArray(regs, sizeof(regs), 1);
 	state_fio->StateArray(toggle, sizeof(toggle), 1);
 	state_fio->StateArray(counter, sizeof(counter), 1);
 	state_fio->StateValue(cv);
@@ -260,5 +411,10 @@ bool CMU800::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(note_on_flag, sizeof(note_on_flag), 1);
 	state_fio->StateArray(before_tone, sizeof(before_tone), 1);
 	state_fio->StateValue(before_rythm);
+	state_fio->StateValue(is_reset);
+//	state_fio->StateValue(tempo_freq);
+	tempo_freq = 0;
+	state_fio->StateValue(tempo_new);
+	state_fio->StateValue(tempo_id);
 	return true;
 }

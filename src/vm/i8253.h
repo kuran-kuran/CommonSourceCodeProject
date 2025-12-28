@@ -41,7 +41,7 @@ private:
 		bool low_read, high_read;
 		bool low_write, high_write;
 		int mode;
-		bool delay;
+		uint8_t delay;
 		bool start;
 //#ifdef HAS_I8254
 		bool null_count;

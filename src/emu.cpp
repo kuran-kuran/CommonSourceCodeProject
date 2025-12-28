@@ -4,10 +4,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ win32 emulation i/f ]
 */
 
@@ -43,8 +39,6 @@ extern CSP_Logger *csp_logger;
 EMU::EMU(class Ui_MainWindow *hwnd, GLDrawClass *hinst, USING_FLAGS *p)
 #elif defined(OSD_WIN32)
 EMU::EMU(HWND hwnd, HINSTANCE hinst)
-#elif defined(__ANDROID__)
-EMU::EMU(struct android_app* state)
 #else
 EMU::EMU()
 #endif
@@ -75,14 +69,12 @@ EMU::EMU()
 	sound_latency = config.sound_latency;
 	sound_rate = sound_frequency_table[config.sound_frequency];
 	sound_samples = (int)(sound_rate * sound_latency_table[config.sound_latency] + 0.5);
-#if defined(__ANDROID__)
-	LOGI("sound Frequency %d: rate %d: samples %d ",config.sound_frequency,sound_rate,sound_samples);
-#endif
+	
 #ifdef USE_CPU_TYPE
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+	option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	sound_type = config.sound_type;
@@ -97,8 +89,6 @@ EMU::EMU()
 	// initialize osd
 #if defined(OSD_QT)
 	osd = new OSD(p, csp_logger);
-#elif defined(__ANDROID__)
-    osd = new OSD(state);
 #else
 	osd = new OSD();
 #endif
@@ -186,6 +176,11 @@ int EMU::get_host_cpus()
 // ----------------------------------------------------------------------------
 // drive machine
 // ----------------------------------------------------------------------------
+
+const _TCHAR *EMU::device_name()
+{
+	return vm->device_name();
+}
 
 double EMU::get_frame_rate()
 {
@@ -289,9 +284,9 @@ void EMU::reset()
 	reinitialize |= (cpu_type != config.cpu_type);
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	reinitialize |= (dipswitch != config.dipswitch);
-	dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+	reinitialize |= (option_switch != config.option_switch);
+	option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	reinitialize |= (sound_type != config.sound_type);
@@ -336,11 +331,6 @@ void EMU::reset()
 	osd->restart_record_sound();
 	osd->restart_record_video();
 #endif
-
-#ifdef USE_TV_CONTROL
-    special_display_mode = 0;
-#endif
-
 }
 
 #ifdef USE_SPECIAL_RESET
@@ -1611,32 +1601,22 @@ bool EMU::is_video_recording()
 
 void EMU::mute_sound()
 {
-#if !defined(__ANDROID__)
 	osd->mute_sound();
-#endif
 }
 
 void EMU::start_record_sound()
 {
-#if !defined(__ANDROID__)
 	osd->start_record_sound();
-#endif
 }
 
 void EMU::stop_record_sound()
 {
-#if !defined(__ANDROID__)
 	osd->stop_record_sound();
-#endif
 }
 
 bool EMU::is_sound_recording()
 {
-#if !defined(__ANDROID__)
 	return osd->now_record_sound;
-#else
-    return false;
-#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -1830,11 +1810,7 @@ void EMU::write_bitmap_to_file(bitmap_t *bitmap, const _TCHAR *file_path)
 // ----------------------------------------------------------------------------
 
 #ifdef USE_SOCKET
-#if defined(__ANDROID__)
-int EMU::get_socket(int ch)
-#else
 SOCKET EMU::get_socket(int ch)
-#endif
 {
 	return osd->get_socket(ch);
 }
@@ -1954,7 +1930,7 @@ void EMU::out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static int size = 0;
+		static size_t size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
@@ -1981,7 +1957,7 @@ void EMU::force_out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static int size = 0;
+		static size_t size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
@@ -2005,12 +1981,10 @@ void EMU::out_message(const _TCHAR* format, ...)
 // misc
 // ----------------------------------------------------------------------------
 
-#if !defined(__ANDROID__)
 void EMU::sleep(uint32_t ms)
 {
 	osd->sleep(ms);
 }
-#endif
 
 // ----------------------------------------------------------------------------
 // user interface
@@ -2283,10 +2257,8 @@ void EMU::open_cart(int drv, const _TCHAR* file_path)
 		bool v = osd->now_record_video;
 		stop_record_sound();
 		stop_record_video();
-#if !defined(___ANDROID__)
 		if(s) osd->start_record_sound();
 		if(v) osd->start_record_video(-1);
-#endif
 #endif
 	}
 }
@@ -2515,7 +2487,6 @@ bool EMU::is_quick_disk_inserted(int drv)
 	}
 }
 
-#if !defined(__ANDROID__)
 bool EMU::is_quick_disk_connected(int drv)
 {
 	if(drv < USE_QUICK_DISK) {
@@ -2524,7 +2495,6 @@ bool EMU::is_quick_disk_connected(int drv)
 		return false;
 	}
 }
-#endif
 
 uint32_t EMU::is_quick_disk_accessed()
 {
@@ -2655,6 +2625,15 @@ void EMU::close_hard_disk(int drv)
 		out_message(_T("HD: Unmounted"));
 #endif
 		config.last_hard_disk_path[drv][0] = '\0';
+	}
+}
+
+bool EMU::is_hard_disk_connected(int drv)
+{
+	if(drv < USE_HARD_DISK) {
+		return vm->is_hard_disk_connected(drv);
+	} else {
+		return false;
 	}
 }
 
@@ -2863,6 +2842,15 @@ void EMU::close_compact_disc(int drv)
 	}
 }
 
+bool EMU::is_compact_disc_connected(int drv)
+{
+	if(drv < USE_COMPACT_DISC) {
+		return vm->is_compact_disc_connected(drv);
+	} else {
+		return false;
+	}
+}
+
 bool EMU::is_compact_disc_inserted(int drv)
 {
 	if(drv < USE_COMPACT_DISC) {
@@ -3065,7 +3053,7 @@ void EMU::free_sound_file(int id, int16_t **data)
 // ----------------------------------------------------------------------------
 
 #ifdef USE_STATE
-#define STATE_VERSION	2
+#define STATE_VERSION	3
 
 void EMU::save_state(const _TCHAR* file_path)
 {
@@ -3131,9 +3119,6 @@ void EMU::load_state(const _TCHAR* file_path)
 		save_state(create_local_path(_T("$temp$.sta")));
 		if(!load_state_tmp(file_path)) {
 			out_debug_log(_T("failed to load state file\n"));
-#if defined(__ANDROID__)
-            LOGI(("failed to load state file"));
-#endif
 			load_state_tmp(create_local_path(_T("$temp$.sta")));
 		}
 		FILEIO::RemoveFile(create_local_path(_T("$temp$.sta")));
@@ -3190,9 +3175,9 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 				reinitialize |= (cpu_type != config.cpu_type);
 				cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-				reinitialize |= (dipswitch != config.dipswitch);
-				dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+				reinitialize |= (option_switch != config.option_switch);
+				option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 				reinitialize |= (sound_type != config.sound_type);

@@ -30,7 +30,7 @@ void MZ2000_SD::reset()
 
 void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 {
-	if(!config.mz2000_sd) {
+	if(!(config.option_switch & OPTION_SWITCH_MZ2000SD)) {
 		return;
 	}
 	unsigned int write_data = 0;
@@ -74,7 +74,7 @@ void MZ2000_SD::write_io8(uint32_t addr, uint32_t data)
 uint32_t MZ2000_SD::read_io8(uint32_t addr)
 {
 	uint32_t result = 0xff;
-	if(!config.mz2000_sd) {
+	if(!(config.option_switch & OPTION_SWITCH_MZ2000SD)) {
 		return result;
 	}
 	switch(addr & 0xff) {

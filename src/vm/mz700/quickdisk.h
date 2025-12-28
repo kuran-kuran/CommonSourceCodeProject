@@ -1,4 +1,5 @@
 /*
+	SHARP MZ-700 Emulator 'EmuZ-700'
 	SHARP MZ-800 Emulator 'EmuZ-800'
 	SHARP MZ-1500 Emulator 'EmuZ-1500'
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
@@ -6,7 +7,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2011.02.17-
 
-	[ quick disk ]
+	[ MZ-1E14/18/19 ]
 */
 
 #ifndef _QUICKDISK_H_
@@ -60,7 +61,15 @@ private:
 public:
 	QUICKDISK(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
+#if defined(_MZ800)
+		set_device_name(_T("MZ-1E19 QD I/F"));
+#elif defined(_MZ2200)
+		set_device_name(_T("MZ-1E18 QD I/F"));
+#elif defined(_MZ700)
+		set_device_name(_T("MZ-1E14 QD I/F"));
+#else
 		set_device_name(_T("Quick Disk"));
+#endif
 	}
 	~QUICKDISK() {}
 	

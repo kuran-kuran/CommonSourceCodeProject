@@ -7,7 +7,7 @@
 	Modify : Hideki Suga
 	Date   : 2014.12.30 -
 
-	[ MZ-80AIF ]
+	[ MZ-80AFI ]
 */
 
 #ifndef _MZ80AIF_H_
@@ -25,7 +25,7 @@ private:
 public:
 	MZ80AIF(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("MZ-80AIF (FDC I/F)"));
+		set_device_name(_T("MZ-80AFI (FDC I/F)"));
 	}
 	~MZ80AIF() {}
 	

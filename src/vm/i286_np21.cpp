@@ -12,7 +12,6 @@
 #ifdef USE_DEBUGGER
 #include "debugger.h"
 #include "i386_dasm.h"
-#include "v30_dasm.h"
 #endif
 #include "np21/i286c/cpucore.h"
 #include "np21/i286c/v30patch.h"
@@ -299,6 +298,60 @@ bool I286::write_debug_reg(const _TCHAR *reg, uint32_t data)
 		CPU_DL = data;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		CPU_DH = data;
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  C_FLAG;
+		} else {
+			CPU_FLAG &= ~C_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  P_FLAG;
+		} else {
+			CPU_FLAG &= ~P_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  A_FLAG;
+		} else {
+			CPU_FLAG &= ~A_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  Z_FLAG;
+		} else {
+			CPU_FLAG &= ~Z_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  S_FLAG;
+		} else {
+			CPU_FLAG &= ~S_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  T_FLAG;
+		} else {
+			CPU_FLAG &= ~T_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  I_FLAG;
+		} else {
+			CPU_FLAG &= ~I_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  D_FLAG;
+		} else {
+			CPU_FLAG &= ~D_FLAG;
+		}
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		if(data) {
+			CPU_FLAG |=  O_FLAG;
+		} else {
+			CPU_FLAG &= ~O_FLAG;
+		}
 	} else {
 		return false;
 	}
@@ -341,6 +394,24 @@ uint32_t I286::read_debug_reg(const _TCHAR *reg)
 		return CPU_DL;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		return CPU_DH;
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		return ((CPU_FLAG & C_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		return ((CPU_FLAG & P_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		return ((CPU_FLAG & A_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		return ((CPU_FLAG & Z_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		return ((CPU_FLAG & S_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		return ((CPU_FLAG & T_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		return ((CPU_FLAG & I_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		return ((CPU_FLAG & D_FLAG) != 0);
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		return ((CPU_FLAG & O_FLAG) != 0);
 	}
 	return 0;
 }
