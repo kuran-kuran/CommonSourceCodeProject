@@ -7,7 +7,7 @@
 	Modify : Hideki Suga
 	Date   : 2014.12.30 -
 
-	[ MZ-80AIF ]
+	[ MZ-80AFI ]
 */
 
 #include "mz80aif.h"

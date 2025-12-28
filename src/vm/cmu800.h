@@ -10,7 +10,6 @@
 #ifndef _CMU800_H_
 #define _CMU800_H_
 
-#include <vector>
 #include "vm.h"
 #include "../emu.h"
 #include "device.h"
@@ -21,7 +20,7 @@ class CMU800 : public DEVICE
 private:
 	DEVICE* d_midi;
 	EVENT* d_event;
-	uint32_t base_clock;
+	uint8_t regs[16];
 	uint8_t toggle[6];
 	uint16_t counter[6];
 	uint8_t cv;
@@ -31,32 +30,36 @@ private:
 	uint8_t before_tone[8];
 	uint8_t before_rythm;
 	bool is_reset;
-	static uint8_t rythm_table[7];
-	static std::vector<int> counterTable;
+	int tempo_freq, tempo_new, tempo_id;
+	bool key_on[8];
 	void reset_midi();
+	void note_on_midi8253(int channel);
+	void note_on_midi(int channel);
 public:
 	CMU800(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		set_device_name(_T("CMU-800 (MIDI)"));
 	}
 	~CMU800() {}
-	
+
+	void reset();
+	void special_reset();
+
 	// common functions
 	void initialize();
 	void release();
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
+	void event_callback(int event_id, int err);
+	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
-
+	
 	// unique function
 	void set_context_midi(DEVICE* device)
 	{
 		d_midi = device;
 	}
-	void set_context_event(EVENT* event)
-	{
-		d_event = event;
-	}
+	void adjust_tempo(int delta);
 };
 
 #endif

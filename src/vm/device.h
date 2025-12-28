@@ -950,7 +950,23 @@ public:
 	{
 		return false;
 	}
+	virtual int debug_dasm(uint32_t pc, uint32_t eip, bool mode, _TCHAR *buffer, size_t buffer_len)
+	{
+		return debug_dasm(pc, buffer, buffer_len);
+	}
+	virtual int debug_dasm(uint32_t pc, uint32_t eip, _TCHAR *buffer, size_t buffer_len)
+	{
+		return debug_dasm(pc, buffer, buffer_len);
+	}
 	virtual int debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len)
+	{
+		return 0;
+	}
+	virtual uint32_t get_eip()
+	{
+		return 0;
+	}
+	virtual uint32_t get_next_eip()
 	{
 		return 0;
 	}

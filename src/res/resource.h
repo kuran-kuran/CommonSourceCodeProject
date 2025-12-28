@@ -223,9 +223,7 @@
 #define ID_VM_DEVICE_TYPE5              41066
 #define ID_VM_DEVICE_TYPE6              41067
 #define ID_VM_DEVICE_TYPE7              41068
-#define ID_VM_DEVICE_TYPE8              41069
-#define ID_VM_DEVICE_TYPE9              41070
-#define ID_VM_DEVICE_MENU_END           41070
+#define ID_VM_DEVICE_MENU_END           41068
 
 #define ID_VM_DRIVE_MENU_START          41071
 #define ID_VM_DRIVE_TYPE0               41071
@@ -284,8 +282,7 @@
 #define ID_VM_SOUND_NOISE_CMT           41122
 #define ID_VM_SOUND_TAPE_SIGNAL         41123
 #define ID_VM_SOUND_TAPE_VOICE          41124
-#define ID_VM_SOUND_CMU800              41125
-#define ID_VM_SOUND_MENU_END            41125
+#define ID_VM_SOUND_MENU_END            41124
 
 #define ID_VM_MONITOR_MENU_START        41131
 #define ID_VM_MONITOR_TYPE0             41131
@@ -322,20 +319,40 @@
 #define ID_VM_SERIAL_TYPE7              41158
 #define ID_VM_SERIAL_MENU_END           41158
 
-#define ID_VM_EMM_MENU_START            41161
-#define ID_VM_EMM_TYPE0                 41161
-#define ID_VM_EMM_TYPE1                 41162
-#define ID_VM_EMM_TYPE2                 41163
-#define ID_VM_EMM_TYPE3                 41164
-#define ID_VM_EMM_TYPE4                 41165
-#define ID_VM_EMM_TYPE5                 41166
-#define ID_VM_EMM_TYPE6                 41167
-#define ID_VM_EMM_TYPE7                 41168
-#define ID_VM_EMM_SIZE_TYPE0            41171
-#define ID_VM_EMM_SIZE_TYPE1            41172
-#define ID_VM_EMM_SIZE_TYPE2            41173
-#define ID_VM_EMM_SIZE_TYPE3            41174
-#define ID_VM_EMM_MENU_END              41168
+#define ID_VM_OPTION_SWITCH_MENU_START  41161
+#define ID_VM_OPTION_SWITCH0            41161
+#define ID_VM_OPTION_SWITCH1            41162
+#define ID_VM_OPTION_SWITCH2            41163
+#define ID_VM_OPTION_SWITCH3            41164
+#define ID_VM_OPTION_SWITCH4            41165
+#define ID_VM_OPTION_SWITCH5            41166
+#define ID_VM_OPTION_SWITCH6            41167
+#define ID_VM_OPTION_SWITCH7            41168
+#define ID_VM_OPTION_SWITCH8            41169
+#define ID_VM_OPTION_SWITCH9            41170
+#define ID_VM_OPTION_SWITCH10           41171
+#define ID_VM_OPTION_SWITCH11           41172
+#define ID_VM_OPTION_SWITCH12           41173
+#define ID_VM_OPTION_SWITCH13           41174
+#define ID_VM_OPTION_SWITCH14           41175
+#define ID_VM_OPTION_SWITCH15           41176
+#define ID_VM_OPTION_SWITCH16           41177
+#define ID_VM_OPTION_SWITCH17           41178
+#define ID_VM_OPTION_SWITCH18           41179
+#define ID_VM_OPTION_SWITCH19           41180
+#define ID_VM_OPTION_SWITCH20           41181
+#define ID_VM_OPTION_SWITCH21           41182
+#define ID_VM_OPTION_SWITCH22           41183
+#define ID_VM_OPTION_SWITCH23           41184
+#define ID_VM_OPTION_SWITCH24           41185
+#define ID_VM_OPTION_SWITCH25           41186
+#define ID_VM_OPTION_SWITCH26           41187
+#define ID_VM_OPTION_SWITCH27           41188
+#define ID_VM_OPTION_SWITCH28           41189
+#define ID_VM_OPTION_SWITCH29           41190
+#define ID_VM_OPTION_SWITCH30           41191
+#define ID_VM_OPTION_SWITCH31           41192
+#define ID_VM_OPTION_SWITCH_MENU_END    41192
 
 #define ID_HOST_MENU_START              41201
 #define ID_HOST_REC_MOVIE_60FPS         41201
@@ -367,22 +384,11 @@
 #define ID_SCREEN_ROTATE_270            41370
 #define ID_SCREEN_MENU_END              41370
 
-#if defined(__ANDROID__)
-#define ID_FILTER_MENU_START            41401
-#define ID_FILTER_NONE                  41401
-#define ID_FILTER_BLUR                  41402
-#define ID_FILTER_RGB                   41403
-#define ID_FILTER_GREEN                 41404
-#define ID_FILTER_DOT                   41410
-#define ID_FILTER_SUPERIMPOSE           41411
-#define ID_FILTER_MENU_END              41412
-#else
 #define ID_FILTER_MENU_START            41401
 #define ID_FILTER_RGB                   41401
 #define ID_FILTER_RF                    41402
 #define ID_FILTER_NONE                  41403
 #define ID_FILTER_MENU_END              41403
-#endif
 
 #define ID_SOUND_MENU_START             41501
 #define ID_SOUND_FREQ0                  41501
@@ -721,92 +727,14 @@
 #define ID_RECENT_HD8                   45146 // 45146-45153
 #define ID_HD8_MENU_END                 45153
 
-#if defined(__ANDROID__) // Medamap
-#define ID_SCREEN_BOTTOM_MARGIN_0       45170
-#define ID_SCREEN_BOTTOM_MARGIN_30      45171
-#define ID_SCREEN_BOTTOM_MARGIN_60      45172
-#define ID_SCREEN_BOTTOM_MARGIN_90      45173
-#define ID_SCREEN_BOTTOM_MARGIN_120     45174
-#define ID_SCREEN_BOTTOM_MARGIN_150     45175
-#define ID_SCREEN_BOTTOM_MARGIN_180     45176
-#define ID_SCREEN_BOTTOM_MARGIN_210     45177
-#define ID_SCREEN_BOTTOM_MARGIN_240     45178
-#define ID_SCREEN_BOTTOM_MARGIN_270     45179
-
-#define ID_SCREEN_TOP_MARGIN_0          45190
-#define ID_SCREEN_TOP_MARGIN_30         45191
-#define ID_SCREEN_TOP_MARGIN_60         45192
-#define ID_SCREEN_TOP_MARGIN_90         45193
-#define ID_SCREEN_TOP_MARGIN_120        45194
-#define ID_SCREEN_TOP_MARGIN_150        45195
-#define ID_SCREEN_TOP_MARGIN_180        45196
-#define ID_SCREEN_TOP_MARGIN_210        45197
-#define ID_SCREEN_TOP_MARGIN_240        45198
-#define ID_SCREEN_TOP_MARGIN_270        45199
-
-#define ID_SCREEN_HS_ICON_SIZE_12       45200
-#define ID_SCREEN_HS_ICON_SIZE_19       45201
-#define ID_SCREEN_HS_ICON_SIZE_26       45202
-#define ID_SCREEN_HS_ICON_SIZE_33       45203
-#define ID_SCREEN_HS_ICON_SIZE_40       45204
-#define ID_SCREEN_HS_ICON_SIZE_47       45205
-#define ID_SCREEN_HS_ICON_SIZE_54       45206
-#define ID_SCREEN_HS_ICON_SIZE_61       45207
-
-#define ID_SCREEN_HF_ICON_SIZE_12       45300
-#define ID_SCREEN_HF_ICON_SIZE_19       45301
-#define ID_SCREEN_HF_ICON_SIZE_26       45302
-#define ID_SCREEN_HF_ICON_SIZE_33       45303
-#define ID_SCREEN_HF_ICON_SIZE_40       45304
-#define ID_SCREEN_HF_ICON_SIZE_47       45305
-#define ID_SCREEN_HF_ICON_SIZE_54       45306
-#define ID_SCREEN_HF_ICON_SIZE_61       45307
-
-#define ID_SCREEN_VS_ICON_SIZE_12       45400
-#define ID_SCREEN_VS_ICON_SIZE_19       45401
-#define ID_SCREEN_VS_ICON_SIZE_26       45402
-#define ID_SCREEN_VS_ICON_SIZE_33       45403
-#define ID_SCREEN_VS_ICON_SIZE_40       45404
-#define ID_SCREEN_VS_ICON_SIZE_47       45405
-#define ID_SCREEN_VS_ICON_SIZE_54       45406
-#define ID_SCREEN_VS_ICON_SIZE_61       45407
-
-#define ID_SCREEN_VF_ICON_SIZE_12       45500
-#define ID_SCREEN_VF_ICON_SIZE_19       45501
-#define ID_SCREEN_VF_ICON_SIZE_26       45502
-#define ID_SCREEN_VF_ICON_SIZE_33       45503
-#define ID_SCREEN_VF_ICON_SIZE_40       45504
-#define ID_SCREEN_VF_ICON_SIZE_47       45505
-#define ID_SCREEN_VF_ICON_SIZE_54       45506
-#define ID_SCREEN_VF_ICON_SIZE_61       45507
-
-#define ID_SOUND_ON                     45510
-
-#define ID_MOUSE_SENSITIVE_0            45520
-#define ID_MOUSE_SENSITIVE_1            45521
-#define ID_MOUSE_SENSITIVE_2            45522
-#define ID_MOUSE_SENSITIVE_3            45523
-#define ID_MOUSE_SENSITIVE_4            45524
-#define ID_MOUSE_SENSITIVE_5            45525
-#define ID_MOUSE_SENSITIVE_6            45526
-#define ID_MOUSE_SENSITIVE_7            45527
-#define ID_MOUSE_SENSITIVE_8            45528
-#define ID_MOUSE_SENSITIVE_9            45529
-#define ID_MOUSE_SENSITIVE_10           45530
-
-#endif
-
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        215
-#if defined(__ANDROID__) // Medamap
-#define _APS_NEXT_COMMAND_VALUE         45600
-#else
-#define _APS_NEXT_COMMAND_VALUE         45155
-#endif
+#define _APS_NEXT_COMMAND_VALUE         45154
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif
+

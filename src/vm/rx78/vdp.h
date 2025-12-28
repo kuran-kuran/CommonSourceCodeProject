@@ -19,7 +19,7 @@ class VDP : public DEVICE
 private:
 	DEVICE* d_cpu;
 	
-	scrntype_t palette_pc[17];	// 8cols * 2 + bg
+	scrntype_t palette_pc[64];	// 64cols
 	uint8_t screen0[184][192];
 	uint8_t screen1[184][192];
 	

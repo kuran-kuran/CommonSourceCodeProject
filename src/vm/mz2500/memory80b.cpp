@@ -64,7 +64,11 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #else
-	if(fio->Fopen(create_local_path(_T("IPL2200.ROM")), FILEIO_READ_BINARY)) {
+	if(fio->Fopen(create_local_path(_T("IPL2000.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+	else if(fio->Fopen(create_local_path(_T("IPL2200.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
@@ -79,7 +83,11 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #else
-	if(fio->Fopen(create_local_path(_T("FONT2200.ROM")), FILEIO_READ_BINARY)) {
+	if(fio->Fopen(create_local_path(_T("FONT2000.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+	else if(fio->Fopen(create_local_path(_T("FONT2200.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(font, sizeof(font), 1);
 		fio->Fclose();
 	}
@@ -142,7 +150,13 @@ void MEMORY::write_data8(uint32_t addr, uint32_t data)
 	if(!hblank && is_vram[addr >> 11]) {
 		d_cpu->write_signal(SIG_CPU_WAIT, 1, 1);
 	}
-	wbank[addr >> 11][addr & 0x7ff] = data;
+	uint32_t bank =  addr >> 11;
+	// Fix for the missing text issue in ÅuBUMPER CARS by Silver Ball SoftwareÅv
+	// When a write occurs to unmapped memory, the data is copied to the text VRAM.
+	if(bank == 27 && vram_sel == 0xC0) {
+		wbank[26][addr & 0x7ff] = data;
+	}
+	wbank[bank][addr & 0x7ff] = data;
 }
 
 uint32_t MEMORY::read_data8(uint32_t addr)

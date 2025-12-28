@@ -325,25 +325,17 @@ void CRTC::write_io8(uint32_t addr, uint32_t data)
 		case 0x06:
 			switch(data) {
 			case 0x17: case 0x1f:
-				map_init |= (scrn_size != SCRN_640x200);
 				scrn_size = SCRN_640x200;
 				break;
 			case 0x13: case 0x1b:
-				map_init |= (scrn_size != SCRN_640x400);
 				scrn_size = SCRN_640x400;
 				break;
 			}
 			break;
-		// scroll
-		case 0x07:
-			map_init |= ((prev & 0x07) != (uint8_t)(data & 0x07));
-			break;
-		case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c:
-			map_init |= (prev != (uint8_t)(data & 0xff));
-			break;
-		case 0x0d:
-			map_init |= ((prev & 0x01) != (uint8_t)(data & 0x01));
-			break;
+		}
+		// refresh scroll
+		if(6 <= (cgreg_num & 0x1f) && (cgreg_num & 0x1f) <= 0x0d && prev != (data & 0xff)) {
+			map_init = true;
 		}
 		// inc cgreg num
 		if(cgreg_num & 0x80) {

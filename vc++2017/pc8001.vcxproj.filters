@@ -150,6 +150,15 @@
     <ClCompile Include="..\src\vm\pc8801\pc8801.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\midi.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\win32\osd_midi.cpp">
+      <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h">
@@ -257,6 +266,12 @@
     <ClInclude Include="..\src\res\resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\midi.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\res\indicator\access_green.bmp">
@@ -276,5 +291,8 @@
     <ResourceCompile Include="..\src\res\pc8001.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

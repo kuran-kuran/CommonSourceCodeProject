@@ -359,14 +359,14 @@ void FM7_MAINMEM::initialize(void)
 	i = FM7_MAINMEM_BIOSWORK;
 	memset(fm7_mainmem_bioswork, 0x00, 0x80 * sizeof(uint8_t));
 #if defined(_FM77AV40EX) || defined(_FM77AV40SX)
-	config.dipswitch = config.dipswitch | FM7_DIPSW_DICTROM_AV;
+	config.option_switch = config.option_switch | FM7_OPTSW_DICTROM_AV;
 #endif
 #if defined(CAPABLE_DICTROM)
 	diag_load_dictrom = false;
 	i = FM7_MAINMEM_DICTROM;
 	memset(fm7_mainmem_dictrom, 0xff, 0x40000 * sizeof(uint8_t));
 	memset(fm7_mainmem_learndata, 0x00, 0x2000 * sizeof(uint8_t));
-	if((config.dipswitch & FM7_DIPSW_DICTROM_AV) != 0) {
+	if((config.option_switch & FM7_OPTSW_DICTROM_AV) != 0) {
 		if(read_bios(_T(ROM_FM77AV_DICTIONARY), fm7_mainmem_dictrom, 0x40000) == 0x40000) diag_load_dictrom = true;
 		this->out_debug_log(_T("DICTIONARY ROM READING : %s"), diag_load_dictrom ? "OK" : "NG");
 		dictrom_connected = diag_load_dictrom;

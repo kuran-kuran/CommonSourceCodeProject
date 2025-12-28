@@ -39,9 +39,9 @@ public:
 	bool process_state(FILEIO* state_fio, bool loading);
 
 	// unique function
-	void set_context_mz80k_sd(DEVICE* device)
+	void set_context_mz80k_sd(MZ80K_SD* device)
 	{
-		d_mz80ksd = (MZ80K_SD*)device;
+		d_mz80ksd = device;
 	}
 };
 

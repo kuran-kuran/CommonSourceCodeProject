@@ -22,7 +22,7 @@
     <ProjectGuid>{19644030-FB96-4EE0-8819-86D8D13C25A7}</ProjectGuid>
     <RootNamespace>mz2500</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -353,6 +353,7 @@
     <ClCompile Include="..\src\vm\mz2500\mouse.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e26.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e30.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\mz1e32.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r37.cpp" />
@@ -420,6 +421,7 @@
     <ClInclude Include="..\src\vm\mz2500\mouse.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e26.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e30.h" />
+    <ClInclude Include="..\src\vm\mz2500\mz1e32.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r12.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r37.h" />
@@ -456,6 +458,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

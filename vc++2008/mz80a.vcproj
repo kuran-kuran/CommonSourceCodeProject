@@ -405,6 +405,26 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\src\win32\osd_midi.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
 					RelativePath="..\src\win32\osd_screen.cpp"
 					>
 					<FileConfiguration
@@ -471,6 +491,26 @@
 				>
 				<File
 					RelativePath="..\src\vm\and.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\cmu800.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -631,6 +671,26 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\mb8877.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -903,6 +963,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\src\vm\cmu800.h"
+					>
+				</File>
+				<File
 					RelativePath="..\src\vm\datarec.h"
 					>
 				</File>
@@ -940,6 +1004,10 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\mb8877.h"
+					>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.h"
 					>
 				</File>
 				<File

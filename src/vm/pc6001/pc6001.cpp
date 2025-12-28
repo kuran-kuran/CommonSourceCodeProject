@@ -126,7 +126,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #else
 	voice = new UPD7752(this, emu);
 	event->set_context_sound(voice);
-	// memory->set_context_timer(timer);	// Medamap no member named set_context_timer
+	memory->set_context_timer(timer);
 #endif
 	memory->set_context_cpu(cpu);
 	joystick->set_context_psg(psg);
@@ -367,7 +367,7 @@ void VM::draw_screen()
 #ifdef _PC6001
 	display->draw_screen();
 #else
-	memory->draw_screen(); // Medamap No member named draw_screen
+	memory->draw_screen();
 #endif
 }
 // ----------------------------------------------------------------------------
@@ -628,11 +628,9 @@ bool VM::is_tape_inserted(int drv)
 {
 	if(support_sub_cpu) {
 		return drec->is_tape_inserted() || sub->is_tape_inserted();
-// why comment out?
 //	} else {
 //		return psub->is_tape_inserted();
 	}
-    // MedamaP
     return false;
 }
 
@@ -727,10 +725,10 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 #if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-        int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
 #else
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
 #endif
 		int len = (int)_tcslen(name);
 		

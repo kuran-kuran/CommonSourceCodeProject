@@ -31,6 +31,16 @@ public:
 	void release();
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
+#ifdef USE_DEBUGGER
+	bool is_debugger_available()
+	{
+		return true;
+	}
+	uint64_t get_debug_data_addr_space();
+	void write_debug_data8(uint32_t addr, uint32_t data);
+	uint32_t read_debug_data8(uint32_t addr);
+	bool get_debug_regs_info(_TCHAR *buffer, size_t buffer_len);
+#endif
 	bool process_state(FILEIO* state_fio, bool loading);
 };
 

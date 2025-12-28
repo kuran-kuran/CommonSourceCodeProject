@@ -377,6 +377,7 @@
     <ClInclude Include="..\src\vm\i8255.h" />
     <ClInclude Include="..\src\vm\io.h" />
     <ClInclude Include="..\src\vm\mb8877.h" />
+    <ClInclude Include="..\src\vm\midi.h" />
     <ClInclude Include="..\src\vm\mz700\cmos.h" />
     <ClInclude Include="..\src\vm\mz700\emm.h" />
     <ClInclude Include="..\src\vm\mz700\floppy.h" />
@@ -408,6 +409,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

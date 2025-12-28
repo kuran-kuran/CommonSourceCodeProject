@@ -84,20 +84,6 @@ void KEYBOARD::create_keystat()
 	d_pio->write_signal(SIG_Z80PIO_PORT_B, val, 0xff);	// to z80pio port b
 }
 
-#define STATE_VERSION	1
-
-bool KEYBOARD::process_state(FILEIO* state_fio, bool loading)
-{
-	if(!state_fio->StateCheckUint32(STATE_VERSION)) {
-		return false;
-	}
-	if(!state_fio->StateCheckInt32(this_device_id)) {
-		return false;
-	}
-	state_fio->StateValue(column);
-	return true;
-}
-
 void KEYBOARD::set_keycode_preset(int type)
 {
 	switch(type)
@@ -144,4 +130,18 @@ void KEYBOARD::set_keycode_preset(int type)
 		emu->update_keycode_conv(0x63, 0x27); // right
 		break;
 	}
+}
+
+#define STATE_VERSION	1
+
+bool KEYBOARD::process_state(FILEIO* state_fio, bool loading)
+{
+	if(!state_fio->StateCheckUint32(STATE_VERSION)) {
+		return false;
+	}
+	if(!state_fio->StateCheckInt32(this_device_id)) {
+		return false;
+	}
+	state_fio->StateValue(column);
+	return true;
 }

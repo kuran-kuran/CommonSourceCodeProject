@@ -405,6 +405,26 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\src\win32\osd_midi.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
 					RelativePath="..\src\win32\osd_screen.cpp"
 					>
 					<FileConfiguration
@@ -671,6 +691,26 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\mcs48.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -1413,6 +1453,10 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\mcs48.h"
+					>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.h"
 					>
 				</File>
 				<File

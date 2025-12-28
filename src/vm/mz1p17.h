@@ -10,11 +10,6 @@
 	Date   : 2016.03.18-
 
 	[ MZ-80P3 / MZ-80P4 ]
-
- 	[dummy MZ-1p17 header for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.27-
-
 */
 
 #ifndef _MZ1P17_H_
@@ -44,7 +39,6 @@ class FIFO;
 class MZ1P17 : public DEVICE
 {
 private:
-#if !defined(__ANDROID__)
 	outputs_t outputs_busy;
 	outputs_t outputs_ack;
 	
@@ -98,23 +92,17 @@ private:
 	void finish();
 	void finish_line();
 	void finish_paper();
-#endif
 	
 public:
 	MZ1P17(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-#if !defined(__ANDROID__)
 		initialize_output_signals(&outputs_busy);
 		initialize_output_signals(&outputs_ack);
 		set_device_name(_T("MZ-1P17 Kanji Thermal Printer"));
-#else
-		set_device_name(_T("MZ-1P17 Kanji Thermal Printer: DummyDevice"));
-#endif
 	}
 	~MZ1P17() {}
 	
 	// common functions
-#if !defined(__ANDROID__)
 	void initialize();
 	void release();
 	void reset();
@@ -123,29 +111,15 @@ public:
 	uint32_t read_signal(int ch);
 	void event_callback(int event_id, int err);
 	bool process_state(FILEIO* state_fio, bool loading);
-#else
-	void initialize(){};
-	void release(){};
-	void reset(){};
-	void event_frame(){};
-	void write_signal(int id, uint32_t data, uint32_t mask){};
-	uint32_t read_signal(int ch){return 0;};
-	void event_callback(int event_id, int err){};
-	bool process_state(FILEIO* state_fio, bool loading){return false;};
-#endif
 	
 	// unique functions
 	void set_context_busy(DEVICE* device, int id, uint32_t mask)
 	{
-#if !defined(__ANDROID__)
 		register_output_signal(&outputs_busy, device, id, mask);
-#endif
 	}
 	void set_context_ack(DEVICE* device, int id, uint32_t mask)
 	{
-#if !defined(__ANDROID__)
 		register_output_signal(&outputs_ack, device, id, mask);
-#endif
 	}
 	int mode;
 };

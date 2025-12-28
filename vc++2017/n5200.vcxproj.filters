@@ -44,6 +44,15 @@
     <Filter Include="Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse3">
       <UniqueIdentifier>{f028ae5c-81a5-441d-b6a8-ce97bdbe14d9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse4">
+      <UniqueIdentifier>{341a123d-5ebf-4abd-bf87-b70f1f7d7422}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse4a">
+      <UniqueIdentifier>{ad6b1710-b204-4084-9a51-7ee6ead7bddf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\ssse3">
+      <UniqueIdentifier>{42d4f89f-b44c-4f59-9e72-532f68ed1fc4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\VM Driver Source Files">
       <UniqueIdentifier>{35b4c7d4-c3b6-4e82-851e-dad7eef753d7}</UniqueIdentifier>
       <Extensions>cpp</Extensions>
@@ -87,6 +96,15 @@
     </Filter>
     <Filter Include="Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse3">
       <UniqueIdentifier>{a6f44d96-8bc3-49e7-b798-0859fb71bb7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse4">
+      <UniqueIdentifier>{685a1d3a-ce9c-40ed-b32f-3c9f84945ab8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse4a">
+      <UniqueIdentifier>{4435ed62-4982-4d14-b36d-ad6a43187eb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\VM Common Header Files\np21w i386c Header Files\ia32\ssse3">
+      <UniqueIdentifier>{ccf4b1d1-1308-4d63-bb43-0b51478af205}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\VM Driver Header Files">
       <UniqueIdentifier>{82ba33f9-94ad-4cbd-970b-f2caab4dae57}</UniqueIdentifier>
@@ -296,6 +314,18 @@
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse3\sse3.cpp">
       <Filter>Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse3</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_1.cpp">
+      <Filter>Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_2.cpp">
+      <Filter>Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4a\sse4a.cpp">
+      <Filter>Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\sse4a</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\ssse3\ssse3.cpp">
+      <Filter>Source Files\VM Common Source Files\np21w i386c Source Files\ia32\instructions\ssse3</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\vm\n5200\display.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
@@ -466,6 +496,18 @@
     <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse3\sse3.h">
       <Filter>Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse3</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_1.h">
+      <Filter>Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse4</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_2.h">
+      <Filter>Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse4</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4a\sse4a.h">
+      <Filter>Header Files\VM Common Header Files\np21w i386c Header Files\ia32\sse4a</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\ssse3\ssse3.h">
+      <Filter>Header Files\VM Common Header Files\np21w i386c Header Files\ia32\ssse3</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\vm\n5200\display.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
@@ -506,5 +548,8 @@
     <ResourceCompile Include="..\src\res\n5200.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

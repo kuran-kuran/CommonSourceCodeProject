@@ -70,8 +70,14 @@ uint32_t FLOPPY::read_io8(uint32_t addr)
 		return 0xff;
 	case 0xffe:	// 2HD
 		for(int drv = 0; drv < 4; drv++) {
-			d_fdc->set_drive_type(drv, DRIVE_TYPE_2HD);
-			d_fdc->set_drive_rpm(drv, 360);
+			// for convenience
+			if(d_fdc->get_media_type(drv) == MEDIA_TYPE_144) {
+				d_fdc->set_drive_type(drv, DRIVE_TYPE_144);
+				d_fdc->set_drive_rpm(drv, 300);
+			} else {
+				d_fdc->set_drive_type(drv, DRIVE_TYPE_2HD);
+				d_fdc->set_drive_rpm(drv, 360);
+			}
 		}
 		return 0xff;
 	case 0xfff:	// 2D/2DD

@@ -52,6 +52,34 @@ uint32_t MZ1R37::read_io8(uint32_t addr)
 	return 0xff;
 }
 
+#ifdef USE_DEBUGGER
+uint64_t MZ1R37::get_debug_data_addr_space()
+{
+	return EMM_SIZE;
+}
+
+void MZ1R37::write_debug_data8(uint32_t addr, uint32_t data)
+{
+	if(addr < EMM_SIZE) {
+		buffer[addr] = data;
+	}
+}
+
+uint32_t MZ1R37::read_debug_data8(uint32_t addr)
+{
+	if(addr < EMM_SIZE) {
+		return buffer[addr];
+	}
+	return 0;
+}
+
+bool MZ1R37::get_debug_regs_info(_TCHAR *buffer, size_t buffer_len)
+{
+	my_stprintf_s(buffer, buffer_len, _T("Address = %04Xxx\n"), (address & 0xffff00) >> 8);
+	return true;
+}
+#endif
+
 #define STATE_VERSION	1
 
 bool MZ1R37::process_state(FILEIO* state_fio, bool loading)

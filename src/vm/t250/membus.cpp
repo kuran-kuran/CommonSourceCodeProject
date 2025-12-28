@@ -26,20 +26,10 @@ void MEMBUS::initialize()
 		fio->Fread(rom, sizeof(rom), 1);
 		fio->Fclose();
 	}
-#ifdef _T200
-	if(fio->Fopen(create_local_path(_T("T200BOOT.BIN")), FILEIO_READ_BINARY)) {
-		fio->Fread(rom, sizeof(rom), 1);
-		fio->Fclose();
-	}
-#else
-	if(fio->Fopen(create_local_path(_T("T250BOOT.BIN")), FILEIO_READ_BINARY)) {
-		fio->Fread(rom, sizeof(rom), 1);
-		fio->Fclose();
-	}
-#endif
 	delete fio;
 	
 	set_memory_rw(0x0000, 0xffff, ram);
+	set_wait_rw(0xf800, 0xffff, 2);
 	
 	mode_reg = data_reg = cmd_reg = fdd_reg = 0;
 	key_repeat = key_ctrl = key_shift = key_irq = false;

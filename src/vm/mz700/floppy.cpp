@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2011.05.16-
 
-	[ floppy ]
+	[ MZ-1E05 ]
 */
 
 #include "floppy.h"

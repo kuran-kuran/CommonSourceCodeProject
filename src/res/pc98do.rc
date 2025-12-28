@@ -256,7 +256,7 @@ BEGIN
         END
         POPUP "Special Features"
         BEGIN
-            MENUITEM "M88 DiskDrv",             ID_VM_DIPSWITCH8
+            MENUITEM "M88 DiskDrv",             ID_VM_OPTION_SWITCH8
             MENUITEM "QUASIS88 Pesudo CMT",     ID_VM_DIPSWITCH9
         END
     END

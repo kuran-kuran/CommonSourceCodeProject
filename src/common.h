@@ -4,10 +4,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ common header ]
 */
 
@@ -43,6 +39,8 @@
 		#if _MSC_VER >= 1400
 			// Microsoft Visual C++ 8.0 (2005) or later
 			#define SUPPORT_SECURE_FUNCTIONS
+			#pragma warning( disable : 4244 )
+			#pragma warning( disable : 4309 )
 			#pragma warning( disable : 4819 )
 			//#pragma warning( disable : 4995 )
 			#pragma warning( disable : 4996 )
@@ -111,9 +109,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if !defined(__ANDROID__)
 #include <io.h>
-#endif
+#include <math.h>
 #ifdef _MSC_VER
 	#if _MSC_VER < 1920
 		#include <typeinfo.h>
@@ -151,11 +148,6 @@
 		#include <QtCore/QFile>
 	#endif
 	#include <sys/param.h>
-#endif
-#ifdef __ANDROID__
-#include <cstdio>
-#include <cstring>
-#include <string>
 #endif
 #ifndef _MAX_PATH
 	#define _MAX_PATH 2048
@@ -899,9 +891,7 @@ int16_t DLL_PREFIX ExchangeEndianS16(uint16_t x);
 	errno_t DLL_PREFIX my_tcscat_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource);
 	errno_t DLL_PREFIX my_strcpy_s(char *strDestination, size_t numberOfElements, const char *strSource);
 	errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource);
-#if defined(__ANDROID__)
 	errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination,  const _TCHAR *strSource);
-#endif
 	errno_t DLL_PREFIX my_strncpy_s(char *strDestination, size_t numberOfElements, const char *strSource, size_t count);
 	errno_t DLL_PREFIX my_tcsncpy_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource, size_t count);
 	char * DLL_PREFIX my_strtok_s(char *strToken, const char *strDelimit, char **context);
@@ -958,13 +948,6 @@ int16_t DLL_PREFIX ExchangeEndianS16(uint16_t x);
 #endif
 
 // win32 api
-#if defined(__ANDROID__)
-BOOL DLL_PREFIX MyWritePrivateProfileString(const char* lpAppName, const char* lpKeyName, const char* lpString, const char* lpFileName);
-size_t DLL_PREFIX MyGetPrivateProfileString(const char* lpAppName, const char* lpKeyName, const char* lpDefault, char* lpReturnedString, size_t nSize, const char* lpFileName);
-unsigned int DLL_PREFIX MyGetPrivateProfileInt(const char* lpAppName, const char* lpKeyName, int nDefault, const char* lpFileName);
-void DLL_PREFIX MySavePrivateProfile(const char* lpFileName);
-void DLL_PREFIX MyLoadPrivateProfile(const char* lpFileName);
-#else
 #ifndef _WIN32
 	BOOL MyWritePrivateProfileString(LPCTSTR lpAppName, LPCTSTR lpKeyName, LPCTSTR lpString, LPCTSTR lpFileName);
 	DWORD MyGetPrivateProfileString(LPCTSTR lpAppName, LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lpReturnedString, DWORD nSize, LPCTSTR lpFileName);
@@ -976,7 +959,6 @@ void DLL_PREFIX MyLoadPrivateProfile(const char* lpFileName);
 	#define MyWritePrivateProfileString WritePrivateProfileString
 	#define MyGetPrivateProfileString GetPrivateProfileString
 	#define MyGetPrivateProfileInt GetPrivateProfileInt
-#endif
 #endif
 
 // rgb color
@@ -1002,16 +984,13 @@ void DLL_PREFIX MyLoadPrivateProfile(const char* lpFileName);
 	#define A_OF_COLOR(c)		(((c) >> 24) & 0xff)
 #endif
 
-#if !defined(__ANDROID__)
 // 20181104 K.O:
 // Below routines aim to render common routine.
 
 #ifdef _MSC_VER
 	#define __DECL_ALIGNED(foo) __declspec(align(foo))
 	#ifndef __builtin_assume_aligned
-		#ifndef _UNITY // MedamaP
-			#define __builtin_assume_aligned(foo, a) foo
-		#endif
+		#define __builtin_assume_aligned(foo, a) foo
 	#endif
 #elif defined(__GNUC__)
 	#define __DECL_ALIGNED(foo) __attribute__((aligned(foo)))
@@ -1019,7 +998,6 @@ void DLL_PREFIX MyLoadPrivateProfile(const char* lpFileName);
 	// ToDo
 	#define __builtin_assume_aligned(foo, a) foo
 	#define __DECL_ALIGNED(foo)
-#endif
 #endif
 
 // wav file header
@@ -1120,10 +1098,5 @@ typedef struct symbol_s {
 const _TCHAR *DLL_PREFIX get_symbol(symbol_t *first_symbol, uint32_t addr);
 const _TCHAR *DLL_PREFIX get_value_or_symbol(symbol_t *first_symbol, const _TCHAR *format, uint32_t addr);
 const _TCHAR *DLL_PREFIX get_value_and_symbol(symbol_t *first_symbol, const _TCHAR *format, uint32_t addr);
-
-#if defined(__ANDROID__)
-void convertUTF8fromSJIS(char *src,char *desc,int length);
-extern char documentDir[_MAX_PATH];
-#endif
 
 #endif

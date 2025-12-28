@@ -14,8 +14,8 @@
 #define CONFIG_NAME		"scv"
 
 // device informations for virtual machine
-#define FRAMES_PER_SEC		60
-#define LINES_PER_FRAME 	262
+#define FRAMES_PER_SEC		59.826
+#define LINES_PER_FRAME 	263
 #define CPU_CLOCKS		4000000
 #define SCREEN_WIDTH		192
 #define SCREEN_HEIGHT		222
@@ -23,6 +23,7 @@
 
 // device informations for win32
 #define USE_CART		1
+#define USE_MONITOR_TYPE	2
 #define USE_SOUND_VOLUME	2
 #define USE_JOYSTICK
 #define USE_DEBUGGER

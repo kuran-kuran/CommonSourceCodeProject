@@ -427,7 +427,10 @@ static void i80286_interrupt_descriptor(i80286_state *cpustate,UINT16 number, in
 	UINT8 r;
 	UINT32 addr;
 
-	if(!PM) return PREFIX86(_interrupt)(cpustate, number);
+	if(!PM) {
+		PREFIX86(_interrupt)(cpustate, number);
+		return;
+	}
 
 	if ((number<<3)>=cpustate->idtr.limit)
 		throw TRAP(GENERAL_PROTECTION_FAULT,(number*8+2+(hwint&&1)));
@@ -737,7 +740,7 @@ static void i80286_load_flags(i8086_state *cpustate, UINT16 flags, int cpl)
 	/* if the IF is set, and an interrupt is pending, signal an interrupt */
 	if (cpustate->IF && cpustate->irq_state) {
 		i80286_interrupt_descriptor(cpustate, cpustate->pic->get_intr_ack(), 2, -1);
-		cpustate->irq_state = 0;
+		cpustate->irq_state = CLEAR_LINE;
 	}
 }
 

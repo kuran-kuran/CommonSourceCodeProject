@@ -105,6 +105,10 @@ public:
 	{
 		dma[3].device = device;
 	}
+	void set_context_irq(DEVICE* device, int id, uint32_t mask)
+	{
+		register_output_signal(&outputs_irq, device, id, mask);
+	}
 #ifdef USE_DEBUGGER
 	void set_context_debugger(DEBUGGER* device)
 	{

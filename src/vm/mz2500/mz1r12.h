@@ -1,6 +1,7 @@
 /*
 	SHARP MZ-80B Emulator 'EmuZ-80B'
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
+	SHARP MZ-2500 Emulator 'EmuZ-2500'
 
 	Author : Takeda.Toshiya
 	Date   : 2013.03.17-
@@ -33,7 +34,6 @@ public:
 	// common functions
 	void initialize();
 	void release();
-	void reset();
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
 	bool process_state(FILEIO* state_fio, bool loading);

@@ -301,7 +301,7 @@ cpu_linear_memory_read_b(UINT32 laddr, int ucrw)
 {
 	return cpu_memoryread(paging(laddr, ucrw));
 }
-UINT8 MEMCALL
+PF_UINT8 MEMCALL
 cpu_linear_memory_read_b_codefetch(UINT32 laddr, int ucrw)
 {
 	return cpu_memoryread_codefetch(paging(laddr, ucrw));
@@ -322,19 +322,19 @@ cpu_linear_memory_read_w(UINT32 laddr, int ucrw)
 	value |= (UINT16)cpu_memoryread_b(paddr[1]) << 8;
 	return value;
 }
-UINT16 MEMCALL
+PF_UINT16 MEMCALL
 cpu_linear_memory_read_w_codefetch(UINT32 laddr, int ucrw)
 {
 	UINT32 paddr[2];
-	UINT16 value;
-
+	PF_UINT16 value;
+	
 	paddr[0] = paging(laddr, ucrw);
 	if ((laddr + 1) & CPU_PAGE_MASK)
 		return cpu_memoryread_w_codefetch(paddr[0]);
 
 	paddr[1] = paging(laddr + 1, ucrw);
 	value = cpu_memoryread_b_codefetch(paddr[0]);
-	value |= (UINT16)cpu_memoryread_b_codefetch(paddr[1]) << 8;
+	value |= (PF_UINT16)cpu_memoryread_b_codefetch(paddr[1]) << 8;
 	return value;
 }
 
@@ -377,7 +377,7 @@ cpu_linear_memory_read_d(UINT32 laddr, int ucrw)
 	}
 	return value;
 }
-UINT32 MEMCALL
+PF_UINT32 MEMCALL
 cpu_linear_memory_read_d_codefetch(UINT32 laddr, int ucrw)
 {
 	UINT32 paddr[2];
@@ -728,6 +728,7 @@ paging(UINT32 laddr, int ucrw)
 		cpu_memorywrite_d_paging(pde_addr, pde);
 	}
 
+	/* 4KB page size */
 	pte_addr = (pde & CPU_PDE_BASEADDR_MASK) + ((laddr >> 10) & 0xffc);
 	pte = cpu_memoryread_d_paging(pte_addr);
 	if (!(pte & CPU_PTE_PRESENT)) {
@@ -799,7 +800,7 @@ do { \
 #define	TLB_IS_WRITABLE(ep)	((ep)->tag & CPU_PTE_WRITABLE)
 #define	TLB_IS_USERMODE(ep)	((ep)->tag & CPU_PTE_USER_MODE)
 #define	TLB_IS_DIRTY(ep)	((ep)->tag & TLB_ENTRY_TAG_DIRTY)
-#if (CPU_FEATURES & CPU_FEATURE_PGE) == CPU_FEATURE_PGE
+#if (CPU_FEATURES_ALL & CPU_FEATURE_PGE) == CPU_FEATURE_PGE
 #define	TLB_IS_GLOBAL(ep)	((ep)->tag & TLB_ENTRY_TAG_GLOBAL)
 #else
 #define	TLB_IS_GLOBAL(ep)	0

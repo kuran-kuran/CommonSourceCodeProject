@@ -296,6 +296,24 @@ bool I286::write_debug_reg(const _TCHAR *reg, uint32_t data)
 		cpustate->regs.b[DL] = data;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		cpustate->regs.b[DH] = data;
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		cpustate->CarryVal = (data != 0);
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		cpustate->ParityVal = (data != 0) ? 0 : 1;
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		cpustate->AuxVal = (data != 0);
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		cpustate->ZeroVal = (data != 0) ? 0 : 1;
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		cpustate->SignVal = (data != 0) ? -1 : 0;
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		cpustate->TF = (data != 0);
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		cpustate->IF = (data != 0);
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		cpustate->DirVal = (data != 0) ? -1 : 0;
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		cpustate->OverVal = (data != 0);
 	} else {
 		return false;
 	}
@@ -339,6 +357,24 @@ uint32_t I286::read_debug_reg(const _TCHAR *reg)
 		return cpustate->regs.b[DL];
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		return cpustate->regs.b[DH];
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		return (cpustate->CarryVal != 0);
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		return (cpustate->ParityVal == 0);
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		return (cpustate->AuxVal != 0);
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		return (cpustate->ZeroVal == 0);
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		return (cpustate->SignVal < 0);
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		return (cpustate->TF != 0);
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		return (cpustate->IF != 0);
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		return (cpustate->DirVal < 0);
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		return (cpustate->OverVal != 0);
 	}
 	return 0;
 }

@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ cmos memory ]
+	[ MZ-1R12 ]
 */
 
 #ifndef _CMOS_H_
@@ -21,13 +21,13 @@ class CMOS : public DEVICE
 private:
 	uint8_t *data_buffer;
 	uint32_t data_addr;
-	bool read_only;
 	bool modified;
+	bool read_only;
 	
 public:
 	CMOS(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("CMOS RAM"));
+		set_device_name(_T("MZ-1R12 CMOS RAM"));
 	}
 	~CMOS() {}
 	

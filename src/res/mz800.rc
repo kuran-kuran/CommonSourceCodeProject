@@ -181,6 +181,14 @@ BEGIN
             MENUITEM "MZ-800"                   ID_VM_BOOT_MODE0
             MENUITEM "MZ-700"                   ID_VM_BOOT_MODE1
         END
+        POPUP "Option"
+        BEGIN
+            MENUITEM "MZ-1E05 (FD I/F)",        ID_VM_OPTION_SWITCH8
+            MENUITEM "MZ-1E19 (QD I/F)",        ID_VM_OPTION_SWITCH9
+            MENUITEM "MZ-1R12 (CMOS RAM)",      ID_VM_OPTION_SWITCH10
+            MENUITEM "MZ-1R18 (RAM File)",      ID_VM_OPTION_SWITCH11
+            MENUITEM "PIO-3034 (EMM)",          ID_VM_OPTION_SWITCH14
+        END
         POPUP "Sound"
         BEGIN
             MENUITEM "Play FDD Noise",          ID_VM_SOUND_NOISE_FDD

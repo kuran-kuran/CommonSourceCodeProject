@@ -34,6 +34,9 @@ public:
 	virtual ~VM_TEMPLATE() {}
 	
 	// drive virtual machine
+	virtual const _TCHAR *device_name() {
+		return _T(DEVICE_NAME);
+	}
 	virtual void reset() { }
 	virtual void special_reset() { }
 	virtual void run() { }
@@ -117,6 +120,8 @@ public:
 	
 	virtual bool is_floppy_disk_connected(int drv) { return true; }
 	virtual bool is_quick_disk_connected(int drv) { return true; }
+	virtual bool is_hard_disk_connected(int drv) { return true; }
+	virtual bool is_compact_disc_connected(int drv) { return true; }
 	
 	virtual bool is_floppy_disk_inserted(int drv) { return false; }
 	virtual bool is_quick_disk_inserted(int drv) { return false; }

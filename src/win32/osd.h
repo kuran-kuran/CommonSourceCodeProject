@@ -283,7 +283,7 @@ private:
 	void send_telnet(const char* buffer);
 	
 	bool use_telnet, telnet_closed;
-	int svr_socket, cli_socket;
+	UINT_PTR svr_socket, cli_socket;
 	
 	// input
 	void initialize_input();
@@ -445,12 +445,7 @@ private:
 	FILEIO* rec_sound_fio;
 	int rec_sound_bytes;
 	int rec_sound_buffer_ptr;
-
-#ifdef _UNITY	// MedamaP
-	uint16_t* unity_sound_buffer;
-	int unity_sound_buffer_size;
-#endif
-
+	
 	// video device
 #if defined(USE_MOVIE_PLAYER) || defined(USE_VIDEO_CAPTURE)
 	void initialize_video();
@@ -547,8 +542,13 @@ public:
 	void open_console(int width, int height, const _TCHAR* title);
 	void close_console();
 	unsigned int get_console_code_page();
+	void set_console_code_page(unsigned int cp);
+	void get_console_cursor_position(int *x, int *y);
+	void set_console_cursor_position(int x, int y);
 	void set_console_text_attribute(unsigned short attr);
 	void write_console(const _TCHAR* buffer, unsigned int length);
+	void write_console_char(const char* buffer, unsigned int length);
+	void write_console_wchar(const wchar_t* buffer, unsigned int length);
 	int read_console_input(_TCHAR* buffer, unsigned int length);
 	bool is_console_key_pressed(int vk);
 	bool is_console_closed();
@@ -646,7 +646,6 @@ public:
 	bool now_record_sound;
 #ifdef _UNITY	// MARU
 	int16_t	* get_sound_buffer();
-	int get_sound_buffer_size(); // MedamaP
 #endif // !_UNITY
 	
 	// common video device
