@@ -1,3 +1,11 @@
+1/1/2026
+
+[VM/CMU800] improve CMU-800 (thanks Mr.kuran_kuran)
+
+[PC8001] support CMU-800 (thanks Mr.kuran_kuran)
+[PC8801] support CMU-800 (thanks Mr.kuran_kuran)
+
+
 12/31/2025
 
 [MZ80B/MEMORY] fix text vram size (thanks Mr.kuran_kuran)

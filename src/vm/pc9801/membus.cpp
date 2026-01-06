@@ -402,12 +402,14 @@ uint32_t MEMBUS::read_io8(uint32_t addr)
 	case 0x0567:
 		return (uint8_t)(sizeof(ram) >> 17);
 #endif
+#if !defined(SUPPORT_HIRESO)
 	case 0x08e9:
 		if(ems_target >= 1 && ems_target < (EMS_SIZE >> 20)) {
 			return 0;
 		}
 		break;
-	// dummy for no cases
+#endif
+		// dummy for no cases
 	default:
 		break;
 	}
