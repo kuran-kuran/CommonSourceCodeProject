@@ -15,7 +15,8 @@
 void EMM::initialize()
 {
 	// init memory
-	memset(data_buffer, 0, sizeof(data_buffer));
+	data_buffer = (uint8_t*)malloc(EMM_BUFFER_SIZE);
+	memset(data_buffer, 0, EMM_BUFFER_SIZE);
 	modified = false;
 	
 	// load emm image
@@ -43,7 +44,9 @@ void EMM::release()
 	}
 	
 	// release memory
-	free(data_buffer);
+	if(data_buffer != NULL) {
+		free(data_buffer);
+	}
 }
 
 void EMM::reset()

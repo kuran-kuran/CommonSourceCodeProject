@@ -13,13 +13,11 @@
 #include "vm.h"
 #include "../emu.h"
 #include "device.h"
-#include "event.h"
 
 class CMU800 : public DEVICE
 {
 private:
 	DEVICE* d_midi;
-	EVENT* d_event;
 	uint8_t regs[16];
 	uint8_t toggle[6];
 	uint16_t counter[6];
@@ -31,20 +29,14 @@ private:
 	uint8_t before_rythm;
 	bool is_reset;
 	int tempo_freq, tempo_new, tempo_id;
-	bool key_on[8];
 	void reset_midi();
-	void note_on_midi8253(int channel);
-	void note_on_midi(int channel);
 public:
 	CMU800(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		set_device_name(_T("CMU-800 (MIDI)"));
 	}
 	~CMU800() {}
-
-	void reset();
-	void special_reset();
-
+	
 	// common functions
 	void initialize();
 	void release();
@@ -59,7 +51,6 @@ public:
 	{
 		d_midi = device;
 	}
-	void adjust_tempo(int delta);
 };
 
 #endif

@@ -32,18 +32,7 @@ const int counterTable[] =
 #define GENERAL_PARAM_CMU800 0
 #endif
 #define TEMPO_INI 160
-#define TEMPO_MIN 10
-#define TEMPO_MAX 500
-
-void CMU800::reset()
-{
-	reset_midi();
-}
-
-void CMU800::special_reset()
-{
-	reset_midi();
-}
+#define TEMPO_MAX 200
 
 void CMU800::initialize()
 {
@@ -63,7 +52,7 @@ void CMU800::initialize()
 		config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 	}
 	tempo_freq = tempo_new;
-	register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
+	register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / tempo_freq, true, &tempo_id);
 	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
 }
 
@@ -103,8 +92,8 @@ void CMU800::update_config()
 	}
 	if(tempo_new > TEMPO_MAX) {
 		tempo_new = TEMPO_MAX;
-	} else if(tempo_new < TEMPO_MIN) {
-		tempo_new = TEMPO_MIN;
+	} else if(tempo_new <= 0) {
+		tempo_new = 1;
 	}
 	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 }
@@ -115,8 +104,7 @@ void CMU800::event_callback(int event_id, int err)
 		if(tempo_freq != tempo_new) {
 			tempo_freq = tempo_new;
 			cancel_event(this, tempo_id);
-			register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
-			
+			register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / tempo_freq , true, &tempo_id);
 			emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
 		}
 		regs[0x0A] ^= 0xF0;
@@ -143,19 +131,6 @@ void CMU800::reset_midi()
 		d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
 	}
-	// 全チャンネルクラビネットに変更
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC2, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC3, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC4, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	memset(toggle, 0, sizeof(toggle));
 	memset(counter, 0, sizeof(counter));
 	cv = 0;
@@ -163,63 +138,8 @@ void CMU800::reset_midi()
 	memset(cv_key, 0, sizeof(cv_key));
 	memset(note_on_flag, 0, sizeof(note_on_flag));
 	memset(before_tone, 0, sizeof(before_tone));
-	for(int i = 0; i < 8; ++ i)
-	{
-		key_on[i] = false;
-	}
-	before_rythm = 0xFE;
+	before_rythm = 0;
 	is_reset = true;
-}
-
-void CMU800::note_on_midi8253(int channel)
-{
-	if(key_on[channel] == false)
-	{
-		return;
-	}
-	note_on_midi(channel);
-	key_on[channel] = false;
-}
-
-void CMU800::note_on_midi(int channel)
-{
-	// 8253設定値からcvを求める
-	int val = counter[channel];
-	int back = -1;
-	for(int i = 0; i < array_length(counterTable); ++ i)
-	{
-		if(val >= counterTable[i])
-		{
-			back = i;
-			break;
-		}
-	}
-	if(back != -1)
-	{
-		int front = back - 1;
-		int x = counterTable[front] - val;
-		int y = counterTable[back] - val;
-		if(x * x < y * y)
-		{
-			cv = front;
-		}
-		else
-		{
-			cv = back;
-		}
-	}
-	// note on
-	uint8_t key = cv + 24;
-	// cvを103以内に抑える。下げるときは一度に1オクターブ下げる
-	while(cv > 103)
-	{
-		cv -= 12;
-	}
-	d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
-	note_on_flag[channel] = 1;
-	cv_key[channel] = key;
 }
 
 void CMU800::write_io8(uint32_t addr, uint32_t data)
@@ -236,14 +156,11 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			counter[port_number] |= data8 * (toggle[port_number] == 0 ? 1 : 256);
 			toggle[port_number] = 1 - toggle[port_number];
 			is_reset = false;
-			if(toggle[port_number] == 0)
-			{
-				note_on_midi8253(addr & 0xF);
-			}
 			break;
 		}
 	case 0x93:
 		// 8253-1 setting
+		reset_midi();
 		break;
 	case 0x94:
 	case 0x95:
@@ -256,15 +173,12 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			counter[port_number] |= data8 * (toggle[port_number] == 0 ? 1 : 256);
 			toggle[port_number] = 1 - toggle[port_number];
 			is_reset = false;
-			if(toggle[port_number] == 0)
-			{
-				note_on_midi8253((addr & 0xF) - 1);
-			}
 			break;
 		}
 		break;
 	case 0x97:
 		// 8253-2 setting
+		reset_midi();
 		break;
 	case 0x98:
 		// 8255 Port A
@@ -329,14 +243,39 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				{
 					if(cv == 0)
 					{
-						// bugfireさんのプレイヤーは既に8253設定済みでcvが0なのですぐに音を鳴らす
-						note_on_midi(channel);
+						// cvが0の場合は周波数からcvを求める
+						int val = counter[channel];
+						int back = -1;
+						for(int i = 0; i < array_length(counterTable); ++ i)
+						{
+							if(val >= counterTable[i])
+							{
+								back = i;
+								break;
+							}
+						}
+						if(back != -1)
+						{
+							int front = back - 1;
+							int x = counterTable[front] - val;
+							int y = counterTable[back] - val;
+							if(x * x < y * y)
+							{
+								cv = front;
+							}
+							else
+							{
+								cv = back;
+							}
+						}
 					}
-					else
-					{
-						// CMU-800シーケンサーはまだ8253の設定が終わっていないので8253設定時に音を鳴らすためのフラグをセット
-						key_on[channel] = true;
-					}
+					// note on
+					uint8_t key = cv + 24;
+					d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
+					d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
+					d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+					note_on_flag[channel] = 1;
+					cv_key[channel] = key;
 				}
 			}
 			before_tone[channel] = data & 0xFF;
@@ -355,6 +294,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			}
 			write_io8(0x9A, val);
 		}
+		reset_midi();
 		break;
 	case 0x9C:
 		// dummy port (Nothing to do.)
@@ -378,17 +318,6 @@ uint32_t CMU800::read_io8(uint32_t addr)
 		return regs[addr & 0x0F];
 	}
 	return 0;
-}
-
-void CMU800::adjust_tempo(int delta)
-{
-	tempo_new += delta;
-	if(tempo_new > TEMPO_MAX) {
-		tempo_new = TEMPO_MAX;
-	} else if(tempo_new < TEMPO_MIN) {
-		tempo_new = TEMPO_MIN;
-	}
-	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 }
 
 #define STATE_VERSION	1

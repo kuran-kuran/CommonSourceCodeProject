@@ -47,7 +47,6 @@
 #include "../mz1p17.h"
 #include "../prnfile.h"
 #include "psg.h"
-#include "mz1500sd.h"
 #endif
 #endif
 #if defined(SUPPORT_JOYSTICK)
@@ -88,17 +87,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #if defined(_MZ1500)
 	config.option_switch &= ~OPTION_SWITCH_MZ1E14;
-	// MZ-1R12 vs MZ1500_SD
-	if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
-		config.option_switch &= ~OPTION_SWITCH_MZ1500SD;
-	} else if(!(option_switch & OPTION_SWITCH_MZ1500SD) && (config.option_switch & OPTION_SWITCH_MZ1500SD)) {
-		config.option_switch &= ~OPTION_SWITCH_MZ1R12;
-	}
 #endif
 #if !defined(SUPPORT_SFD700)
 	config.option_switch &= ~OPTION_SWITCH_SFD700;
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(_MZ700)
 	option_switch = config.option_switch;
 #endif
 #if defined(_MZ800)
@@ -150,11 +143,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	psg_r = new SN76489AN(this, emu);
 	psg_r->set_device_name(_T("SN76489AN PSG (Right)"));
 	psg = new PSG(this, emu);
-	if(config.option_switch & OPTION_SWITCH_MZ1500SD) {
-		mz1500sd = new MZ1500_SD(this, emu);
-		MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
-		mz1500sd->set_context_mz80k_sd(mz80k_sd);
-	}
 #endif
 	pio_int = new Z80PIO(this, emu);
 	sio_rs = new Z80SIO(this, emu);
@@ -168,7 +156,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
 	}
-	ctrl = false;
 #endif
 	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
 		fdc = new MB8877(this, emu);	// MB8876
@@ -192,7 +179,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		qd = NULL;
 	}
 #endif
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD)) {
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
 		cmos = new CMOS(this, emu);
 	}
 	if(config.option_switch & OPTION_SWITCH_MZ1R18) {
@@ -373,7 +360,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		// Z80SIO:DCDA <- QD:INSERT
 		// Z80SIO:DCDB <- QD:HOE
 		qd->set_context_sio(sio_qd);
-	}	
+	}
 #if defined(SUPPORT_80COLUMN)
 	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
 		crtc->set_vram_ptr(memory->get_vram80(), 0x800);
@@ -425,7 +412,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		io->set_iomap_range_rw(0xea, 0xeb, ramfile);
 	}
 	// cmos
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD)) {
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
 		io->set_iomap_range_rw(0xf8, 0xfa, cmos);
 	}
 	
@@ -469,10 +456,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0xe9, psg);
 	io->set_iomap_single_w(0xf2, psg_l);
 	io->set_iomap_single_w(0xf3, psg_r);
-	if(config.option_switch & OPTION_SWITCH_MZ1500SD) {
-		// mz1500_sd
-		io->set_iomap_range_rw(0xa0, 0xa3, mz1500sd);
-	}
 #endif
 	
 	// quick disk
@@ -853,46 +836,6 @@ bool VM::is_frame_skippable()
 	return event->is_frame_skippable();
 }
 
-void VM::key_down(int code, bool repeat)
-{
-#if defined(SUPPORT_CMU800)
-	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		if(code == 17) {
-			// left-ctrl and right-ctrl
-			ctrl = true;
-			return;
-		}
-		if(ctrl == true) {
-			switch(code)
-			{
-			case 37: // L
-				cmu800->adjust_tempo(-1);
-				break;
-			case 38: // U
-				cmu800->adjust_tempo(10);
-				break;
-			case 39: // R
-				cmu800->adjust_tempo(1);
-				break;
-			case 40: // D
-				cmu800->adjust_tempo(-10);
-				break;
-			}
-		}
-	}
-#endif
-}
-
-void VM::key_up(int code)
-{
-#if defined(SUPPORT_CMU800)
-	if(code == 17) {
-		ctrl = false;
-	}
-#endif
-}
-
 void VM::update_config()
 {
 #if defined(_MZ700)
@@ -916,21 +859,12 @@ void VM::update_config()
 		config.monitor_type = 0;
 	}
 #endif
-#elif defined(_MZ1500)
-	// MZ-1E05 vs MZ-1R12 vs MZ2000_SD
-	if(!(option_switch & OPTION_SWITCH_MZ1E05) && (config.option_switch & OPTION_SWITCH_MZ1E05)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD);
-	} else if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1500SD);
-	} else if(!(option_switch & OPTION_SWITCH_MZ1500SD) && (config.option_switch & OPTION_SWITCH_MZ1500SD)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E05);
-	}
 #endif
 	// MZ-1R23 vs MZ-1R24
 	if(!(config.option_switch & OPTION_SWITCH_MZ1R23) && (config.option_switch & OPTION_SWITCH_MZ1R24)) {
 		config.option_switch &= ~OPTION_SWITCH_MZ1R24;
 	}
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(_MZ700)
 	option_switch = config.option_switch;
 #endif
 #if defined(_MZ800)

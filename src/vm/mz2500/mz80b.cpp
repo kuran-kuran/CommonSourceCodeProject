@@ -27,9 +27,6 @@
 #include "../prnfile.h"
 #include "../z80.h"
 #include "../z80pio.h"
-#ifdef USE_SDCARD
-#include "../mz80k_sd.h"
-#endif
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -44,9 +41,6 @@
 #include "pio3034.h"
 #include "printer.h"
 #include "timer.h"
-#ifdef USE_SDCARD
-#include "mz2000sd.h"
-#endif
 
 #ifdef SUPPORT_QUICK_DISK
 #include "../z80sio.h"
@@ -102,15 +96,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory = new MEMORY(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
-
-	MIDI *midi = NULL;
+	
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		midi = new MIDI(this, emu);
 		cmu800 = new CMU800(this, emu);
-		cmu800->set_context_midi(midi);
+		cmu800->set_context_midi(new MIDI(this, emu));
 	}
-	ctrl = false;
-
 	if(config.option_switch & OPTION_SWITCH_MZ1E05) {
 		fdc = new MB8877(this, emu);
 		fdc->set_context_noise_seek(new NOISE(this, emu));
@@ -130,9 +120,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef _MZ2200
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E18 | OPTION_SWITCH_MZ2000SD)) {
-#elif defined(_MZ80B)
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ2000SD)) {
+	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E18)) {
 #else
 	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
 #endif
@@ -155,25 +143,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(config.option_switch & OPTION_SWITCH_PIO3034) {
 		pio3034 = new PIO3034(this, emu);
 	}
-#ifdef SUPPORT_SDCARD
-	// MZ2000_SD
-	if(config.option_switch & OPTION_SWITCH_MZ2000SD) {
-		mz2000sd = new MZ2000_SD(this, emu);
-		if(midi == NULL) {
-			midi = new MIDI(this, emu);
-		}
-		MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
-		mz80k_sd->set_context_midi(midi);
-		mz2000sd->set_context_mz80k_sd(mz80k_sd);
-	}
-#endif
 	
 	// set contexts
 	event->set_context_cpu(cpu, config.cpu_type ? CPU_CLOCKS_HIGH : CPU_CLOCKS);
-//	event->set_context_cpu(cpu, config.cpu_type ? 4000 : CPU_CLOCKS);
-
-
-
 #ifdef SUPPORT_16BIT_BOARD
 	if(config.option_switch & OPTION_SWITCH_MZ1M01) {
 		event->set_context_cpu(cpu_16, 5000000);
@@ -321,14 +293,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
 		io->set_iomap_range_rw(0xb8, 0xbb, mz1r13);
 	}
-
-#ifdef SUPPORT_SDCARD
-	if(config.option_switch & OPTION_SWITCH_MZ2000SD) {
-		// MZ2000_SD
-		io->set_iomap_range_rw(0xa0, 0xa3, mz2000sd);
-	}
-#endif
-
 #ifdef SUPPORT_QUICK_DISK
 	if(config.option_switch & OPTION_SWITCH_MZ1E18) {
 		io->set_iomap_alias_rw(0xd0, sio, 0);
@@ -355,9 +319,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_w(0xf0, 0xf3, timer);
 	io->set_iomap_range_w(0xf4, 0xf7, memory);
 #ifdef _MZ2200
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E18 | OPTION_SWITCH_MZ2000SD)) {
-#elif defined(_MZ80B)
-	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ2000SD)) {
+	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E18)) {
 #else
 	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
 #endif
@@ -367,7 +329,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	io->set_iowait_range_rw(0xd8, 0xdf, 1);
 	io->set_iowait_range_rw(0xe8, 0xeb, 1);
-
+	
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->initialize();
@@ -714,56 +676,18 @@ bool VM::is_frame_skippable()
 	return event->is_frame_skippable();
 }
 
-void VM::key_down(int code, bool repeat)
-{
-	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		if(code == 17) {
-			// left-ctrl and right-ctrl
-			ctrl = true;
-			return;
-		}
-		if(ctrl == true) {
-			switch(code)
-			{
-			case 37: // L
-				cmu800->adjust_tempo(-1);
-				break;
-			case 38: // U
-				cmu800->adjust_tempo(10);
-				break;
-			case 39: // R
-				cmu800->adjust_tempo(1);
-				break;
-			case 40: // D
-				cmu800->adjust_tempo(-10);
-				break;
-			}
-		}
-	}
-}
-
-void VM::key_up(int code)
-{
-	if(code == 17) {
-		ctrl = false;
-	}
-}
-
 void VM::update_config()
 {
 #if defined(_MZ2200)
-	// MZ-1E18 vs MZ-1R12 vs MZ2000_SD
+	// MZ-1E18 vs MZ-1R12
 	if(!(option_switch & OPTION_SWITCH_MZ1E18) && (config.option_switch & OPTION_SWITCH_MZ1E18)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ2000SD);
+		config.option_switch &= ~OPTION_SWITCH_MZ1R12;
 	} else if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1E18 | OPTION_SWITCH_MZ2000SD);
-	} else if(!(option_switch & OPTION_SWITCH_MZ2000SD) && (config.option_switch & OPTION_SWITCH_MZ2000SD)) {
-		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E18);
+		config.option_switch &= ~OPTION_SWITCH_MZ1E18;
 	}
 #endif
 	if(!(option_switch & OPTION_SWITCH_PIO3034_A0H) && (config.option_switch & OPTION_SWITCH_PIO3034_A0H)) {
-		config.option_switch &= ~(OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_PIO3034_A8H | OPTION_SWITCH_PIO3034_ACH | OPTION_SWITCH_MZ2000SD);
+		config.option_switch &= ~(OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_PIO3034_A8H | OPTION_SWITCH_PIO3034_ACH);
 	}
 	if(!(option_switch & OPTION_SWITCH_PIO3034_A4H) && (config.option_switch & OPTION_SWITCH_PIO3034_A4H)) {
 		config.option_switch &= ~(OPTION_SWITCH_PIO3034_A0H | OPTION_SWITCH_PIO3034_A8H | OPTION_SWITCH_PIO3034_ACH);
@@ -773,9 +697,6 @@ void VM::update_config()
 	}
 	if(!(option_switch & OPTION_SWITCH_PIO3034_ACH) && (config.option_switch & OPTION_SWITCH_PIO3034_ACH)) {
 		config.option_switch &= ~(OPTION_SWITCH_PIO3034_A0H | OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_PIO3034_A8H);
-	}
-	if(!(option_switch & OPTION_SWITCH_MZ2000SD) && (config.option_switch & OPTION_SWITCH_MZ2000SD)) {
-		config.option_switch &= ~OPTION_SWITCH_PIO3034_A0H;
 	}
 	option_switch = config.option_switch;
 	

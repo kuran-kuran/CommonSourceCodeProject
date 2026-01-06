@@ -26,7 +26,6 @@
 #define SUPPORT_QUICK_DISK
 #define SUPPORT_16BIT_BOARD
 #endif
-#define SUPPORT_SDCARD
 
 // device informations for virtual machine
 #define FRAMES_PER_SEC		60
@@ -69,12 +68,6 @@
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
-#define KEYBOARD_TYPE_DEFAULT 0
-#define USE_KEYBOARD_TYPE	6
-#define USE_COUNTER
-#ifdef SUPPORT_SDCARD
-#define USE_SDCARD
-#endif
 
 #define OPTION_SWITCH_CMU800		(1 << 0)
 #define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
@@ -83,7 +76,7 @@
 #define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
 #define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
 #define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
-#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
+#define OPTION_SWITCH_CMU800_TEMPO_160	(1 << 7)
 #define OPTION_SWITCH_MZ1E05		(1 << 8)
 #define OPTION_SWITCH_MZ1E18		(1 << 9)
 #define OPTION_SWITCH_MZ1R12		(1 << 10)
@@ -93,10 +86,9 @@
 #define OPTION_SWITCH_PIO3034_A4H	(1 << 14)
 #define OPTION_SWITCH_PIO3034_A8H	(1 << 15)
 #define OPTION_SWITCH_PIO3034_ACH	(1 << 16)
-#define OPTION_SWITCH_MZ2000SD      (1 << 17)
 #define OPTION_SWITCH_PIO3034		(OPTION_SWITCH_PIO3034_A0H | OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_PIO3034_A8H | OPTION_SWITCH_PIO3034_ACH)
 
-#define OPTION_SWITCH_DEFAULT		(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1M01 | OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_MZ2000SD)
+#define OPTION_SWITCH_DEFAULT		(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E18 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1M01 | OPTION_SWITCH_PIO3034_A0H)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -151,9 +143,6 @@ class MZ1M01;
 #endif
 // PIO-3034
 class PIO3034;
-#ifdef SUPPORT_SDCARD
-class MZ2000_SD;
-#endif
 
 class VM : public VM_TEMPLATE
 {
@@ -178,8 +167,7 @@ protected:
 	TIMER* timer;
 	
 	// CMU-800
-	CMU800* cmu800;
-	bool ctrl;
+	CMU800* cmu800;	
 	// MZ-1E05
 	MB8877* fdc;
 	FLOPPY* floppy;
@@ -201,10 +189,7 @@ protected:
 #endif
 	// PIO-3034
 	PIO3034* pio3034;
-#ifdef SUPPORT_SDCARD
-	MZ2000_SD* mz2000sd;
-#endif
-
+	
 	int option_switch;
 	
 public:
@@ -274,10 +259,7 @@ public:
 	void push_apss_forward(int drv) {}
 	void push_apss_rewind(int drv) {}
 	bool is_frame_skippable();
-
-	void key_down(int code, bool repeat);
-	void key_up(int code);
-
+	
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
 	

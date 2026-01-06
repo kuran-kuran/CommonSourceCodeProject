@@ -27,7 +27,6 @@ private:
 	const uint8_t* key_stat;
 	uint8_t keys[16];
 	uint8_t column;
-	int32_t keyboard_type;
 	void create_keystat();
 	
 public:
@@ -44,7 +43,6 @@ public:
 	bool process_state(FILEIO* state_fio, bool loading);
 	
 	// unique function
-	void set_keycode_preset(int type);
 	void set_context_pio_i(DEVICE* device)
 	{
 		d_pio_i = device;

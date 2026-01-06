@@ -185,7 +185,6 @@ BEGIN
             MENUITEM "MZ-1R23 (Kanji ROM)",     ID_VM_OPTION_SWITCH12
             MENUITEM "MZ-1R24 (Dict. ROM)",     ID_VM_OPTION_SWITCH13
             MENUITEM "PIO-3034 (EMM)",          ID_VM_OPTION_SWITCH14
-            MENUITEM "MZ1500_SD",               ID_VM_OPTION_SWITCH17
         END
         POPUP "Joystick"
         BEGIN

@@ -104,7 +104,6 @@
 #if defined(_MZ1500)
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
-#define USE_SDCARD
 #endif
 #define USE_DEBUGGER
 #define USE_STATE
@@ -128,14 +127,13 @@
 #define OPTION_SWITCH_PIO3034	(1 << 14)
 #define OPTION_SWITCH_SFD700	(1 << 15)
 #define OPTION_SWITCH_80COLUMN	(1 << 16)
-#define OPTION_SWITCH_MZ1500SD	(1 << 17)
 
 #if defined(_MZ700)
 #define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E14 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034)
 #elif defined(_MZ800)
 #define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E14 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034)
 #elif defined(_MZ1500)
-#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034 | OPTION_SWITCH_MZ1500SD)
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034)
 #endif
 
 #if defined(_MZ700)
@@ -270,7 +268,6 @@ class SN76489AN;
 class Z80PIO;
 #if defined(_MZ1500)
 class PSG;
-class MZ1500_SD;
 #endif
 #endif
 
@@ -314,7 +311,6 @@ protected:
 	NOT* not_strobe;
 	SN76489AN* psg_l;
 	SN76489AN* psg_r;
-	MZ1500_SD* mz1500sd;
 #endif
 	Z80PIO* pio_int;
 	Z80SIO* sio_rs;	// RS-232C
@@ -330,7 +326,6 @@ protected:
 #if defined(SUPPORT_CMU800)
 	// CMU-800
 	CMU800* cmu800;
-	bool ctrl;
 #endif	
 	// MZ-1E05 / K&P SFD-700
 	MB8877* fdc;
@@ -351,7 +346,7 @@ protected:
 	HD46505* crtc;
 #endif
 	
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(_MZ700)
 	int option_switch;
 #endif
 #if defined(_MZ800)
@@ -425,10 +420,7 @@ public:
 	uint32_t is_floppy_disk_accessed();
 	bool is_floppy_disk_connected(int drv);
 	bool is_frame_skippable();
-
-	void key_down(int code, bool repeat);
-	void key_up(int code);
-
+	
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
 	

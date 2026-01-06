@@ -681,47 +681,8 @@ bool VM::is_frame_skippable()
 	return event->is_frame_skippable();
 }
 
-void VM::key_down(int code, bool repeat)
-{
-	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		if(code == 17) {
-			// left-ctrl and right-ctrl
-			ctrl = true;
-			return;
-		}
-		if(ctrl == true) {
-			switch(code)
-			{
-			case 37: // L
-				cmu800->adjust_tempo(-1);
-				break;
-			case 38: // U
-				cmu800->adjust_tempo(10);
-				break;
-			case 39: // R
-				cmu800->adjust_tempo(1);
-				break;
-			case 40: // D
-				cmu800->adjust_tempo(-10);
-				break;
-			}
-		}
-	}
-}
-
-void VM::key_up(int code)
-{
-	if(code == 17) {
-		ctrl = false;
-	}
-}
-
 void VM::update_config()
 {
-	bool boot_mode_changed = (boot_mode != config.boot_mode);
-	monitor_type = config.monitor_type;
-	boot_mode = config.boot_mode;
 	// CMU-800 vs MZ-1E32
 	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800)) {
 		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
@@ -732,11 +693,6 @@ void VM::update_config()
 	
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
-	}
-
-	// if boot mode is changed, perform IPL reset
-	if (boot_mode_changed) {
-		reset();
 	}
 }
 

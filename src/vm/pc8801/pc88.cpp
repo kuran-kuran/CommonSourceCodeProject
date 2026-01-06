@@ -1412,25 +1412,6 @@ void PC88::write_io8(uint32_t addr, uint32_t data)
 		break;
 #endif
 #endif
-#ifdef SUPPORT_CMU800
-	case 0x90:
-	case 0x91:
-	case 0x92:
-	case 0x93:
-	case 0x94:
-	case 0x95:
-	case 0x96:
-	case 0x97:
-	case 0x98:
-	case 0x99:
-	case 0x9A:
-	case 0x9B:
-	case 0x9C:
-		if(config.option_switch & OPTION_SWITCH_CMU800) {
-			d_cmu800->write_io8(addr, data);
-		}
-		break;
-#endif
 #ifdef SUPPORT_PC88_GSX8800
 	case 0xa0:
 	case 0xa1:
@@ -1867,13 +1848,6 @@ uint32_t PC88::read_io8_debug(uint32_t addr)
 	case 0x9d:
 		if(config.boot_mode == MODE_PC88_V2CD && cdbios_loaded) {
 			return 60;
-		}
-		break;
-#endif
-#ifdef SUPPORT_CMU800
-	case 0x9A:
-		if(config.option_switch & OPTION_SWITCH_CMU800) {
-			return d_cmu800->read_io8(addr);
 		}
 		break;
 #endif

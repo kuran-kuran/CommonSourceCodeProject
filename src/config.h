@@ -219,10 +219,6 @@ typedef struct {
 	#if defined(USE_SHARED_DLL) || defined(USE_PRINTER)
 		_TCHAR printer_dll_path[_MAX_PATH];
 	#endif
-
-	#if defined(USE_SDCARD)
-		_TCHAR sdcard_path[_MAX_PATH];
-	#endif
 	
 	// misc
 	#if defined(USE_SHARED_DLL) || defined(USE_GENERAL_PARAM)

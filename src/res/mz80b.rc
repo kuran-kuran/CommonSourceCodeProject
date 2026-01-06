@@ -212,7 +212,6 @@ BEGIN
             MENUITEM "PIO-3034 (EMM: A4h-A7h)", ID_VM_OPTION_SWITCH14
             MENUITEM "PIO-3034 (EMM: A8h-ABh)", ID_VM_OPTION_SWITCH15
             MENUITEM "PIO-3034 (EMM: ACh-AFh)", ID_VM_OPTION_SWITCH16
-            MENUITEM "MZ2000_SD",               ID_VM_OPTION_SWITCH17
         END
         POPUP "Sound"
         BEGIN
@@ -245,15 +244,6 @@ BEGIN
             MENUITEM "MZ-1P17 (MZ-1)",          ID_VM_PRINTER_TYPE1
             MENUITEM "MZ-1P17 (MZ-3)",          ID_VM_PRINTER_TYPE2
             MENUITEM "None",                    ID_VM_PRINTER_TYPE3
-        END
-        POPUP "Keyboard"
-        BEGIN
-            MENUITEM "Default",                       ID_VM_KEYBOARD_TYPE0
-            MENUITEM "Tenkey[/] to [00]",             ID_VM_KEYBOARD_TYPE1
-            MENUITEM "Tenkey[1][2][3] to [0][00][.]", ID_VM_KEYBOARD_TYPE2
-            MENUITEM "Tenkey[0] to [00]",             ID_VM_KEYBOARD_TYPE3
-            MENUITEM "Cursor key to [8][2][4][6]",    ID_VM_KEYBOARD_TYPE4
-            MENUITEM "Cursor key to [5][00][1][3]",   ID_VM_KEYBOARD_TYPE5
         END
     END
     POPUP "Host"

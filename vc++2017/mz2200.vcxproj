@@ -22,30 +22,30 @@
     <ProjectGuid>{19644030-FB96-4EE0-8819-86D8D13C25A7}</ProjectGuid>
     <RootNamespace>mz2200</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -347,13 +347,11 @@
     <ClCompile Include="..\src\vm\mz2500\mz1m01.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
-    <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz80b.cpp" />
     <ClCompile Include="..\src\vm\mz2500\pio3034.cpp" />
     <ClCompile Include="..\src\vm\mz2500\printer.cpp" />
     <ClCompile Include="..\src\vm\mz2500\timer.cpp" />
     <ClCompile Include="..\src\vm\mz700\quickdisk.cpp" />
-    <ClCompile Include="..\src\vm\mz80k_sd.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
     <ClCompile Include="..\src\vm\prnfile.cpp" />
@@ -397,13 +395,11 @@
     <ClInclude Include="..\src\vm\mz2500\mz1m01.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r12.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
-    <ClInclude Include="..\src\vm\mz2500\mz2000sd.h" />
     <ClInclude Include="..\src\vm\mz2500\mz80b.h" />
     <ClInclude Include="..\src\vm\mz2500\pio3034.h" />
     <ClInclude Include="..\src\vm\mz2500\printer.h" />
     <ClInclude Include="..\src\vm\mz2500\timer.h" />
     <ClInclude Include="..\src\vm\mz700\quickdisk.h" />
-    <ClInclude Include="..\src\vm\mz80k_sd.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />
     <ClInclude Include="..\src\vm\prnfile.h" />

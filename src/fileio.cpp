@@ -1006,63 +1006,6 @@ void FILEIO::Fflush()
 		fflush(fp);
 	}
 }
-bool FILEIO::FindFirst(const _TCHAR* path)
-{
-	find_file[0] = _T('\0');
-	my_tcscpy_s(search_path, _MAX_PATH, path);
-#if defined(_WIN32)
-	search_handle = FindFirstFile(search_path, &win32fd);
-	if (search_handle == INVALID_HANDLE_VALUE) {
-		return false;
-	}
-	my_tcscpy_s(find_file, _MAX_PATH, win32fd.cFileName);
-#else
-	dir = opendir(search_path);
-	if(dir == NULL) {
-		return false;
-	}
-	dirent* dp = readdir(dir);
-	if(dp == null)
-	{
-		return false;
-	}
-	my_tcscpy_s(find_file, _MAX_PATH, dp->d_name);
-#endif
-	return true;
-}
-
-bool FILEIO::FindNext()
-{
-#if defined(_WIN32)
-	if(FindNextFile(search_handle, &win32fd) == 0)
-	{
-		return false;
-	}
-	my_tcscpy_s(find_file, _MAX_PATH, win32fd.cFileName);
-#else
-	dirent* dp = readdir(dir);
-	if(dp == null)
-	{
-		return false;
-	}
-	my_tcscpy_s(find_file, _MAX_PATH, dp->d_name);
-#endif
-	return true;
-}
-
-bool FILEIO::FindRrewind()
-{
-	return FindFirst(search_path);
-}
-
-void FILEIO::FindClose()
-{
-#if defined(_WIN32)
-	::FindClose(search_handle);
-#else
-	closedir(dir);
-#endif
-}
 
 bool FILEIO::StateCheckUint32(uint32_t val)
 {

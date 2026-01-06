@@ -159,7 +159,6 @@ protected:
 	
 	// CMU-800
 	CMU800* cmu800;
-	bool ctrl;
 	// MZ-1E26
 	MZ1E26* mz1e26;
 	// MZ-1E30
@@ -252,10 +251,7 @@ public:
 	void push_apss_forward(int drv) {}
 	void push_apss_rewind(int drv) {}
 	bool is_frame_skippable();
-
-	void key_down(int code, bool repeat);
-	void key_up(int code);
-
+	
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
 	

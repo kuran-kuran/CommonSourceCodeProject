@@ -22,7 +22,6 @@ private:
 	uint8_t *data_buffer;
 	uint32_t data_addr;
 	bool modified;
-	bool read_only;
 	
 public:
 	CMOS(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
