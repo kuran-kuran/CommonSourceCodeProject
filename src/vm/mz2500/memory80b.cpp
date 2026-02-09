@@ -150,13 +150,7 @@ void MEMORY::write_data8(uint32_t addr, uint32_t data)
 	if(!hblank && is_vram[addr >> 11]) {
 		d_cpu->write_signal(SIG_CPU_WAIT, 1, 1);
 	}
-	uint32_t bank =  addr >> 11;
-	// Fix for the missing text issue in uBUMPER CARS by Silver Ball Softwarev
-	// When a write occurs to unmapped memory, the data is copied to the text VRAM.
-	if(bank == 27 && vram_sel == 0xC0) {
-		wbank[26][addr & 0x7ff] = data;
-	}
-	wbank[bank][addr & 0x7ff] = data;
+	wbank[addr >> 11][addr & 0x7ff] = data;
 }
 
 uint32_t MEMORY::read_data8(uint32_t addr)
@@ -297,7 +291,8 @@ void MEMORY::update_vram_map()
 			SET_BANK(0xc000, 0xffff, ram + 0xc000, ram + 0xc000, false);
 		}
 		if(vram_sel == 0xc0) {
-			SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
+			SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
+			SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
 		}
 	}
 #else
@@ -309,10 +304,12 @@ void MEMORY::update_vram_map()
 		SET_BANK(0xd000, 0xffff, ram + 0xd000, ram + 0xd000, false);
 	}
 	if(vram_sel == 0x80) {
-		SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
+		SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
+		SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
 		SET_BANK(0xe000, 0xffff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	} else if(vram_sel == 0xc0) {
-		SET_BANK(0x5000, 0x5fff, tvram, tvram, true);
+		SET_BANK(0x5000, 0x57ff, tvram, tvram, true);
+		SET_BANK(0x5800, 0x5fff, tvram, tvram, true);
 		SET_BANK(0x6000, 0x7fff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	}
 #endif
@@ -658,7 +655,7 @@ void MEMORY::draw_screen()
 #endif
 }
 
-#define STATE_VERSION	3
+#define STATE_VERSION	4
 
 bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 {

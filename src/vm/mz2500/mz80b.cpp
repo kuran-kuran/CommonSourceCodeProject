@@ -102,15 +102,15 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory = new MEMORY(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
-
-	MIDI *midi = NULL;
+	
+	MIDI* midi = new MIDI(this, emu);
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		midi = new MIDI(this, emu);
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(midi);
+	} else {
+		cmu800 = NULL;
 	}
 	ctrl = false;
-
 	if(config.option_switch & OPTION_SWITCH_MZ1E05) {
 		fdc = new MB8877(this, emu);
 		fdc->set_context_noise_seek(new NOISE(this, emu));
@@ -367,7 +367,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	io->set_iowait_range_rw(0xd8, 0xdf, 1);
 	io->set_iowait_range_rw(0xe8, 0xeb, 1);
-
+	
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->initialize();
@@ -432,6 +432,9 @@ void VM::special_reset()
 		mz1m01->reset();
 	}
 #endif
+	if(cmu800) {
+		cmu800->reset();
+	}
 }
 
 void VM::run()

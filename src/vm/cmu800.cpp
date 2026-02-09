@@ -35,16 +35,6 @@ const int counterTable[] =
 #define TEMPO_MIN 10
 #define TEMPO_MAX 500
 
-void CMU800::reset()
-{
-	reset_midi();
-}
-
-void CMU800::special_reset()
-{
-	reset_midi();
-}
-
 void CMU800::initialize()
 {
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
@@ -63,12 +53,17 @@ void CMU800::initialize()
 		config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 	}
 	tempo_freq = tempo_new;
-	register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
+	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
 	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
 }
 
 void CMU800::release()
 {
+}
+
+void CMU800::reset()
+{
+	reset_midi();
 }
 
 void CMU800::update_config()
@@ -115,8 +110,7 @@ void CMU800::event_callback(int event_id, int err)
 		if(tempo_freq != tempo_new) {
 			tempo_freq = tempo_new;
 			cancel_event(this, tempo_id);
-			register_event_by_clock(this, EVENT_TEMPO, CPU_CLOCKS / (tempo_freq * 80 / 100), true, &tempo_id);
-			
+			register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
 			emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
 		}
 		regs[0x0A] ^= 0xF0;
@@ -391,7 +385,7 @@ void CMU800::adjust_tempo(int delta)
 	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
 }
 
-#define STATE_VERSION	1
+#define STATE_VERSION	2
 
 bool CMU800::process_state(FILEIO* state_fio, bool loading)
 {
@@ -410,6 +404,7 @@ bool CMU800::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(cv_key, sizeof(cv_key), 1);
 	state_fio->StateArray(note_on_flag, sizeof(note_on_flag), 1);
 	state_fio->StateArray(before_tone, sizeof(before_tone), 1);
+	state_fio->StateArray(key_on, sizeof(key_on), 1);
 	state_fio->StateValue(before_rythm);
 	state_fio->StateValue(is_reset);
 //	state_fio->StateValue(tempo_freq);

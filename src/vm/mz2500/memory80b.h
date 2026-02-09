@@ -45,7 +45,7 @@ private:
 #else
 	uint8_t vram[0xc000];	// 0x4000 * (2 pages + dummy)
 #endif
-	uint8_t tvram[0x1000];
+	uint8_t tvram[0x800];
 	uint8_t ipl[0x800];
 	
 	bool ipl_selected;

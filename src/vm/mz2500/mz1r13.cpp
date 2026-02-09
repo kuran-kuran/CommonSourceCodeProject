@@ -33,7 +33,12 @@ void MZ1R13::initialize()
 	delete fio;
 	
 	address = 0;
-	select_kanji = true;
+	select_kanji = false;
+}
+
+void MZ1R13::reset()
+{
+	select_kanji = false;
 }
 
 void MZ1R13::write_io8(uint32_t addr, uint32_t data)

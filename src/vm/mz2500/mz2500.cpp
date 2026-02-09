@@ -113,6 +113,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
+	} else {
+		cmu800 = NULL;
 	}
 	if(config.option_switch & OPTION_SWITCH_MZ1E26) {
 		mz1e26 = new MZ1E26(this, emu);
@@ -261,7 +263,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_rw(0xb4, 0xb5, memory);
 	io->set_iomap_single_w(0xb7, memory);
 	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
-		io->set_iomap_range_rw(0xb8, 0xb9, mz1r13);
+		// MZ-2000”ÅHuBASIC‚Å•ÏŠ·‘‹‚ª•\¦‚Å‚«‚È‚­‚È‚Á‚Ä‚¢‚½‚Ì‚Å0xbb‚ÉC³‚µ‚Ü‚µ‚½
+		io->set_iomap_range_rw(0xb8, 0xbb, mz1r13);
 	}
 	io->set_iomap_range_rw(0xbc, 0xbf, crtc);
 	io->set_iomap_range_w(0xc6, 0xc7, interrupt);
@@ -365,6 +368,9 @@ void VM::special_reset()
 //	}
 	memory->special_reset();
 	cpu->special_reset();
+	if(cmu800) {
+		cmu800->reset();
+	}
 }
 
 void VM::run()

@@ -70,8 +70,8 @@
 #endif
 
 #ifdef SUPPORT_CMU800
-#include "../midi.h"
 #include "../cmu800.h"
+#include "../midi.h"
 #endif
 
 #include "pc88.h"
@@ -286,14 +286,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		#endif
 	#endif
 #endif
-#ifdef SUPPORT_CMU800
-	// CMU-800
-	cmu800 = new CMU800(this, emu);
-	MIDI *midi = new MIDI(this, emu);
-	cmu800->set_context_midi(midi);
-	pc88->set_context_cmu800(cmu800);
-	ctrl = false;
-#endif
 #ifdef USE_DEBUGGER
 #ifdef SUPPORT_PC88_OPN1
 	if(pc88opn1 != NULL) {
@@ -389,6 +381,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 //		pc88diskio->set_context_event_manager(pc88event);
 	} else {
 		pc88diskio = NULL;
+	}
+#endif
+#ifdef SUPPORT_CMU800
+	if(config.option_switch & OPTION_SWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+		pc88->set_context_cmu800(cmu800);
 	}
 #endif
 	
@@ -964,41 +963,11 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 
 void VM::key_down(int code, bool repeat)
 {
-#ifdef SUPPORT_CMU800
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		if(code == 17) {
-			// left-ctrl and right-ctrl
-			ctrl = true;
-		}
-		if(ctrl == true) {
-			switch(code)
-			{
-			case 37: // L
-				cmu800->adjust_tempo(-1);
-				break;
-			case 38: // U
-				cmu800->adjust_tempo(10);
-				break;
-			case 39: // R
-				cmu800->adjust_tempo(1);
-				break;
-			case 40: // D
-				cmu800->adjust_tempo(-10);
-				break;
-			}
-		}
-	}
-#endif
 	pc88->key_down(code, repeat);
 }
 
 void VM::key_up(int code)
 {
-#ifdef SUPPORT_CMU800
-	if(code == 17) {
-		ctrl = false;
-	}
-#endif
 }
 
 bool VM::get_caps_locked()

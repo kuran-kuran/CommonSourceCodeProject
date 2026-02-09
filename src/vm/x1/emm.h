@@ -28,7 +28,7 @@
 class EMM : public DEVICE
 {
 private:
-	uint8_t data_buffer[EMM_BUFFER_SIZE];
+	uint8_t *data_buffer;
 	uint32_t data_addr;
 	bool modified;
 	

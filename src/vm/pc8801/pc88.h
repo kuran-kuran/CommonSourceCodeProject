@@ -164,7 +164,7 @@ private:
 #ifdef SUPPORT_CMU800
 	DEVICE *d_cmu800;
 #endif
-
+	
 	uint8_t* rbank[16];
 	uint8_t* wbank[16];
 	uint8_t wdmy[0x1000];
@@ -418,6 +418,9 @@ public:
 #endif
 #ifdef SUPPORT_M88_DISKDRV
 		d_diskio = NULL;
+#endif
+#ifdef SUPPORT_CMU800
+		d_cmu800 = NULL;
 #endif
 #if defined(PC8001_VARIANT)
 		set_device_name(_T("PC-8001 Core"));

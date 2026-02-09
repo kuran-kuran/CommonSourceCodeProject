@@ -1287,6 +1287,7 @@ void PC88::write_io8(uint32_t addr, uint32_t data)
 	case 0x78:
 		Port70_TEXTWND++;
 		break;
+#endif
 #ifdef SUPPORT_PC88_16BIT
 	case 0x80:
 		if(d_pio_16bit != NULL) {
@@ -1411,7 +1412,6 @@ void PC88::write_io8(uint32_t addr, uint32_t data)
 		}
 		break;
 #endif
-#endif
 #ifdef SUPPORT_CMU800
 	case 0x90:
 	case 0x91:
@@ -1423,10 +1423,10 @@ void PC88::write_io8(uint32_t addr, uint32_t data)
 	case 0x97:
 	case 0x98:
 	case 0x99:
-	case 0x9A:
-	case 0x9B:
-	case 0x9C:
-		if(config.option_switch & OPTION_SWITCH_CMU800) {
+	case 0x9a:
+	case 0x9b:
+	case 0x9c:
+		if(d_cmu800) {
 			d_cmu800->write_io8(addr, data);
 		}
 		break;
@@ -1871,8 +1871,8 @@ uint32_t PC88::read_io8_debug(uint32_t addr)
 		break;
 #endif
 #ifdef SUPPORT_CMU800
-	case 0x9A:
-		if(config.option_switch & OPTION_SWITCH_CMU800) {
+	case 0x9a:
+		if(d_cmu800) {
 			return d_cmu800->read_io8(addr);
 		}
 		break;
