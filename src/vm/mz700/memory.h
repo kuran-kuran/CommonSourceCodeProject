@@ -41,7 +41,7 @@ private:
 #if defined(_MZ800)
 	uint8_t ext[0x2000];	// MZ-800 IPL 8KB
 #else
-	uint8_t ext[0x1800];	// MZ-700/1500 EXT 6KB
+	uint8_t ext[0x2000];	// MZ-700/1500 EXT 8KB
 #endif
 	uint8_t font[0x1000];	// CGROM 4KB
 #if defined(_MZ700)
@@ -140,6 +140,9 @@ public:
 	void write_io8(uint32_t addr, uint32_t data);
 #if defined(_MZ800)
 	uint32_t read_io8(uint32_t addr);
+#endif
+#ifdef USE_DEBUGGER
+	uint32_t read_debug_data8(uint32_t addr);
 #endif
 	bool process_state(FILEIO* state_fio, bool loading);
 	

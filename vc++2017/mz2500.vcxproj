@@ -351,6 +351,7 @@
     <ClCompile Include="..\src\vm\mz2500\mouse.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e26.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e30.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\mz1e32.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r37.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz2500.cpp" />
@@ -414,6 +415,7 @@
     <ClInclude Include="..\src\vm\mz2500\mouse.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e26.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e30.h" />
+    <ClInclude Include="..\src\vm\mz2500\mz1e32.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r37.h" />
     <ClInclude Include="..\src\vm\mz2500\mz2500.h" />

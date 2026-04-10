@@ -278,10 +278,28 @@ int I386::run_one_opecode()
 		CPU_REMCLOCK = CPU_BASECLOCK = 1;
 		CPU_EXEC();
 		if(nmi_pending) {
-			CPU_INTERRUPT(2, 0);
+			try {
+				CPU_INTERRUPT(2, 0);
+			} catch (int e) {
+				switch(e) {
+				case 0:  break;
+				case 1:  break; // ia32: return from exception
+				case 2:  break; // ia32: return from panic
+				default: break; // ia32: return from unknown caus
+				}
+			}
 			nmi_pending = false;
 		} else if(irq_pending && CPU_isEI) {
-			CPU_INTERRUPT(device_pic->get_intr_ack(), 0);
+			try {
+				CPU_INTERRUPT(device_pic->get_intr_ack() & 0xff, 0);
+			} catch (int e) {
+				switch(e) {
+				case 0:  break;
+				case 1:  break; // ia32: return from exception
+				case 2:  break; // ia32: return from panic
+				default: break; // ia32: return from unknown caus
+				}
+			}
 			irq_pending = false;
 			device_pic->update_intr();
 		}
@@ -299,10 +317,28 @@ int I386::run_one_opecode()
 		CPU_REMCLOCK = CPU_BASECLOCK = 1;
 		CPU_EXEC();
 		if(nmi_pending) {
-			CPU_INTERRUPT(2, 0);
+			try {
+				CPU_INTERRUPT(2, 0);
+			} catch (int e) {
+				switch(e) {
+				case 0:  break;
+				case 1:  break; // ia32: return from exception
+				case 2:  break; // ia32: return from panic
+				default: break; // ia32: return from unknown caus
+				}
+			}
 			nmi_pending = false;
 		} else if(irq_pending && CPU_isEI) {
-			CPU_INTERRUPT(device_pic->get_intr_ack(), 0);
+			try {
+				CPU_INTERRUPT(device_pic->get_intr_ack() & 0xff, 0);
+			} catch (int e) {
+				switch(e) {
+				case 0:  break;
+				case 1:  break; // ia32: return from exception
+				case 2:  break; // ia32: return from panic
+				default: break; // ia32: return from unknown caus
+				}
+			}
 			irq_pending = false;
 			device_pic->update_intr();
 		}

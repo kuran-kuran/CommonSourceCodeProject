@@ -24,7 +24,7 @@ void PRINTER::initialize()
 {
 	fio = new FILEIO();
 	emu->get_osd()->open_console(82, 30, create_string(_T("Printer - %s"), _T(DEVICE_NAME)));
-	emu->get_osd()->set_console_code_oage(437);
+	emu->get_osd()->set_console_code_page(437);
 	emu->get_osd()->set_console_cursor_position(0, 8);
 	
 	register_vline_event(this);
@@ -151,8 +151,14 @@ void PRINTER::event_vline(int v, int clock)
 			func = b;
 		} else if(b == 0x0d) {
 			output_char(0x0d);
-			output_char(0x0a);
 			column = 0;
+		} else if(b == 0x12) {
+			output_char(0x0a);
+		} else if(b == 0x85) {
+			// not equal to
+			output_char(0x3c);
+			output_char(0x3e);
+			column++;
 		} else if(b >= 0x20 && b <= 0x9f) {
 			output_char(b);
 			column++;

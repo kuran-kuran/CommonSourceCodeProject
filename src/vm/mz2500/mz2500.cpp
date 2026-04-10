@@ -48,6 +48,7 @@
 #include "mouse.h"
 #include "mz1e26.h"
 #include "mz1e30.h"
+#include "mz1e32.h"
 #include "mz1r13.h"
 #include "mz1r37.h"
 #include "printer.h"
@@ -110,6 +111,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	mouse = new MOUSE(this, emu);
 	mz1e26 = new MZ1E26(this, emu);
 	mz1e30 = new MZ1E30(this, emu);
+	mz1e32 = new MZ1E32(this, emu);
 	mz1r13 = new MZ1R13(this, emu);
 	mz1r37 = new MZ1R37(this, emu);
 	printer = new PRINTER(this, emu);
@@ -202,6 +204,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	// i/o bus
 	io->set_iomap_range_rw(0x60, 0x63, w3100a);
+	io->set_iomap_range_rw(0x9a, 0x9b, mz1e32);
 	io->set_iomap_range_rw(0xa0, 0xa3, serial);
 	io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
 	io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);

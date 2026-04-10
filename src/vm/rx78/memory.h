@@ -19,7 +19,7 @@ class MEMORY : public DEVICE
 private:
 	// memory
 	uint8_t ipl[0x2000];
-	uint8_t cart[0x4000];
+	uint8_t cart[0x8000];
 	uint8_t ram[0x4000];
 	uint8_t ext[0x5000];
 	uint8_t vram[0x2000 * 6];
@@ -32,6 +32,9 @@ private:
 	
 	int rpage, wpage;
 	bool inserted;
+	int cart_size;
+	
+	void update_bank();
 	
 public:
 	MEMORY(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)

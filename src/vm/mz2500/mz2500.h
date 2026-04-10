@@ -95,6 +95,7 @@ class MZ1E26;
 class MZ1E30;
 class MZ1R13;
 class MZ1R37;
+class MZ1E32;
 class PRINTER;
 class SERIAL;
 class TIMER;
@@ -135,6 +136,7 @@ protected:
 	MZ1E30* mz1e30;
 	MZ1R13* mz1r13;
 	MZ1R37* mz1r37;
+	MZ1E32* mz1e32;
 	PRINTER* printer;
 	SERIAL* serial;
 	TIMER* timer;

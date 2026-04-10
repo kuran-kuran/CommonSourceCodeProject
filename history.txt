@@ -1,3 +1,21 @@
+11/23/2025
+
+[VM/I386_NP21] don't break executing rep movs/stos instructions (thanks Mr. sava)
+[VM/I386_NP21] improve sgdt/sidt instructions to store whole of base address
+[VM/I386_NP21] fix to catch exception occurred while executing interrupt
+[VM/I8253] improve timing when writing to counter is reflected (thanks Mr.Koucha-Youkan)
+[VM/MC6844] support irq line
+
+[BX1] improve irq line connections
+[BX1/PRINTER] support paper feed key
+[BX1/PRINTER] improve for htab/feed and drawing symbols
+[MZ700/MEMORY] improve mapping of ext rom (thanks Mr.Koucha-Youkan)
+[MZ2500/CRTC] improve horizontal scroll (thanks Mr.Koucha-Youkan)
+[MZ2500/ME1E32] support MZ-1E32 (thanks Mr.Koucha-Youkan)
+[RX78/MEMORY] support 32KB ROM cartridge
+[RX78/VDP] improve color palette (thanks Mr.Koucha-Youkan)
+
+
 11/09/2025
 
 [VM/I386] don't set cpl until all reads are finished (thanks Mr. cracyc)

@@ -542,7 +542,7 @@ public:
 	void open_console(int width, int height, const _TCHAR* title);
 	void close_console();
 	unsigned int get_console_code_page();
-	void set_console_code_oage(unsigned int cp);
+	void set_console_code_page(unsigned int cp);
 	void get_console_cursor_position(int *x, int *y);
 	void set_console_cursor_position(int x, int y);
 	void set_console_text_attribute(unsigned short attr);

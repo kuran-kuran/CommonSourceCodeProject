@@ -99,7 +99,7 @@ unsigned int OSD::get_console_code_page()
 	return GetConsoleCP();
 }
 
-void OSD::set_console_code_oage(unsigned int cp)
+void OSD::set_console_code_page(unsigned int cp)
 {
 	SetConsoleOutputCP(cp);
 }

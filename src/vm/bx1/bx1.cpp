@@ -64,12 +64,15 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(fdc->get_context_noise_head_up());
 	
 	fdc->set_context_drq(dma, SIG_MC6844_TX_RQ_0, 1);
+	fdc->set_context_irq(cpu, SIG_CPU_IRQ, 1);
 	dma->set_context_memory(memory);
 	dma->set_context_ch0(fdc);
 	dma->set_context_ch1(display);
+	dma->set_context_irq(cpu, SIG_CPU_IRQ, 1);
 	
 	display->set_context_dma(dma);
 	floppy->set_context_fdc(fdc);
+	keyboard->set_context_cpu(cpu);
 	printer->set_context_ram(ram);
 	
 	// cpu bus
@@ -85,7 +88,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	debugger->add_symbol(0xe121, _T("KEY_DOWN"));
 	debugger->add_symbol(0xe122, _T("KEY_UP"));
-	debugger->add_symbol(0xe128, _T("KEY_CLEAR"));
 	debugger->add_symbol(0xe140, _T("DMA[0].ADDR_HI"));
 	debugger->add_symbol(0xe141, _T("DMA[0].ADDR_LO"));
 	debugger->add_symbol(0xe142, _T("DMA[0].COUNT_HI"));
@@ -199,7 +201,7 @@ void VM::reset()
 void VM::run()
 {
 	event->drive();
-	cpu->write_signal(SIG_CPU_IRQ, 1, 1);
+//	cpu->write_signal(SIG_CPU_IRQ, 1, 1);
 }
 
 // ----------------------------------------------------------------------------
@@ -271,6 +273,7 @@ void VM::key_down(int code, bool repeat)
 			config.dipswitch ^= 1;
 		} else {
 			keyboard->key_down(code);
+			printer->key_down(code);
 		}
 	}
 }

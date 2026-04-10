@@ -197,7 +197,7 @@ void CMT::write_signal(int id, uint32_t data, uint32_t mask)
 		if(!(pc & 0x02) && (data & 0x02)) {
 			vm->special_reset();
 		}
-#if defined(_MZ2500)
+#if 0 //defined(_MZ2500)
 		if(!(pc & 0x08) && (data & 0x08)) {
 			vm->reset();
 		}

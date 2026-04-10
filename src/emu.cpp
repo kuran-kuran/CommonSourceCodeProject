@@ -1915,7 +1915,7 @@ void EMU::out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static int size = 0;
+		static size_t size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
@@ -1942,7 +1942,7 @@ void EMU::force_out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static int size = 0;
+		static size_t size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
