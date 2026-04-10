@@ -1135,17 +1135,18 @@ void DB2_FPU_FXSAVERSTOR(void){
 	UINT32 maddr;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	
-	fpu_check_NM_EXCEPTION2(); // XXX: ª‹’–³‚µ
 	switch(idx){
 	case 0: // FXSAVE
+		fpu_check_NM_EXCEPTION2(); // XXX: ª‹’–³‚µ
 		maddr = calc_ea_dst(op);
 		FPU_FXSAVE(maddr);
 		break;
 	case 1: // FXRSTOR
+		fpu_check_NM_EXCEPTION2(); // XXX: ª‹’–³‚µ
 		maddr = calc_ea_dst(op);
 		FPU_FXRSTOR(maddr);
 		break;
@@ -1394,7 +1395,7 @@ DB2_ESC0(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU d8 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1453,7 +1454,7 @@ DB2_ESC1(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU d9 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1717,7 +1718,7 @@ DB2_ESC2(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU da %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1775,7 +1776,7 @@ DB2_ESC3(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU db %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1896,7 +1897,7 @@ DB2_ESC4(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU dc %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1957,7 +1958,7 @@ DB2_ESC5(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU dd %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -2064,7 +2065,7 @@ DB2_ESC6(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU de %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -2136,7 +2137,7 @@ DB2_ESC7(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_PCBYTE(op);
+	GET_MODRM_PCBYTE(op);
 	TRACEOUT(("use FPU df %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);

@@ -37,10 +37,11 @@ static void i286_task_switch(i386_state* cpustate, UINT16 selector, UINT8 nested
 static void i386_task_switch(i386_state* cpustate, UINT16 selector, UINT8 nested);
 static void build_opcode_table(i386_state *cpustate, UINT32 features);
 static void zero_state(i386_state *cpustate);
-static void pentium_smi(i386_state* cpustate);
+static void enter_smm(i386_state* cpustate);
+static void leave_smm(i386_state* cpustate);
 
-#define FAULT(fault,error) {cpustate->ext = 1; i386_trap_with_error(cpustate,fault,0,0,error); return;}
-#define FAULT_EXP(fault,error) {cpustate->ext = 1; i386_trap_with_error(cpustate,fault,0,trap_level+1,error); return;}
+#define FAULT(fault,error)  {cpustate->ext = 1; i386_trap_with_error(cpustate,fault,0,0,error); return;}
+#define FAULT_EXP(fault,error) {cpustate->ext = 1; FAULT_THROW(fault, (error)); return;}
 
 /*************************************************************************/
 
@@ -134,7 +135,7 @@ static void i386_set_descriptor_accessed(i386_state *cpustate, UINT16 selector)
 		base = cpustate->gdtr.base;
 
 	addr = base + (selector & ~7) + 5;
-	i386_translate_address(cpustate, TRANSLATE_READ, &addr, NULL);
+	i386_translate_address(cpustate, TR_READ, false, &addr, NULL);
 	rights = cpustate->program->read_data8(addr);
 	// Should a fault be thrown if the table is read only?
 	cpustate->program->write_data8(addr, rights | 1);
@@ -147,8 +148,8 @@ static void i386_load_segment_descriptor(i386_state *cpustate, int segment )
 		UINT16 old_flags = cpustate->sreg[segment].flags;
 		if (!V8086_MODE)
 		{
-			i386_load_protected_mode_segment(cpustate, &cpustate->sreg[segment], NULL );
-			if(cpustate->sreg[segment].selector)
+			i386_load_protected_mode_segment(cpustate, &cpustate->sreg[segment], NULL);
+			if (cpustate->sreg[segment].selector)
 			{
 				i386_set_descriptor_accessed(cpustate, cpustate->sreg[segment].selector);
 				cpustate->sreg[segment].flags |= 0x0001;
@@ -172,11 +173,11 @@ static void i386_load_segment_descriptor(i386_state *cpustate, int segment )
 		cpustate->sreg[segment].d = 0;
 		cpustate->sreg[segment].valid = true;
 
-		if( segment == CS )
+		if (segment == CS)
 		{
-			if( !cpustate->performed_intersegment_jump )
+			if (!cpustate->performed_intersegment_jump)
 				cpustate->sreg[segment].base |= 0xfff00000;
-			if(cpustate->cpu_version < 0x5000)
+			if (cpustate->cpu_version < 0x500)
 				cpustate->sreg[segment].flags = 0x93;
 		}
 	}
@@ -238,7 +239,7 @@ static UINT32 get_flags(i386_state *cpustate)
 
 static void set_flags(i386_state *cpustate, UINT32 f )
 {
-	f &= cpustate->eflags_mask;;
+	f &= cpustate->eflags_mask;
 	cpustate->CF = (f & 0x1) ? 1 : 0;
 	cpustate->PF = (f & 0x4) ? 1 : 0;
 	cpustate->AF = (f & 0x10) ? 1 : 0;
@@ -260,7 +261,9 @@ static void set_flags(i386_state *cpustate, UINT32 f )
 	cpustate->eflags = f;
 }
 
-static void sib_byte(i386_state *cpustate,UINT8 mod, UINT32* out_ea, UINT8* out_segment)
+/***********************************************************************************/
+
+static void sib_byte(i386_state *cpustate, UINT8 mod, UINT32* out_ea, UINT8* out_segment)
 {
 	UINT32 ea = 0;
 	UINT8 segment = 0;
@@ -307,7 +310,7 @@ static void sib_byte(i386_state *cpustate,UINT8 mod, UINT32* out_ea, UINT8* out_
 	*out_segment = segment;
 }
 
-static void modrm_to_EA(i386_state *cpustate,UINT8 mod_rm, UINT32* out_ea, UINT8* out_segment)
+static void modrm_to_EA(i386_state *cpustate, UINT8 mod_rm, UINT32* out_ea, UINT8* out_segment)
 {
 	INT8 disp8;
 	INT16 disp16;
@@ -398,7 +401,7 @@ static UINT32 GetNonTranslatedEA(i386_state *cpustate,UINT8 modrm,UINT8 *seg)
 	return ea;
 }
 
-static UINT32 GetEA(i386_state *cpustate,UINT8 modrm, int rwn, UINT32 size)
+static UINT32 GetEA(i386_state *cpustate,UINT8 modrm, int rwn, int size)
 {
 	UINT8 segment;
 	UINT32 ea;
@@ -454,7 +457,7 @@ static void i386_check_sreg_validity(i386_state* cpustate, int reg)
 	}
 }
 
-static int i386_limit_check(i386_state *cpustate, int seg, UINT32 offset, UINT32 size)
+static int i386_limit_check(i386_state *cpustate, int seg, UINT32 offset, int size)
 {
 	if(PROTECTED_MODE && !V8086_MODE)
 	{
@@ -609,7 +612,7 @@ static void i386_sreg_load(i386_state *cpustate, UINT16 selector, UINT8 reg, boo
 	if(fault) *fault = false;
 }
 
-static void i386_trap(i386_state *cpustate,int irq, int irq_gate, int trap_level)
+static void i386_trap(i386_state *cpustate, int irq, int irq_gate)
 {
 	/*  I386 Interrupts/Traps/Faults:
 	 *
@@ -637,6 +640,8 @@ static void i386_trap(i386_state *cpustate,int irq, int irq_gate, int trap_level
 	int entry = irq * (PROTECTED_MODE ? 8 : 4);
 	int SetRPL = 0;
 	cpustate->lock = false;
+
+	cpustate->cycles -= 4; // TODO: subtract correct number of cycles
 
 	if( !(PROTECTED_MODE) )
 	{
@@ -668,19 +673,6 @@ static void i386_trap(i386_state *cpustate,int irq, int irq_gate, int trap_level
 		segment = (v1 >> 16) & 0xffff;
 		type = (v2>>8) & 0x1F;
 		flags = (v2>>8) & 0xf0ff;
-
-		if(trap_level == 2)
-		{
-			logerror("IRQ: Double fault.\n");
-			FAULT_EXP(FAULT_DF,0);
-		}
-		if(trap_level >= 3)
-		{
-			logerror("IRQ: Triple fault. CPU reset.\n");
-			CPU_RESET_CALL(CPU_MODEL);
-			cpustate->shutdown = 1;
-			return;
-		}
 
 		/* segment privilege checks */
 		if(entry >= cpustate->idtr.limit)
@@ -981,7 +973,7 @@ static void i386_trap(i386_state *cpustate,int irq, int irq_gate, int trap_level
 			}
 			else
 			{
-				PUSH32(cpustate, oldflags & 0x00ffffff );
+				PUSH32(cpustate, (oldflags & 0x00ffffff) | (1 << 16) ); //386 faults always have the RF bit set in the saved flags register.
 				PUSH32SEG(cpustate, cpustate->sreg[CS].selector );
 				if(irq == 3 || irq == 4 || irq == 9 || irq_gate == 1)
 					PUSH32(cpustate, cpustate->eip );
@@ -1010,32 +1002,54 @@ static void i386_trap(i386_state *cpustate,int irq, int irq_gate, int trap_level
 
 }
 
-static void i386_trap_with_error(i386_state *cpustate,int irq, int irq_gate, int trap_level, UINT32 error)
+static void i386_trap_with_error(i386_state *cpustate, int irq, int irq_gate, int trap_level, UINT32 error)
 {
-	i386_trap(cpustate,irq,irq_gate,trap_level);
-	if(irq == 8 || irq == 10 || irq == 11 || irq == 12 || irq == 13 || irq == 14)
+	try
 	{
-		// for these exceptions, an error code is pushed onto the stack by the processor.
-		// no error code is pushed for software interrupts, either.
-		if(PROTECTED_MODE)
+		i386_trap(cpustate,irq,irq_gate);
+		if(irq == 8 || irq == 10 || irq == 11 || irq == 12 || irq == 13 || irq == 14)
 		{
-			UINT32 entry = irq * 8;
-			UINT32 v2,type;
-			v2 = READ32PL0(cpustate, cpustate->idtr.base + entry + 4 );
-			type = (v2>>8) & 0x1F;
-			if(type == 5)
+			// for these exceptions, an error code is pushed onto the stack by the processor.
+			// no error code is pushed for software interrupts, either.
+			if(PROTECTED_MODE)
 			{
-				v2 = READ32PL0(cpustate, cpustate->idtr.base + entry);
-				v2 = READ32PL0(cpustate, cpustate->gdtr.base + ((v2 >> 16) & 0xfff8) + 4);
+				UINT32 entry = irq * 8;
+				UINT32 v2,type;
+				v2 = READ32PL0(cpustate, cpustate->idtr.base + entry + 4 );
 				type = (v2>>8) & 0x1F;
+				if(type == 5)
+				{
+					v2 = READ32PL0(cpustate, cpustate->idtr.base + entry);
+					v2 = READ32PL0(cpustate, cpustate->gdtr.base + ((v2 >> 16) & 0xfff8) + 4);
+					type = (v2>>8) & 0x1F;
+				}
+				if(type >= 9)
+					PUSH32(cpustate,error);
+				else
+					PUSH16(cpustate,error);
 			}
-			if(type >= 9)
-				PUSH32(cpustate,error);
 			else
 				PUSH16(cpustate,error);
 		}
-		else
-			PUSH16(cpustate,error);
+	}
+	catch(UINT64 e)
+	{
+		trap_level++;
+		if(trap_level == 1)
+		{
+			cpustate->ext = 1;
+			logerror("IRQ: Double fault.\n");
+			i386_trap_with_error(cpustate,FAULT_DF,0,trap_level,0);
+			return;
+		}
+		if(trap_level >= 2)
+		{
+			logerror("IRQ: Triple fault. CPU reset.\n");
+//			pulse_input_line(INPUT_LINE_RESET, attotime::zero);
+			CPU_RESET_CALL(CPU_MODEL);
+			cpustate->shutdown = 1;
+			return;
+		}
 	}
 }
 
@@ -1093,7 +1107,7 @@ static void i286_task_switch(i386_state *cpustate, UINT16 selector, UINT8 nested
 	cpustate->task.flags = seg.flags;
 
 	/* Set TS bit in CR0 */
-	cpustate->cr[0] |= 0x08;
+	cpustate->cr[0] |= CR0_TS;
 
 	/* Load incoming task state from the new task's TSS */
 	tss = cpustate->task.base;
@@ -1144,6 +1158,8 @@ static void i286_task_switch(i386_state *cpustate, UINT16 selector, UINT8 nested
 	CHANGE_PC(cpustate,cpustate->eip);
 
 	cpustate->CPL = (cpustate->sreg[SS].flags >> 5) & 3;
+
+	cpustate->auto_clear_RF = false;
 //  printf("286 Task Switch from selector %04x to %04x\n",old_task,selector);
 }
 
@@ -1204,7 +1220,7 @@ static void i386_task_switch(i386_state *cpustate, UINT16 selector, UINT8 nested
 	cpustate->task.flags = seg.flags;
 
 	/* Set TS bit in CR0 */
-	cpustate->cr[0] |= 0x08;
+	cpustate->cr[0] |= CR0_TS;
 
 	/* Load incoming task state from the new task's TSS */
 	tss = cpustate->task.base;
@@ -1262,6 +1278,13 @@ static void i386_task_switch(i386_state *cpustate, UINT16 selector, UINT8 nested
 	CHANGE_PC(cpustate,cpustate->eip);
 
 	cpustate->CPL = (cpustate->sreg[SS].flags >> 5) & 3;
+
+	int t_bit = READ32(cpustate,tss+0x64) & 1;
+	if(t_bit) cpustate->dr[6] |= (1 << 15); //If the T bit of the new TSS is set, set the BT bit of DR6.
+
+	cpustate->dr[7] &= ~(0x155); //Clear all of the local enable bits from DR7.
+
+	cpustate->auto_clear_RF = false;
 //  printf("386 Task Switch from selector %04x to %04x\n",old_task,selector);
 }
 
@@ -1269,7 +1292,7 @@ static void i386_check_irq_line(i386_state *cpustate)
 {
 	if(!cpustate->smm && cpustate->smi)
 	{
-		pentium_smi(cpustate);
+		enter_smm(cpustate);
 		return;
 	}
 
@@ -1277,7 +1300,7 @@ static void i386_check_irq_line(i386_state *cpustate)
 	if ( (cpustate->irq_state) && cpustate->IF )
 	{
 		cpustate->cycles -= 2;
-		i386_trap(cpustate, cpustate->pic->get_intr_ack(), 1, 0);
+		i386_trap(cpustate, cpustate->pic->get_intr_ack(), 1);
 		cpustate->irq_state = 0;
 	}
 }
@@ -2118,7 +2141,7 @@ static void i386_protected_mode_retf(i386_state* cpustate, UINT8 count, UINT8 op
 		if(STACK_32BIT)
 			REG32(ESP) += (operand32 ? 8 : 4) + count;
 		else
-			REG16(SP) += (operand32 ? 8 : 4) + count;
+			REG16(SP) +=  (operand32 ? 8 : 4) + count;
 	}
 	else if(RPL > CPL)
 	{
@@ -2375,7 +2398,7 @@ static void i386_protected_mode_iret(i386_state* cpustate, int operand32)
 			newESP = READ32(cpustate, ea+12);
 			newSS = READ32(cpustate, ea+16) & 0xffff;
 			/* Return to v86 mode */
-			//logerror("IRET (%08x): Returning to Virtual 8086 mode.\n",cpustate->pc);
+			logerror("IRET (%08x): Returning to Virtual 8086 mode.\n",cpustate->pc);
 			if(CPL != 0)
 			{
 				UINT32 oldflags = get_flags(cpustate);
@@ -2725,7 +2748,7 @@ static UINT8 cycle_table_pm[X86_NUM_CPUS][CYCLES_NUM_OPCODES];
 
 #define CYCLES_NUM(x)   (cpustate->cycles -= (x))
 
-INLINE void CYCLES(i386_state *cpustate,int x)
+INLINE void CYCLES(i386_state *cpustate, int x)
 {
 	if (PROTECTED_MODE)
 	{
@@ -2737,7 +2760,7 @@ INLINE void CYCLES(i386_state *cpustate,int x)
 	}
 }
 
-INLINE void CYCLES_RM(i386_state *cpustate,int modrm, int r, int m)
+INLINE void CYCLES_RM(i386_state *cpustate, int modrm, int r, int m)
 {
 	if (modrm >= 0xc0)
 	{
@@ -2785,10 +2808,13 @@ static void report_invalid_opcode(i386_state *cpustate)
 #ifndef DEBUG_MISSING_OPCODE
 	logerror("i386: Invalid opcode %02X at %08X %s\n", cpustate->opcode, cpustate->pc - 1, cpustate->lock ? "with lock" : "");
 #else
-	logerror("i386: Invalid opcode");
+	logerror("Invalid opcode");
 	for (int a = 0; a < cpustate->opcode_bytes_length; a++)
 		logerror(" %02X", cpustate->opcode_bytes[a]);
-	logerror(" at %08X\n", cpustate->opcode_pc);
+	logerror(" at %08X %s\n", cpustate->opcode_pc, cpustate->lock ? "with lock" : "");
+	logerror("Backtrace:\n");
+	for (UINT32 i = 1; i < 16; i++)
+		logerror("  %08X\n", cpustate->opcode_addrs[(cpustate->opcode_addrs_index - i) & 15]);
 #endif
 }
 
@@ -2797,12 +2823,15 @@ static void report_invalid_modrm(i386_state *cpustate, const char* opcode, UINT8
 #ifndef DEBUG_MISSING_OPCODE
 	logerror("i386: Invalid %s modrm %01X at %08X\n", opcode, modrm, cpustate->pc - 2);
 #else
-	logerror("i386: Invalid %s modrm %01X", opcode, modrm);
+	logerror("Invalid %s modrm %01X", opcode, modrm);
 	for (int a = 0; a < cpustate->opcode_bytes_length; a++)
 		logerror(" %02X", cpustate->opcode_bytes[a]);
-	logerror(" at %08X\n", cpustate->opcode_pc);
+	logerror(" at %08X %s\n", cpustate->opcode_pc, cpustate->lock ? "with lock" : "");
+	logerror("Backtrace:\n");
+	for (UINT32 i = 1; i < 16; i++)
+		logerror("  %08X\n", cpustate->opcode_addrs[(cpustate->opcode_addrs_index - i) & 15]);
 #endif
-	i386_trap(cpustate, 6, 0, 0);
+	i386_trap(cpustate, 6, 0);
 }
 
 /* Forward declarations */
@@ -2826,8 +2855,8 @@ static void I386OP(decode_four_byte38f3)(i386_state *cpustate);
 #include "i386op16.c"
 #include "i386op32.c"
 #include "i486ops.c"
-#include "pentops.c"
 #include "x87ops.c"
+#include "pentops.c"
 #include "i386ops.h"
 
 static void I386OP(decode_first_opcode)(i386_state *cpustate, UINT32 address)
@@ -3022,6 +3051,7 @@ static i386_state *i386_common_init(int tlbsize)
 
 	cpustate->vtlb = vtlb_alloc(cpustate, AS_PROGRAM, 0, tlbsize);
 	cpustate->smi = false;
+//	cpustate->debugger_temp = 0;
 	cpustate->lock = false;
 
 //	i386_interface *intf = (i386_interface *) device->static_config();
@@ -3032,6 +3062,8 @@ static i386_state *i386_common_init(int tlbsize)
 //		memset(&cpustate->smiact, 0, sizeof(cpustate->smiact));
 
 	zero_state(cpustate);
+
+//	cpustate->ferr_handler(cpustate, 0);
 
 	return cpustate;
 }
@@ -3219,7 +3251,10 @@ static void zero_state(i386_state *cpustate)
 	memset( cpustate->opcode_bytes, 0, sizeof(cpustate->opcode_bytes) );
 	cpustate->opcode_pc = 0;
 	cpustate->opcode_bytes_length = 0;
+	memset(cpustate->opcode_addrs, 0, sizeof(cpustate->opcode_addrs));
+	cpustate->opcode_addrs_index = 0;
 #endif
+//	cpustate->dri_changed_active = false;
 }
 
 static CPU_RESET( i386 )
@@ -3262,85 +3297,84 @@ static CPU_RESET( i386 )
 
 	cpustate->CPL = 0;
 
-	CHANGE_PC(cpustate,cpustate->eip);
+	cpustate->auto_clear_RF = true;
+
+	CHANGE_PC(cpustate, cpustate->eip);
 }
 
-static void pentium_smi(i386_state *cpustate)
+static void enter_smm(i386_state *cpustate)
 {
 	UINT32 smram_state = cpustate->smbase + 0xfe00;
 	UINT32 old_cr0 = cpustate->cr[0];
 	UINT32 old_flags = get_flags(cpustate);
 
-	if(cpustate->smm)
-		return;
-
 	cpustate->cr[0] &= ~(0x8000000d);
 	set_flags(cpustate, 2);
-//	if(!cpustate->smiact.isnull())
-//		cpustate->smiact(true);
+//	cpustate->smiact(true);
 	cpustate->smm = true;
 	cpustate->smi_latched = false;
 
 	// save state
-	WRITE32(cpustate, cpustate->cr[4], smram_state+SMRAM_IP5_CR4);
-	WRITE32(cpustate, cpustate->sreg[ES].limit, smram_state+SMRAM_IP5_ESLIM);
-	WRITE32(cpustate, cpustate->sreg[ES].base, smram_state+SMRAM_IP5_ESBASE);
-	WRITE32(cpustate, cpustate->sreg[ES].flags, smram_state+SMRAM_IP5_ESACC);
-	WRITE32(cpustate, cpustate->sreg[CS].limit, smram_state+SMRAM_IP5_CSLIM);
-	WRITE32(cpustate, cpustate->sreg[CS].base, smram_state+SMRAM_IP5_CSBASE);
-	WRITE32(cpustate, cpustate->sreg[CS].flags, smram_state+SMRAM_IP5_CSACC);
-	WRITE32(cpustate, cpustate->sreg[SS].limit, smram_state+SMRAM_IP5_SSLIM);
-	WRITE32(cpustate, cpustate->sreg[SS].base, smram_state+SMRAM_IP5_SSBASE);
-	WRITE32(cpustate, cpustate->sreg[SS].flags, smram_state+SMRAM_IP5_SSACC);
-	WRITE32(cpustate, cpustate->sreg[DS].limit, smram_state+SMRAM_IP5_DSLIM);
-	WRITE32(cpustate, cpustate->sreg[DS].base, smram_state+SMRAM_IP5_DSBASE);
-	WRITE32(cpustate, cpustate->sreg[DS].flags, smram_state+SMRAM_IP5_DSACC);
-	WRITE32(cpustate, cpustate->sreg[FS].limit, smram_state+SMRAM_IP5_FSLIM);
-	WRITE32(cpustate, cpustate->sreg[FS].base, smram_state+SMRAM_IP5_FSBASE);
-	WRITE32(cpustate, cpustate->sreg[FS].flags, smram_state+SMRAM_IP5_FSACC);
-	WRITE32(cpustate, cpustate->sreg[GS].limit, smram_state+SMRAM_IP5_GSLIM);
-	WRITE32(cpustate, cpustate->sreg[GS].base, smram_state+SMRAM_IP5_GSBASE);
-	WRITE32(cpustate, cpustate->sreg[GS].flags, smram_state+SMRAM_IP5_GSACC);
-	WRITE32(cpustate, cpustate->ldtr.flags, smram_state+SMRAM_IP5_LDTACC);
-	WRITE32(cpustate, cpustate->ldtr.limit, smram_state+SMRAM_IP5_LDTLIM);
-	WRITE32(cpustate, cpustate->ldtr.base, smram_state+SMRAM_IP5_LDTBASE);
-	WRITE32(cpustate, cpustate->gdtr.limit, smram_state+SMRAM_IP5_GDTLIM);
-	WRITE32(cpustate, cpustate->gdtr.base, smram_state+SMRAM_IP5_GDTBASE);
-	WRITE32(cpustate, cpustate->idtr.limit, smram_state+SMRAM_IP5_IDTLIM);
-	WRITE32(cpustate, cpustate->idtr.base, smram_state+SMRAM_IP5_IDTBASE);
-	WRITE32(cpustate, cpustate->task.limit, smram_state+SMRAM_IP5_TRLIM);
-	WRITE32(cpustate, cpustate->task.base, smram_state+SMRAM_IP5_TRBASE);
-	WRITE32(cpustate, cpustate->task.flags, smram_state+SMRAM_IP5_TRACC);
+	WRITE32(cpustate, smram_state + SMRAM_SMBASE, cpustate->smbase);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_CR4, cpustate->cr[4]);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_ESLIM, cpustate->sreg[ES].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_ESBASE, cpustate->sreg[ES].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_ESACC, cpustate->sreg[ES].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_CSLIM, cpustate->sreg[CS].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_CSBASE, cpustate->sreg[CS].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_CSACC, cpustate->sreg[CS].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_SSLIM, cpustate->sreg[SS].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_SSBASE, cpustate->sreg[SS].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_SSACC, cpustate->sreg[SS].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_DSLIM, cpustate->sreg[DS].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_DSBASE, cpustate->sreg[DS].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_DSACC, cpustate->sreg[DS].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_FSLIM, cpustate->sreg[FS].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_FSBASE, cpustate->sreg[FS].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_FSACC, cpustate->sreg[FS].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_GSLIM, cpustate->sreg[GS].limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_GSBASE, cpustate->sreg[GS].base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_GSACC, cpustate->sreg[GS].flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_LDTACC, cpustate->ldtr.flags);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_LDTLIM, cpustate->ldtr.limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_LDTBASE, cpustate->ldtr.base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_GDTLIM, cpustate->gdtr.limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_GDTBASE, cpustate->gdtr.base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_IDTLIM, cpustate->idtr.limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_IDTBASE, cpustate->idtr.base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_TRLIM, cpustate->task.limit);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_TRBASE, cpustate->task.base);
+	WRITE32(cpustate, smram_state + SMRAM_IP5_TRACC, cpustate->task.flags);
 
-	WRITE32(cpustate, cpustate->sreg[ES].selector, smram_state+SMRAM_ES);
-	WRITE32(cpustate, cpustate->sreg[CS].selector, smram_state+SMRAM_CS);
-	WRITE32(cpustate, cpustate->sreg[SS].selector, smram_state+SMRAM_SS);
-	WRITE32(cpustate, cpustate->sreg[DS].selector, smram_state+SMRAM_DS);
-	WRITE32(cpustate, cpustate->sreg[FS].selector, smram_state+SMRAM_FS);
-	WRITE32(cpustate, cpustate->sreg[GS].selector, smram_state+SMRAM_GS);
-	WRITE32(cpustate, cpustate->ldtr.segment, smram_state+SMRAM_LDTR);
-	WRITE32(cpustate, cpustate->task.segment, smram_state+SMRAM_TR);
+	WRITE32(cpustate, smram_state + SMRAM_ES, cpustate->sreg[ES].selector);
+	WRITE32(cpustate, smram_state + SMRAM_CS, cpustate->sreg[CS].selector);
+	WRITE32(cpustate, smram_state + SMRAM_SS, cpustate->sreg[SS].selector);
+	WRITE32(cpustate, smram_state + SMRAM_DS, cpustate->sreg[DS].selector);
+	WRITE32(cpustate, smram_state + SMRAM_FS, cpustate->sreg[FS].selector);
+	WRITE32(cpustate, smram_state + SMRAM_GS, cpustate->sreg[GS].selector);
+	WRITE32(cpustate, smram_state + SMRAM_LDTR, cpustate->ldtr.segment);
+	WRITE32(cpustate, smram_state + SMRAM_TR, cpustate->task.segment);
 
-	WRITE32(cpustate, cpustate->dr[7], smram_state+SMRAM_DR7);
-	WRITE32(cpustate, cpustate->dr[6], smram_state+SMRAM_DR6);
-	WRITE32(cpustate, REG32(EAX), smram_state+SMRAM_EAX);
-	WRITE32(cpustate, REG32(ECX), smram_state+SMRAM_ECX);
-	WRITE32(cpustate, REG32(EDX), smram_state+SMRAM_EDX);
-	WRITE32(cpustate, REG32(EBX), smram_state+SMRAM_EBX);
-	WRITE32(cpustate, REG32(ESP), smram_state+SMRAM_ESP);
-	WRITE32(cpustate, REG32(EBP), smram_state+SMRAM_EBP);
-	WRITE32(cpustate, REG32(ESI), smram_state+SMRAM_ESI);
-	WRITE32(cpustate, REG32(EDI), smram_state+SMRAM_EDI);
-	WRITE32(cpustate, cpustate->eip, smram_state+SMRAM_EIP);
-	WRITE32(cpustate, old_flags, smram_state+SMRAM_EFLAGS);
-	WRITE32(cpustate, cpustate->cr[3], smram_state+SMRAM_CR3);
-	WRITE32(cpustate, old_cr0, smram_state+SMRAM_CR0);
+	WRITE32(cpustate, smram_state + SMRAM_DR7, cpustate->dr[7]);
+	WRITE32(cpustate, smram_state + SMRAM_DR6, cpustate->dr[6]);
+	WRITE32(cpustate, smram_state + SMRAM_EAX, REG32(EAX));
+	WRITE32(cpustate, smram_state + SMRAM_ECX, REG32(ECX));
+	WRITE32(cpustate, smram_state + SMRAM_EDX, REG32(EDX));
+	WRITE32(cpustate, smram_state + SMRAM_EBX, REG32(EBX));
+	WRITE32(cpustate, smram_state + SMRAM_ESP, REG32(ESP));
+	WRITE32(cpustate, smram_state + SMRAM_EBP, REG32(EBP));
+	WRITE32(cpustate, smram_state + SMRAM_ESI, REG32(ESI));
+	WRITE32(cpustate, smram_state + SMRAM_EDI, REG32(EDI));
+	WRITE32(cpustate, smram_state + SMRAM_EIP, cpustate->eip);
+	WRITE32(cpustate, smram_state + SMRAM_EFLAGS, old_flags);
+	WRITE32(cpustate, smram_state + SMRAM_CR3, cpustate->cr[3]);
+	WRITE32(cpustate, smram_state + SMRAM_CR0, old_cr0);
 
 	cpustate->sreg[DS].selector = cpustate->sreg[ES].selector = cpustate->sreg[FS].selector = cpustate->sreg[GS].selector = cpustate->sreg[SS].selector = 0;
 	cpustate->sreg[DS].base = cpustate->sreg[ES].base = cpustate->sreg[FS].base = cpustate->sreg[GS].base = cpustate->sreg[SS].base = 0x00000000;
 	cpustate->sreg[DS].limit = cpustate->sreg[ES].limit = cpustate->sreg[FS].limit = cpustate->sreg[GS].limit = cpustate->sreg[SS].limit = 0xffffffff;
 	cpustate->sreg[DS].flags = cpustate->sreg[ES].flags = cpustate->sreg[FS].flags = cpustate->sreg[GS].flags = cpustate->sreg[SS].flags = 0x8093;
-	cpustate->sreg[DS].valid = cpustate->sreg[ES].valid = cpustate->sreg[FS].valid = cpustate->sreg[GS].valid = cpustate->sreg[SS].valid =true;
+	cpustate->sreg[DS].valid = cpustate->sreg[ES].valid = cpustate->sreg[FS].valid = cpustate->sreg[GS].valid = cpustate->sreg[SS].valid = true;
 	cpustate->sreg[CS].selector = 0x3000; // pentium only, ppro sel = smbase >> 4
 	cpustate->sreg[CS].base = cpustate->smbase;
 	cpustate->sreg[CS].limit = 0xffffffff;
@@ -3354,7 +3388,87 @@ static void pentium_smi(i386_state *cpustate)
 	CHANGE_PC(cpustate,cpustate->eip);
 }
 
-static void i386_set_irq_line(i386_state *cpustate,int irqline, int state)
+static void leave_smm(i386_state *cpustate)
+{
+	UINT32 smram_state = cpustate->smbase + 0xfe00;
+
+	// load state, no sanity checks anywhere
+	cpustate->smbase = READ32(cpustate, smram_state + SMRAM_SMBASE);
+	cpustate->cr[4] = READ32(cpustate, smram_state + SMRAM_IP5_CR4);
+	cpustate->sreg[ES].limit = READ32(cpustate, smram_state + SMRAM_IP5_ESLIM);
+	cpustate->sreg[ES].base = READ32(cpustate, smram_state + SMRAM_IP5_ESBASE);
+	cpustate->sreg[ES].flags = READ32(cpustate, smram_state + SMRAM_IP5_ESACC);
+	cpustate->sreg[CS].limit = READ32(cpustate, smram_state + SMRAM_IP5_CSLIM);
+	cpustate->sreg[CS].base = READ32(cpustate, smram_state + SMRAM_IP5_CSBASE);
+	cpustate->sreg[CS].flags = READ32(cpustate, smram_state + SMRAM_IP5_CSACC);
+	cpustate->sreg[SS].limit = READ32(cpustate, smram_state + SMRAM_IP5_SSLIM);
+	cpustate->sreg[SS].base = READ32(cpustate, smram_state + SMRAM_IP5_SSBASE);
+	cpustate->sreg[SS].flags = READ32(cpustate, smram_state + SMRAM_IP5_SSACC);
+	cpustate->sreg[DS].limit = READ32(cpustate, smram_state + SMRAM_IP5_DSLIM);
+	cpustate->sreg[DS].base = READ32(cpustate, smram_state + SMRAM_IP5_DSBASE);
+	cpustate->sreg[DS].flags = READ32(cpustate, smram_state + SMRAM_IP5_DSACC);
+	cpustate->sreg[FS].limit = READ32(cpustate, smram_state + SMRAM_IP5_FSLIM);
+	cpustate->sreg[FS].base = READ32(cpustate, smram_state + SMRAM_IP5_FSBASE);
+	cpustate->sreg[FS].flags = READ32(cpustate, smram_state + SMRAM_IP5_FSACC);
+	cpustate->sreg[GS].limit = READ32(cpustate, smram_state + SMRAM_IP5_GSLIM);
+	cpustate->sreg[GS].base = READ32(cpustate, smram_state + SMRAM_IP5_GSBASE);
+	cpustate->sreg[GS].flags = READ32(cpustate, smram_state + SMRAM_IP5_GSACC);
+	cpustate->ldtr.flags = READ32(cpustate, smram_state + SMRAM_IP5_LDTACC);
+	cpustate->ldtr.limit = READ32(cpustate, smram_state + SMRAM_IP5_LDTLIM);
+	cpustate->ldtr.base = READ32(cpustate, smram_state + SMRAM_IP5_LDTBASE);
+	cpustate->gdtr.limit = READ32(cpustate, smram_state + SMRAM_IP5_GDTLIM);
+	cpustate->gdtr.base = READ32(cpustate, smram_state + SMRAM_IP5_GDTBASE);
+	cpustate->idtr.limit = READ32(cpustate, smram_state + SMRAM_IP5_IDTLIM);
+	cpustate->idtr.base = READ32(cpustate, smram_state + SMRAM_IP5_IDTBASE);
+	cpustate->task.limit = READ32(cpustate, smram_state + SMRAM_IP5_TRLIM);
+	cpustate->task.base = READ32(cpustate, smram_state + SMRAM_IP5_TRBASE);
+	cpustate->task.flags = READ32(cpustate, smram_state + SMRAM_IP5_TRACC);
+
+	cpustate->sreg[ES].selector = READ32(cpustate, smram_state + SMRAM_ES);
+	cpustate->sreg[CS].selector = READ32(cpustate, smram_state + SMRAM_CS);
+	cpustate->sreg[SS].selector = READ32(cpustate, smram_state + SMRAM_SS);
+	cpustate->sreg[DS].selector = READ32(cpustate, smram_state + SMRAM_DS);
+	cpustate->sreg[FS].selector = READ32(cpustate, smram_state + SMRAM_FS);
+	cpustate->sreg[GS].selector = READ32(cpustate, smram_state + SMRAM_GS);
+	cpustate->ldtr.segment = READ32(cpustate, smram_state + SMRAM_LDTR);
+	cpustate->task.segment = READ32(cpustate, smram_state + SMRAM_TR);
+
+	cpustate->dr[7] = READ32(cpustate, smram_state + SMRAM_DR7);
+	cpustate->dr[6] = READ32(cpustate, smram_state + SMRAM_DR6);
+	REG32(EAX) = READ32(cpustate, smram_state + SMRAM_EAX);
+	REG32(ECX) = READ32(cpustate, smram_state + SMRAM_ECX);
+	REG32(EDX) = READ32(cpustate, smram_state + SMRAM_EDX);
+	REG32(EBX) = READ32(cpustate, smram_state + SMRAM_EBX);
+	REG32(ESP) = READ32(cpustate, smram_state + SMRAM_ESP);
+	REG32(EBP) = READ32(cpustate, smram_state + SMRAM_EBP);
+	REG32(ESI) = READ32(cpustate, smram_state + SMRAM_ESI);
+	REG32(EDI) = READ32(cpustate, smram_state + SMRAM_EDI);
+	cpustate->eip = READ32(cpustate, smram_state + SMRAM_EIP);
+	cpustate->eflags = READ32(cpustate, smram_state + SMRAM_EFLAGS);
+	cpustate->cr[3] = READ32(cpustate, smram_state + SMRAM_CR3);
+	cpustate->cr[0] = READ32(cpustate, smram_state + SMRAM_CR0);
+
+	cpustate->CPL = (cpustate->sreg[SS].flags >> 13) & 3; // cpl == dpl of ss
+
+	for (int i = 0; i <= GS; i++)
+	{
+		if (PROTECTED_MODE && !V8086_MODE)
+		{
+			cpustate->sreg[i].valid = cpustate->sreg[i].selector ? true : false;
+			cpustate->sreg[i].d = (cpustate->sreg[i].flags & 0x4000) ? 1 : 0;
+		}
+		else
+			cpustate->sreg[i].valid = true;
+	}
+
+//	cpustate->smiact(false);
+	cpustate->smm = false;
+
+	CHANGE_PC(cpustate,cpustate->eip);
+	cpustate->nmi_masked = false;
+}
+
+static void i386_set_irq_line(i386_state *cpustate, int irqline, int state)
 {
 	int first_cycles = cpustate->cycles;
 
@@ -3372,7 +3486,7 @@ static void i386_set_irq_line(i386_state *cpustate,int irqline, int state)
 			return;
 		}
 		if ( state )
-			i386_trap(cpustate,2, 1, 0);
+			i386_trap(cpustate, 2, 1);
 	}
 	else
 	{
@@ -3382,7 +3496,7 @@ static void i386_set_irq_line(i386_state *cpustate,int irqline, int state)
 	cpustate->cycles = first_cycles;
 }
 
-static void i386_set_a20_line(i386_state *cpustate,int state)
+static void i386_set_a20_line(i386_state *cpustate, int state)
 {
 	if (state)
 	{
@@ -3458,6 +3572,38 @@ static CPU_EXECUTE( i386 )
 		int first_cycles = cpustate->cycles;
 #endif
 		i386_check_irq_line(cpustate);
+
+#if 0
+		// The LE and GE bits of DR7 aren't currently implemented because they could potentially require cycle-accurate emulation.
+		if((cpustate->dr[7] & 0xff) != 0) // If all of the breakpoints are disabled, skip checking for instruction breakpoint hitting entirely.
+		for(int i = 0; i < 4; i++)
+		{
+			bool dri_enabled = (cpustate->dr[7] & (1 << ((i << 1) + 1))) || (cpustate->dr[7] & (1 << (i << 1))); // Check both local AND global enable bits for this breakpoint.
+			if(dri_enabled && !cpustate->RF)
+			{
+				int breakpoint_type = (cpustate->dr[7] >> (i << 2)) & 3;
+				int breakpoint_length = (cpustate->dr[7] >> ((i << 2) + 2)) & 3;
+				if(breakpoint_type == 0)
+				{
+					UINT32 phys_addr = 0;
+					UINT32 error;
+					phys_addr = (cpustate->cr[0] & CR0_PG) ? translate_address(cpustate->CPL, TR_FETCH, &cpustate->dr[i], &error) : cpustate->dr[i];
+					if(breakpoint_length != 0) // Not one byte in length? logerror it, I have no idea how this works on real processors.
+					{
+						logerror("i386: Breakpoint length not 1 byte on an instruction breakpoint\n");
+					}
+					if(cpustate->pc == phys_addr)
+					{
+						// The processor never automatically clears bits in DR6. It only sets them.
+						cpustate->dr[6] |= 1 << i;
+						i386_trap(cpustate,1,0);
+						break;
+					}
+				}
+			}
+		}
+#endif
+
 		cpustate->operand_size = cpustate->sreg[CS].d;
 		cpustate->xmm_operand_size = 0;
 		cpustate->address_size = cpustate->sreg[CS].d;
@@ -3473,7 +3619,7 @@ static CPU_EXECUTE( i386 )
 		{
 			UINT32 address = cpustate->pc, error;
 
-			if(!translate_address(cpustate,cpustate->CPL,TRANSLATE_FETCH,&address,&error))
+			if(!translate_address(cpustate, cpustate->CPL, TR_FETCH, &address, &error))
 				PF_THROW(error);
 #ifdef USE_DEBUGGER
 			if(now_debugging) {
@@ -3498,6 +3644,8 @@ static CPU_EXECUTE( i386 )
 			cpustate->prev_eip = cpustate->eip;
 			cpustate->prev_pc = address;
 
+//			debugger_instruction_hook(cpustate->pc);
+
 			if(cpustate->delayed_interrupt_enable != 0)
 			{
 				cpustate->IF = 1;
@@ -3506,13 +3654,16 @@ static CPU_EXECUTE( i386 )
 #ifdef DEBUG_MISSING_OPCODE
 			cpustate->opcode_bytes_length = 0;
 			cpustate->opcode_pc = cpustate->pc;
+			cpustate->opcode_addrs[cpustate->opcode_addrs_index] = cpustate->opcode_pc;
+			cpustate->opcode_addrs_index = (cpustate->opcode_addrs_index + 1) & 15;
 #endif
 			I386OP(decode_first_opcode)(cpustate, address);
 			if(cpustate->TF && old_tf)
 			{
 				cpustate->prev_eip = cpustate->eip;
 				cpustate->ext = 1;
-				i386_trap(cpustate,1,0,0);
+				cpustate->dr[6] |= (1 << 14); //Set BS bit of DR6.
+				i386_trap(cpustate,1,0);
 			}
 			if(cpustate->lock && (cpustate->opcode != 0xf0))
 				cpustate->lock = false;
@@ -3522,6 +3673,9 @@ static CPU_EXECUTE( i386 )
 			cpustate->ext = 1;
 			i386_trap_with_error(cpustate,e&0xffffffff,0,0,e>>32);
 		}
+		if(cpustate->RF && cpustate->auto_clear_RF) cpustate->RF = 0;
+		if(!cpustate->auto_clear_RF) cpustate->auto_clear_RF = true;
+
 #ifdef SINGLE_MODE_DMA
 		if(cpustate->dma != NULL) {
 			cpustate->dma->do_dma();
@@ -3562,7 +3716,7 @@ static CPU_TRANSLATE( i386 )
 	i386_state *cpustate = (i386_state *)cpudevice;
 	int ret = TRUE;
 	if(space == AS_PROGRAM)
-		ret = i386_translate_address(cpustate, intention, address, NULL);
+		ret = i386_translate_address(cpustate, intention, false, address, NULL);
 	*address &= cpustate->a20_mask;
 	return ret;
 }
@@ -3978,7 +4132,7 @@ static CPU_INIT( pentium3 )
 	// 64 dtlb small, 8 dtlb large, 32 itlb small, 2 itlb large
 	i386_state *cpustate = i386_common_init(96);
 	build_x87_opcode_table(cpustate);
-	build_opcode_table(cpustate, OP_I386 | OP_FPU | OP_I486 | OP_PENTIUM | OP_PPRO | OP_MMX | OP_SSE);
+	build_opcode_table(cpustate, OP_I386 | OP_FPU | OP_I486 | OP_PENTIUM | OP_PPRO | OP_MMX | OP_SSE | OP_PENTIUM3);
 	cpustate->cycle_table_rm = cycle_table_rm[CPU_CYCLES_PENTIUM];  // TODO: generate own cycle tables
 	cpustate->cycle_table_pm = cycle_table_pm[CPU_CYCLES_PENTIUM];  // TODO: generate own cycle tables
 	return cpustate;
@@ -4032,8 +4186,11 @@ static CPU_RESET( pentium3 )
 
 	// [ 0:0] FPU on chip
 	// [ 4:4] Time Stamp Counter
+	// [ 8:8] CMPXCHG8B instruction
 	// [ D:D] PTE Global Bit
-	cpustate->feature_flags = 0x00002011;       // TODO: enable relevant flags here
+	// [15:15] CMOV and FCMOV
+	// [18:18] PSN (Processor Serial Number, P3 only)
+	cpustate->feature_flags = 0x0004a111;       // TODO: enable relevant flags here
 
 	CHANGE_PC(cpustate,cpustate->eip);
 }
@@ -4102,7 +4259,9 @@ static CPU_RESET( pentium4 )
 	cpustate->cpu_version = REG32(EDX);
 
 	// [ 0:0] FPU on chip
-	cpustate->feature_flags = 0x00000001;       // TODO: enable relevant flags here
+	// [ 8:8] CMPXCHG8B instruction
+	// [15:15] CMOV and FCMOV
+	cpustate->feature_flags = 0x00008101;       // TODO: enable relevant flags here
 
 	CHANGE_PC(cpustate,cpustate->eip);
 }

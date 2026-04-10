@@ -492,8 +492,6 @@ static void I386OP(call_abs16)(i386_state *cpustate)        // Opcode 0x9a
 	UINT16 offset = FETCH16(cpustate);
 	UINT16 ptr = FETCH16(cpustate);
 
-	CYCLES(cpustate,CYCLES_CALL_INTERSEG);      /* TODO: Timing = 17 + m */
-
 #ifdef I86_PSEUDO_BIOS
 	BIOS_CALL_FAR(((ptr << 4) + offset) & cpustate->a20_mask)
 #endif
@@ -511,6 +509,7 @@ static void I386OP(call_abs16)(i386_state *cpustate)        // Opcode 0x9a
 		cpustate->eip = offset;
 		i386_load_segment_descriptor(cpustate,CS);
 	}
+	CYCLES(cpustate,CYCLES_CALL_INTERSEG);      /* TODO: Timing = 17 + m */
 	CHANGE_PC(cpustate,cpustate->eip);
 }
 
@@ -804,6 +803,7 @@ static void I386OP(iret16)(i386_state *cpustate)            // Opcode 0xcf
 		i386_load_segment_descriptor(cpustate,CS);
 		CHANGE_PC(cpustate,cpustate->eip);
 	}
+	cpustate->auto_clear_RF = false;
 	CYCLES(cpustate,CYCLES_IRET);
 }
 
@@ -1686,9 +1686,9 @@ static void I386OP(pop_rm16)(i386_state *cpustate)          // Opcode 0x8f
 		if( modrm >= 0xc0 ) {
 			STORE_RM16(modrm, value);
 		} else {
-			ea = GetEA(cpustate,modrm,1,2);
 			try
 			{
+				ea = GetEA(cpustate,modrm,1,2);
 				WRITE16(cpustate,ea, value);
 			}
 			catch(UINT64 e)
@@ -1752,11 +1752,13 @@ static void I386OP(popf)(i386_state *cpustate)              // Opcode 0x9d
 	if(i386_limit_check(cpustate,SS,offset,2) == 0)
 	{
 		value = POP16(cpustate);
-		set_flags(cpustate,(current & ~mask) | (value & mask));  // mask out reserved bits
+		set_flags(cpustate, (current & ~mask) | (value & mask));  // mask out reserved bits
 	}
 	else
 		FAULT(FAULT_SS,0)
 	CYCLES(cpustate,CYCLES_POPF);
+
+	cpustate->auto_clear_RF = false;
 }
 
 static void I386OP(push_ax)(i386_state *cpustate)           // Opcode 0x50
@@ -1964,7 +1966,7 @@ static void I386OP(push_i16)(i386_state *cpustate)          // Opcode 0x68
 	else
 		offset = (REG16(SP) - 2) & 0xffff;
 	if(i386_limit_check(cpustate,SS,offset,2) == 0)
-		PUSH16(cpustate,value);
+		PUSH16(cpustate, value);
 	else
 		FAULT(FAULT_SS,0)
 	CYCLES(cpustate,CYCLES_PUSH_IMM);
@@ -2096,12 +2098,18 @@ static void I386OP(shld16_i8)(i386_state *cpustate)         // Opcode 0x0f a4
 		shift &= 31;
 		if( shift == 0 ) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (16-shift))) ? 1 : 0;
+			// ppro and above should be (dst >> (32-shift))
+			dst = (upper << (shift-16)) | (upper >> (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & 1) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (32-shift))) ? 1 : 0;
 			}
 			dst = (upper << (shift-16)) | (dst >> (32-shift));
+#endif
 			cpustate->OF = cpustate->CF ^ (dst >> 15);
 			SetSZPF16(dst);
 		} else {
@@ -2120,12 +2128,17 @@ static void I386OP(shld16_i8)(i386_state *cpustate)         // Opcode 0x0f a4
 		shift &= 31;
 		if( shift == 0 ) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (16-shift))) ? 1 : 0;
+			dst = (upper << (shift-16)) | (upper >> (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & 1) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (32-shift))) ? 1 : 0;
 			}
 			dst = (upper << (shift-16)) | (dst >> (32-shift));
+#endif
 			cpustate->OF = cpustate->CF ^ (dst >> 15);
 			SetSZPF16(dst);
 		} else {
@@ -2149,12 +2162,17 @@ static void I386OP(shld16_cl)(i386_state *cpustate)         // Opcode 0x0f a5
 		shift &= 31;
 		if( shift == 0 ) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (16-shift))) ? 1 : 0;
+			dst = (upper << (shift-16)) | (upper >> (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & 1) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (32-shift))) ? 1 : 0;
 			}
 			dst = (upper << (shift-16)) | (dst >> (32-shift));
+#endif
 			cpustate->OF = cpustate->CF ^ (dst >> 15);
 			SetSZPF16(dst);
 		} else {
@@ -2173,12 +2191,17 @@ static void I386OP(shld16_cl)(i386_state *cpustate)         // Opcode 0x0f a5
 		shift &= 31;
 		if( shift == 0 ) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (16-shift))) ? 1 : 0;
+			dst = (upper << (shift-16)) | (upper >> (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & 1) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (32-shift))) ? 1 : 0;
 			}
 			dst = (upper << (shift-16)) | (dst >> (32-shift));
+#endif
 			cpustate->OF = cpustate->CF ^ (dst >> 15);
 			SetSZPF16(dst);
 		} else {
@@ -2202,12 +2225,17 @@ static void I386OP(shrd16_i8)(i386_state *cpustate)         // Opcode 0x0f ac
 		shift &= 31;
 		if( shift == 0) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (shift-1))) ? 1 : 0;
+			dst = (upper >> (shift-16)) | (upper << (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & (1 << 15)) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (shift-17))) ? 1 : 0;
 			}
 			dst = (upper >> (shift-16)) | (dst << (32-shift));
+#endif
 			cpustate->OF = ((dst >> 15) ^ (dst >> 14)) & 1;
 			SetSZPF16(dst);
 		} else {
@@ -2226,12 +2254,17 @@ static void I386OP(shrd16_i8)(i386_state *cpustate)         // Opcode 0x0f ac
 		shift &= 31;
 		if( shift == 0) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (shift-1))) ? 1 : 0;
+			dst = (upper >> (shift-16)) | (upper << (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & (1 << 15)) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (shift-17))) ? 1 : 0;
 			}
 			dst = (upper >> (shift-16)) | (dst << (32-shift));
+#endif
 			cpustate->OF = ((dst >> 15) ^ (dst >> 14)) & 1;
 			SetSZPF16(dst);
 		} else {
@@ -2255,12 +2288,17 @@ static void I386OP(shrd16_cl)(i386_state *cpustate)         // Opcode 0x0f ad
 		shift &= 31;
 		if( shift == 0) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (shift-1))) ? 1 : 0;
+			dst = (upper >> (shift-16)) | (upper << (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & (1 << 15)) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (shift-17))) ? 1 : 0;
 			}
 			dst = (upper >> (shift-16)) | (dst << (32-shift));
+#endif
 			cpustate->OF = ((dst >> 15) ^ (dst >> 14)) & 1;
 			SetSZPF16(dst);
 		} else {
@@ -2279,12 +2317,17 @@ static void I386OP(shrd16_cl)(i386_state *cpustate)         // Opcode 0x0f ad
 		shift &= 31;
 		if( shift == 0) {
 		} else if( shift > 15 ) {
+#if 0
+			cpustate->CF = (upper & (1 << (shift-1))) ? 1 : 0;
+			dst = (upper >> (shift-16)) | (upper << (32-shift));
+#else
 			if( shift == 16 ) {
 				cpustate->CF = (dst & (1 << 15)) ? 1 : 0;
 			} else {
 				cpustate->CF = (upper & (1 << (shift-17))) ? 1 : 0;
 			}
 			dst = (upper >> (shift-16)) | (dst << (32-shift));
+#endif
 			cpustate->OF = ((dst >> 15) ^ (dst >> 14)) & 1;
 			SetSZPF16(dst);
 		} else {
@@ -2977,7 +3020,7 @@ static void I386OP(groupF7_16)(i386_state *cpustate)        // Opcode 0xf7
 							cpustate->CF = 1;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0, 0);
+					i386_trap(cpustate, 0, 0);
 				}
 			}
 			break;
@@ -2998,7 +3041,7 @@ static void I386OP(groupF7_16)(i386_state *cpustate)        // Opcode 0xf7
 				if( src ) {
 					remainder = quotient % (INT32)(INT16)src;
 					result = quotient / (INT32)(INT16)src;
-					if( result > 0xffff ) {
+					if( result > 0x7fff || result < -0x8000 ) {
 						/* TODO: Divide error */
 					} else {
 						REG16(DX) = (UINT16)remainder;
@@ -3009,7 +3052,7 @@ static void I386OP(groupF7_16)(i386_state *cpustate)        // Opcode 0xf7
 							cpustate->CF = 1;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0, 0);
+					i386_trap(cpustate, 0, 0);
 				}
 			}
 			break;
@@ -3025,13 +3068,13 @@ static void I386OP(groupFF_16)(i386_state *cpustate)        // Opcode 0xff
 		case 0:         /* INC Rm16 */
 			if( modrm >= 0xc0 ) {
 				UINT16 dst = LOAD_RM16(modrm);
-				dst = INC16(cpustate,dst);
+				dst = INC16(cpustate, dst);
 				STORE_RM16(modrm, dst);
 				CYCLES(cpustate,CYCLES_INC_REG);
 			} else {
 				UINT32 ea = GetEA(cpustate,modrm,1,2);
 				UINT16 dst = READ16(cpustate,ea);
-				dst = INC16(cpustate,dst);
+				dst = INC16(cpustate, dst);
 				WRITE16(cpustate,ea, dst);
 				CYCLES(cpustate,CYCLES_INC_MEM);
 			}
@@ -3039,13 +3082,13 @@ static void I386OP(groupFF_16)(i386_state *cpustate)        // Opcode 0xff
 		case 1:         /* DEC Rm16 */
 			if( modrm >= 0xc0 ) {
 				UINT16 dst = LOAD_RM16(modrm);
-				dst = DEC16(cpustate,dst);
+				dst = DEC16(cpustate, dst);
 				STORE_RM16(modrm, dst);
 				CYCLES(cpustate,CYCLES_DEC_REG);
 			} else {
 				UINT32 ea = GetEA(cpustate,modrm,1,2);
 				UINT16 dst = READ16(cpustate,ea);
-				dst = DEC16(cpustate,dst);
+				dst = DEC16(cpustate, dst);
 				WRITE16(cpustate,ea, dst);
 				CYCLES(cpustate,CYCLES_DEC_MEM);
 			}
@@ -3185,7 +3228,7 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 		case 1:         /* STR */
@@ -3202,7 +3245,7 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 		case 2:         /* LLDT */
@@ -3228,7 +3271,7 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 
@@ -3251,7 +3294,7 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 				i386_load_protected_mode_segment(cpustate,&seg,NULL);
 
 				UINT32 addr = ((seg.selector & 4) ? cpustate->ldtr.base : cpustate->gdtr.base) + (seg.selector & ~7) + 5;
-				i386_translate_address(cpustate, TRANSLATE_READ, &addr, NULL);
+				i386_translate_address(cpustate, TR_READ, false, &addr, NULL);
 				cpustate->program->write_data16(addr, (seg.flags & 0xff) | 2);
 
 				cpustate->task.limit = seg.limit;
@@ -3260,7 +3303,7 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 
@@ -3295,19 +3338,23 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 						{  // check if conforming, these are always readable, regardless of privilege
 							if(!(seg.flags & 0x04))
 							{
-								// if not conforming, then we must check privilege levels (TODO: current privilege level check)
-								if(((seg.flags >> 5) & 0x03) < (address & 0x03))
+								// if not conforming, then we must check privilege levels
+								if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
 									result = 0;
 							}
 						}
 					}
+					else
+					{
+						if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
+							result = 0;
+					}
 				}
-				// check that the descriptor privilege is greater or equal to the selector's privilege level and the current privilege (TODO)
 				SetZF(result);
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 				logerror("i386: VERR: Exception - Running in real mode or virtual 8086 mode.\n");
 			}
 			break;
@@ -3343,14 +3390,13 @@ static void I386OP(group0F00_16)(i386_state *cpustate)          // Opcode 0x0f 0
 							result = 0;
 					}
 				}
-				// check that the descriptor privilege is greater or equal to the selector's privilege level and the current privilege (TODO)
-				if(((seg.flags >> 5) & 0x03) < (address & 0x03))
+				if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
 					result = 0;
 				SetZF(result);
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 				logerror("i386: VERW: Exception - Running in real mode or virtual 8086 mode.\n");
 			}
 			break;
@@ -3647,7 +3693,7 @@ static void I386OP(lar_r16_rm16)(i386_state *cpustate)  // Opcode 0x0f 0x02
 	else
 	{
 		// illegal opcode
-		i386_trap(cpustate,6,0, 0);
+		i386_trap(cpustate, 6, 0);
 		logerror("i386: LAR: Exception - running in real mode or virtual 8086 mode.\n");
 	}
 }
@@ -3712,7 +3758,7 @@ static void I386OP(lsl_r16_rm16)(i386_state *cpustate)  // Opcode 0x0f 0x03
 		}
 	}
 	else
-		i386_trap(cpustate,6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 }
 
 static void I386OP(bound_r16_m16_m16)(i386_state *cpustate) // Opcode 0x62
@@ -3737,7 +3783,7 @@ static void I386OP(bound_r16_m16_m16)(i386_state *cpustate) // Opcode 0x62
 	if ((val < low) || (val > high))
 	{
 		CYCLES(cpustate,CYCLES_BOUND_OUT_RANGE);
-		i386_trap(cpustate,5, 0, 0);
+		i386_trap(cpustate, 5, 0);
 	}
 	else
 	{
@@ -3786,18 +3832,22 @@ static bool I386OP(load_far_pointer16)(i386_state *cpustate, int s)
 {
 	UINT8 modrm = FETCH(cpustate);
 	UINT16 selector;
+	bool fault = false;
 
 	if( modrm >= 0xc0 ) {
 		//logerror("i386: load_far_pointer16 NYI\n"); // don't log, NT will use this a lot
-		i386_trap(cpustate,6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 		return false;
 	} else {
 		UINT32 ea = GetEA(cpustate,modrm,0,4);
-		STORE_REG16(modrm, READ16(cpustate,ea + 0));
+		UINT16 val = READ16(cpustate,ea + 0);
 		selector = READ16(cpustate,ea + 2);
-		i386_sreg_load(cpustate,selector,s,NULL);
+		i386_sreg_load(cpustate,selector,s,&fault);
+		if(!fault) {
+			STORE_REG16(modrm, val);
+		}
 	}
-	return true;
+	return !fault;
 }
 
 static void I386OP(lds16)(i386_state *cpustate)             // Opcode 0xc5

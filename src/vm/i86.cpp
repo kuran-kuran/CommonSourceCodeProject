@@ -464,7 +464,7 @@ int I86::debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len)
 }
 #endif
 
-#define STATE_VERSION	1
+#define STATE_VERSION	2
 
 bool I86::process_state(FILEIO* state_fio, bool loading)
 {
@@ -494,6 +494,7 @@ bool I86::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(cpustate->MF);
 	state_fio->StateValue(cpustate->MF_WriteDisabled);
 	state_fio->StateValue(cpustate->NF);
+	state_fio->StateValue(cpustate->i80flags);
 	state_fio->StateValue(cpustate->int_vector);
 	state_fio->StateValue(cpustate->nmi_state);
 	state_fio->StateValue(cpustate->irq_state);

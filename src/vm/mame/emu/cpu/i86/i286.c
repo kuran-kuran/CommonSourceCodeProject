@@ -45,11 +45,11 @@ struct i80286_state
 	UINT16  limit[4];
 	UINT8 rights[4];
 	bool valid[4];
-	struct {
+	struct _anon1 {
 		UINT32 base;
 		UINT16 limit;
 	} gdtr, idtr;
-	struct {
+	struct _anon2 {
 		UINT16 sel;
 		UINT32 base;
 		UINT16 limit;
@@ -77,7 +77,7 @@ struct i80286_state
 	INT8    nmi_state;
 	INT8    irq_state;
 	INT8    test_state;
-	UINT8 rep_in_progress;
+	UINT8   rep_in_progress;
 	INT32   extra_cycles;       /* extra cycles for interrupts */
 
 	int halted;         /* Is the CPU halted ? */

@@ -64,15 +64,23 @@ static UINT32 I386OP(shift_rotate32)(i386_state *cpustate, UINT8 modrm, UINT32 v
 		switch( (modrm >> 3) & 0x7 )
 		{
 			case 0:         /* ROL rm32, i8 */
+#if 0
+				dst = rotl_32(src, shift);
+#else
 				dst = ((src & ((UINT32)0xffffffff >> shift)) << shift) |
 						((src & ((UINT32)0xffffffff << (32-shift))) >> (32-shift));
+#endif
 				cpustate->CF = dst & 0x1;
 				cpustate->OF = (dst & 1) ^ (dst >> 31);
 				CYCLES_RM(cpustate,modrm, CYCLES_ROTATE_REG, CYCLES_ROTATE_MEM);
 				break;
 			case 1:         /* ROR rm32, i8 */
+#if 0
+				dst = rotr_32(src, shift);
+#else
 				dst = ((src & ((UINT32)0xffffffff << shift)) >> shift) |
 						((src & ((UINT32)0xffffffff >> (32-shift))) << (32-shift));
+#endif
 				cpustate->CF = (dst >> 31) & 0x1;
 				cpustate->OF = ((dst >> 31) ^ (dst >> 30)) & 1;
 				CYCLES_RM(cpustate,modrm, CYCLES_ROTATE_REG, CYCLES_ROTATE_MEM);
@@ -767,6 +775,7 @@ static void I386OP(iret32)(i386_state *cpustate)            // Opcode 0xcf
 		i386_load_segment_descriptor(cpustate,CS);
 		CHANGE_PC(cpustate,cpustate->eip);
 	}
+	cpustate->auto_clear_RF = false;
 	CYCLES(cpustate,CYCLES_IRET);
 }
 
@@ -1022,7 +1031,7 @@ static void I386OP(enter32)(i386_state *cpustate)           // Opcode 0xc8
 	UINT8 level = FETCH(cpustate) % 32;
 	UINT8 x;
 	UINT32 frameptr;
-	PUSH32(cpustate,REG32(EBP));
+	PUSH32(cpustate, REG32(EBP));
 	if(!STACK_32BIT)
 		frameptr = REG16(SP);
 	else
@@ -1043,9 +1052,9 @@ static void I386OP(enter32)(i386_state *cpustate)           // Opcode 0xc8
 				REG32(EBP) -= 4;
 				addr = REG32(EBP);
 			}
-			PUSH32(cpustate,READ32(cpustate,i386_translate(cpustate, SS, addr, 0, 4)));
+			PUSH32(cpustate, READ32(cpustate,i386_translate(cpustate,SS, addr, 0, 4)));
 		}
-		PUSH32(cpustate,frameptr);
+		PUSH32(cpustate, frameptr);
 	}
 	REG32(EBP) = frameptr;
 	if(!STACK_32BIT)
@@ -1534,9 +1543,9 @@ static void I386OP(pop_rm32)(i386_state *cpustate)          // Opcode 0x8f
 		if( modrm >= 0xc0 ) {
 			STORE_RM32(modrm, value);
 		} else {
-			ea = GetEA(cpustate,modrm,1,4);
 			try
 			{
+				ea = GetEA(cpustate,modrm,1,4);
 				WRITE32(cpustate,ea, value);
 			}
 			catch(UINT64 e)
@@ -1600,7 +1609,7 @@ static void I386OP(popfd)(i386_state *cpustate)             // Opcode 0x9d
 	{
 		value = POP32(cpustate);
 		value &= ~0x00010000;  // RF will always return zero
-		set_flags(cpustate,(current & ~mask) | (value & mask));  // mask out reserved bits
+		set_flags(cpustate, (current & ~mask) | (value & mask));  // mask out reserved bits
 	}
 	else
 		FAULT(FAULT_SS,0)
@@ -1812,7 +1821,7 @@ static void I386OP(push_i32)(i386_state *cpustate)          // Opcode 0x68
 	else
 		offset = (REG16(SP) - 4) & 0xffff;
 	if(i386_limit_check(cpustate,SS,offset,4) == 0)
-		PUSH32(cpustate,value);
+		PUSH32(cpustate, value);
 	else
 		FAULT(FAULT_SS,0)
 	CYCLES(cpustate,CYCLES_PUSH_IMM);
@@ -2742,14 +2751,14 @@ static void I386OP(groupF7_32)(i386_state *cpustate)        // Opcode 0xf7
 				if( src ) {
 					remainder = quotient % (UINT64)src;
 					result = quotient / (UINT64)src;
-					if( result > 0xffffffff ) {
+					if( result > U64(0xffffffff) ) {
 						/* TODO: Divide error */
 					} else {
 						REG32(EDX) = (UINT32)remainder;
 						REG32(EAX) = (UINT32)result;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0, 0);
+					i386_trap(cpustate, 0, 0);
 				}
 			}
 			break;
@@ -2770,14 +2779,14 @@ static void I386OP(groupF7_32)(i386_state *cpustate)        // Opcode 0xf7
 				if( src ) {
 					remainder = quotient % (INT64)(INT32)src;
 					result = quotient / (INT64)(INT32)src;
-					if( result > 0xffffffff ) {
+					if( result > S64(0x7fffffff) || result < -S64(0x80000000) ) {
 						/* TODO: Divide error */
 					} else {
 						REG32(EDX) = (UINT32)remainder;
 						REG32(EAX) = (UINT32)result;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0, 0);
+					i386_trap(cpustate, 0, 0);
 				}
 			}
 			break;
@@ -2953,7 +2962,7 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 		case 1:         /* STR */
@@ -2970,7 +2979,7 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 		case 2:         /* LLDT */
@@ -2996,7 +3005,7 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 
@@ -3019,7 +3028,7 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 				i386_load_protected_mode_segment(cpustate,&seg,NULL);
 
 				UINT32 addr = ((seg.selector & 4) ? cpustate->ldtr.base : cpustate->gdtr.base) + (seg.selector & ~7) + 5;
-				i386_translate_address(cpustate, TRANSLATE_READ, &addr, NULL);
+				i386_translate_address(cpustate, TR_READ, false, &addr, NULL);
 				cpustate->program->write_data8(addr, (seg.flags & 0xff) | 2);
 
 				cpustate->task.limit = seg.limit;
@@ -3028,7 +3037,7 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 			break;
 
@@ -3062,19 +3071,23 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 						{  // check if conforming, these are always readable, regardless of privilege
 							if(!(seg.flags & 0x04))
 							{
-								// if not conforming, then we must check privilege levels (TODO: current privilege level check)
-								if(((seg.flags >> 5) & 0x03) < (address & 0x03))
+								// if not conforming, then we must check privilege levels
+								if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
 									result = 0;
 							}
 						}
 					}
+					else
+					{
+						if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
+							result = 0;
+					}
 				}
-				// check that the descriptor privilege is greater or equal to the selector's privilege level and the current privilege (TODO)
 				SetZF(result);
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 				logerror("i386: VERR: Exception - Running in real mode or virtual 8086 mode.\n");
 			}
 			break;
@@ -3109,14 +3122,13 @@ static void I386OP(group0F00_32)(i386_state *cpustate)          // Opcode 0x0f 0
 							result = 0;
 					}
 				}
-				// check that the descriptor privilege is greater or equal to the selector's privilege level and the current privilege (TODO)
-				if(((seg.flags >> 5) & 0x03) < (address & 0x03))
+				if(((seg.flags >> 5) & 0x03) < max(cpustate->CPL, (UINT8)(address & 0x03)))
 					result = 0;
 				SetZF(result);
 			}
 			else
 			{
-				i386_trap(cpustate,6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 				logerror("i386: VERW: Exception - Running in real mode or virtual 8086 mode.\n");
 			}
 			break;
@@ -3414,7 +3426,7 @@ static void I386OP(lar_r32_rm32)(i386_state *cpustate)  // Opcode 0x0f 0x02
 	else
 	{
 		// illegal opcode
-		i386_trap(cpustate,6,0, 0);
+		i386_trap(cpustate, 6, 0);
 		logerror("i386: LAR: Exception - running in real mode or virtual 8086 mode.\n");
 	}
 }
@@ -3479,7 +3491,7 @@ static void I386OP(lsl_r32_rm32)(i386_state *cpustate)  // Opcode 0x0f 0x03
 		}
 	}
 	else
-		i386_trap(cpustate,6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 }
 
 static void I386OP(bound_r32_m32_m32)(i386_state *cpustate) // Opcode 0x62
@@ -3504,7 +3516,7 @@ static void I386OP(bound_r32_m32_m32)(i386_state *cpustate) // Opcode 0x62
 	if ((val < low) || (val > high))
 	{
 		CYCLES(cpustate,CYCLES_BOUND_OUT_RANGE);
-		i386_trap(cpustate,5, 0, 0);
+		i386_trap(cpustate, 5, 0);
 	}
 	else
 	{
@@ -3549,47 +3561,58 @@ static void I386OP(retf_i32)(i386_state *cpustate)          // Opcode 0xca
 	CYCLES(cpustate,CYCLES_RET_IMM_INTERSEG);
 }
 
-static void I386OP(load_far_pointer32)(i386_state *cpustate, int s)
+static bool I386OP(load_far_pointer32)(i386_state *cpustate, int s)
 {
 	UINT8 modrm = FETCH(cpustate);
 	UINT16 selector;
+	bool fault = false;
 
 	if( modrm >= 0xc0 ) {
 		report_invalid_modrm(cpustate, "load_far_pointer32", modrm);
+		return false;
 	} else {
 		UINT32 ea = GetEA(cpustate,modrm,0,6);
-		STORE_REG32(modrm, READ32(cpustate,ea + 0));
+		UINT32 val = READ32(cpustate,ea + 0);
 		selector = READ16(cpustate,ea + 4);
-		i386_sreg_load(cpustate,selector,s,NULL);
+		i386_sreg_load(cpustate,selector,s,&fault);
+		if(!fault) {
+			STORE_REG32(modrm, val);
+		}
 	}
+	return !fault;
 }
 
 static void I386OP(lds32)(i386_state *cpustate)             // Opcode 0xc5
 {
-	I386OP(load_far_pointer32)(cpustate, DS);
-	CYCLES(cpustate,CYCLES_LDS);
+	if(I386OP(load_far_pointer32)(cpustate, DS)) {
+		CYCLES(cpustate,CYCLES_LDS);
+	}
 }
 
 static void I386OP(lss32)(i386_state *cpustate)             // Opcode 0x0f 0xb2
 {
-	I386OP(load_far_pointer32)(cpustate, SS);
-	CYCLES(cpustate,CYCLES_LSS);
+	if(I386OP(load_far_pointer32)(cpustate, SS)) {
+		CYCLES(cpustate,CYCLES_LSS);
+	}
 }
 
 static void I386OP(les32)(i386_state *cpustate)             // Opcode 0xc4
 {
-	I386OP(load_far_pointer32)(cpustate, ES);
-	CYCLES(cpustate,CYCLES_LES);
+	if(I386OP(load_far_pointer32)(cpustate, ES)) {
+		CYCLES(cpustate,CYCLES_LES);
+	}
 }
 
 static void I386OP(lfs32)(i386_state *cpustate)             // Opcode 0x0f 0xb4
 {
-	I386OP(load_far_pointer32)(cpustate, FS);
-	CYCLES(cpustate,CYCLES_LFS);
+	if(I386OP(load_far_pointer32)(cpustate, FS)) {
+		CYCLES(cpustate,CYCLES_LFS);
+	}
 }
 
 static void I386OP(lgs32)(i386_state *cpustate)             // Opcode 0x0f 0xb5
 {
-	I386OP(load_far_pointer32)(cpustate, GS);
-	CYCLES(cpustate,CYCLES_LGS);
+	if(I386OP(load_far_pointer32)(cpustate, GS)) {
+		CYCLES(cpustate,CYCLES_LGS);
+	}
 }

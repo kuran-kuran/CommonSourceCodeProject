@@ -243,22 +243,22 @@ static const I386_OPCODE i386_opcode_table1[256] =
 	{_T("outsb"),           0,              PARAM_PREIMP,       0,                  0               },
 	{_T("outsw\0outsd\0outsd"),VAR_NAME,    PARAM_PREIMP,       0,                  0               },
 	// 0x70
-	{_T("jo"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jno"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jb"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jae"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("je"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jne"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jbe"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("ja"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("js"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jns"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jp"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jnp"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jl"),              0,              PARAM_REL8,         0,                  0               },
-	{_T("jge"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jle"),             0,              PARAM_REL8,         0,                  0               },
-	{_T("jg"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jo"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jno"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jb"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jae"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("je"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jne"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jbe"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("ja"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("js"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jns"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jp"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jnp"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jl"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jge"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jle"),             0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jg"),              0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
 	// 0x80
 	{_T("group80"),         GROUP,          0,                  0,                  0               },
 	{_T("group81"),         GROUP,          0,                  0,                  0               },
@@ -342,7 +342,7 @@ static const I386_OPCODE i386_opcode_table1[256] =
 	{_T("retf"),            0,              0,                  0,                  0,              DASMFLAG_STEP_OUT},
 	{_T("int 3"),           0,              0,                  0,                  0,              DASMFLAG_STEP_OVER},
 	{_T("int"),             0,              PARAM_UI8,          0,                  0,              DASMFLAG_STEP_OVER},
-	{_T("into"),            0,              0,                  0,                  0               },
+	{_T("into"),            0,              0,                  0,                  0,              DASMFLAG_STEP_OVER | DASMFLAG_STEP_COND},
 	{_T("iret"),            0,              0,                  0,                  0,              DASMFLAG_STEP_OUT},
 	// 0xd0
 	{_T("groupD0"),         GROUP,          0,                  0,                  0               },
@@ -362,10 +362,10 @@ static const I386_OPCODE i386_opcode_table1[256] =
 	{_T("escape"),          FPU,            0,                  0,                  0               },
 	{_T("escape"),          FPU,            0,                  0,                  0               },
 	// 0xe0
-	{_T("loopne"),          0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
-	{_T("loopz"),           0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
-	{_T("loop"),            0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
-	{_T("jcxz\0jecxz\0jrcxz"),VAR_NAME,     PARAM_REL8,         0,                  0               },
+	{_T("loopne"),          0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("loopz"),           0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("loop"),            0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
+	{_T("jcxz\0jecxz\0jrcxz"),VAR_NAME,     PARAM_REL8,         0,                  0,              DASMFLAG_STEP_COND},
 	{_T("in"),              0,              PARAM_AL,           PARAM_UI8,          0               },
 	{_T("in"),              0,              PARAM_EAX,          PARAM_UI8,          0               },
 	{_T("out"),             0,              PARAM_UI8,          PARAM_AL,           0               },
@@ -381,8 +381,8 @@ static const I386_OPCODE i386_opcode_table1[256] =
 	// 0xf0
 	{_T("lock"),            0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
-	{_T("repne"),           PREFIX,         0,                  0,                  0               },
-	{_T("rep"),             PREFIX,         0,                  0,                  0               },
+	{_T("repne"),           PREFIX,         0,                  0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("rep"),             PREFIX,         0,                  0,                  0,              DASMFLAG_STEP_OVER},
 	{_T("hlt"),             0,              0,                  0,                  0               },
 	{_T("cmc"),             0,              0,                  0,                  0               },
 	{_T("groupF6"),         GROUP,          0,                  0,                  0               },
@@ -2793,9 +2793,9 @@ static _TCHAR *hexstring(UINT32 value, int digits)
 	static _TCHAR buffer[20];
 	buffer[0] = _T('0');
 	if (digits)
-		_stprintf(&buffer[1], _T("%0*Xh"), digits, value);
+		_sntprintf(&buffer[1], 19, _T("%0*Xh"), digits, value);
 	else
-		_stprintf(&buffer[1], _T("%Xh"), value);
+		_sntprintf(&buffer[1], 19, _T("%Xh"), value);
 	return (buffer[1] >= _T('0') && buffer[1] <= _T('9')) ? &buffer[1] : &buffer[0];
 }
 
@@ -2804,9 +2804,9 @@ static _TCHAR *hexstring64(UINT32 lo, UINT32 hi)
 	static _TCHAR buffer[40];
 	buffer[0] = _T('0');
 	if (hi != 0)
-		_stprintf(&buffer[1], _T("%X%08Xh"), hi, lo);
+		_sntprintf(&buffer[1], 39, _T("%X%08Xh"), hi, lo);
 	else
-		_stprintf(&buffer[1], _T("%Xh"), lo);
+		_sntprintf(&buffer[1], 39, _T("%Xh"), lo);
 	return (buffer[1] >= _T('0') && buffer[1] <= _T('9')) ? &buffer[1] : &buffer[0];
 }
 
@@ -2822,9 +2822,9 @@ static _TCHAR *shexstring(UINT32 value, int digits, int always)
 {
 	static _TCHAR buffer[20];
 	if (value >= 0x80000000)
-		_stprintf(buffer, _T("-%s"), hexstring(-value, digits));
+		_sntprintf(buffer, 20, _T("-%s"), hexstring(-value, digits));
 	else if (always)
-		_stprintf(buffer, _T("+%s"), hexstring(value, digits));
+		_sntprintf(buffer, 20, _T("+%s"), hexstring(value, digits));
 	else
 		return hexstring(value, digits);
 	return buffer;

@@ -5,15 +5,26 @@
 extern flag float32_is_nan( float32 a ); // since its not defined in softfloat.h
 extern flag float64_is_nan( float64 a ); // since its not defined in softfloat.h
 
-INLINE void MMXPROLOG(i386_state *cpustate)
+INLINE bool MMXPROLOG(i386_state *cpustate)
 {
-	if (cpustate->cr[0] & 0xc)
+	if (cpustate->cr[0] & CR0_TS)
 	{
-		i386_trap(cpustate, FAULT_NM, 0, 0);
-		return;
+		i386_trap(cpustate, FAULT_NM, 0);
+		return true;
 	}
-	//cpustate->x87_sw &= ~(X87_SW_TOP_MASK << X87_SW_TOP_SHIFT); // top = 0
+	x87_set_stack_top(cpustate, 0);
 	cpustate->x87_tw = 0; // tag word = 0
+	return false;
+}
+
+INLINE bool SSEPROLOG(i386_state *cpustate)
+{
+	if (cpustate->cr[0] & CR0_TS)
+	{
+		i386_trap(cpustate, FAULT_NM, 0);
+		return true;
+	}
+	return false;
 }
 
 INLINE void READMMX(i386_state *cpustate,UINT32 ea,MMX_REG &r)
@@ -61,12 +72,13 @@ INLINE void WRITEXMM_HI64(i386_state *cpustate,UINT32 ea,XMM_REG &r)
 static void PENTIUMOP(rdmsr)(i386_state* cpustate)          // Opcode 0x0f 32
 {
 	UINT64 data;
-	UINT8 valid_msr = 0;
+	bool valid_msr = false;
 
-	data = MSR_READ(cpustate,REG32(ECX),&valid_msr);
+	// call the model specific implementation
+	data = opcode_rdmsr(cpustate, valid_msr);
 
-	if(cpustate->CPL != 0 || valid_msr == 0) // if current privilege level isn't 0 or the register isn't recognized ...
-		FAULT(FAULT_GP,0) // ... throw a general exception fault
+	if (cpustate->CPL != 0 || valid_msr == false) // if current privilege level isn't 0 or the register isn't recognized ...
+		FAULT(FAULT_GP, 0) // ... throw a general exception fault
 	else
 	{
 		REG32(EDX) = data >> 32;
@@ -79,14 +91,15 @@ static void PENTIUMOP(rdmsr)(i386_state* cpustate)          // Opcode 0x0f 32
 static void PENTIUMOP(wrmsr)(i386_state* cpustate)          // Opcode 0x0f 30
 {
 	UINT64 data;
-	UINT8 valid_msr = 0;
+	bool valid_msr = false;
 
 	data = (UINT64)REG32(EAX);
 	data |= (UINT64)(REG32(EDX)) << 32;
 
-	MSR_WRITE(cpustate,REG32(ECX),data,&valid_msr);
+	// call the model specific implementation
+	opcode_wrmsr(cpustate, data, valid_msr);
 
-	if(cpustate->CPL != 0 || valid_msr == 0) // if current privilege level isn't 0 or the register isn't recognized
+	if(cpustate->CPL != 0 || valid_msr == false) // if current privilege level isn't 0 or the register isn't recognized
 		FAULT(FAULT_GP,0) // ... throw a general exception fault
 
 	CYCLES(cpustate,1);     // TODO: correct cycle count (~30-45)
@@ -103,103 +116,28 @@ static void PENTIUMOP(rdtsc)(i386_state* cpustate)          // Opcode 0x0f 31
 
 static void PENTIUMOP(ud2)(i386_state* cpustate)    // Opcode 0x0f 0b
 {
-	i386_trap(cpustate, 6, 0, 0);
+	i386_trap(cpustate, 6, 0);
 }
 
 static void PENTIUMOP(rsm)(i386_state* cpustate)
 {
-	UINT32 smram_state = cpustate->smbase + 0xfe00;
 	if(!cpustate->smm)
 	{
 		logerror("i386: Invalid RSM outside SMM at %08X\n", cpustate->pc - 1);
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 		return;
 	}
 
-	// load state, no sanity checks anywhere
-	cpustate->smbase = READ32(cpustate,smram_state+SMRAM_SMBASE);
-	cpustate->cr[4] = READ32(cpustate,smram_state+SMRAM_IP5_CR4);
-	cpustate->sreg[ES].limit = READ32(cpustate,smram_state+SMRAM_IP5_ESLIM);
-	cpustate->sreg[ES].base = READ32(cpustate,smram_state+SMRAM_IP5_ESBASE);
-	cpustate->sreg[ES].flags = READ32(cpustate,smram_state+SMRAM_IP5_ESACC);
-	cpustate->sreg[CS].limit = READ32(cpustate,smram_state+SMRAM_IP5_CSLIM);
-	cpustate->sreg[CS].base = READ32(cpustate,smram_state+SMRAM_IP5_CSBASE);
-	cpustate->sreg[CS].flags = READ32(cpustate,smram_state+SMRAM_IP5_CSACC);
-	cpustate->sreg[SS].limit = READ32(cpustate,smram_state+SMRAM_IP5_SSLIM);
-	cpustate->sreg[SS].base = READ32(cpustate,smram_state+SMRAM_IP5_SSBASE);
-	cpustate->sreg[SS].flags = READ32(cpustate,smram_state+SMRAM_IP5_SSACC);
-	cpustate->sreg[DS].limit = READ32(cpustate,smram_state+SMRAM_IP5_DSLIM);
-	cpustate->sreg[DS].base = READ32(cpustate,smram_state+SMRAM_IP5_DSBASE);
-	cpustate->sreg[DS].flags = READ32(cpustate,smram_state+SMRAM_IP5_DSACC);
-	cpustate->sreg[FS].limit = READ32(cpustate,smram_state+SMRAM_IP5_FSLIM);
-	cpustate->sreg[FS].base = READ32(cpustate,smram_state+SMRAM_IP5_FSBASE);
-	cpustate->sreg[FS].flags = READ32(cpustate,smram_state+SMRAM_IP5_FSACC);
-	cpustate->sreg[GS].limit = READ32(cpustate,smram_state+SMRAM_IP5_GSLIM);
-	cpustate->sreg[GS].base = READ32(cpustate,smram_state+SMRAM_IP5_GSBASE);
-	cpustate->sreg[GS].flags = READ32(cpustate,smram_state+SMRAM_IP5_GSACC);
-	cpustate->ldtr.flags = READ32(cpustate,smram_state+SMRAM_IP5_LDTACC);
-	cpustate->ldtr.limit = READ32(cpustate,smram_state+SMRAM_IP5_LDTLIM);
-	cpustate->ldtr.base = READ32(cpustate,smram_state+SMRAM_IP5_LDTBASE);
-	cpustate->gdtr.limit = READ32(cpustate,smram_state+SMRAM_IP5_GDTLIM);
-	cpustate->gdtr.base = READ32(cpustate,smram_state+SMRAM_IP5_GDTBASE);
-	cpustate->idtr.limit = READ32(cpustate,smram_state+SMRAM_IP5_IDTLIM);
-	cpustate->idtr.base = READ32(cpustate,smram_state+SMRAM_IP5_IDTBASE);
-	cpustate->task.limit = READ32(cpustate,smram_state+SMRAM_IP5_TRLIM);
-	cpustate->task.base = READ32(cpustate,smram_state+SMRAM_IP5_TRBASE);
-	cpustate->task.flags = READ32(cpustate,smram_state+SMRAM_IP5_TRACC);
-
-	cpustate->sreg[ES].selector = READ32(cpustate,smram_state+SMRAM_ES);
-	cpustate->sreg[CS].selector = READ32(cpustate,smram_state+SMRAM_CS);
-	cpustate->sreg[SS].selector = READ32(cpustate,smram_state+SMRAM_SS);
-	cpustate->sreg[DS].selector = READ32(cpustate,smram_state+SMRAM_DS);
-	cpustate->sreg[FS].selector = READ32(cpustate,smram_state+SMRAM_FS);
-	cpustate->sreg[GS].selector = READ32(cpustate,smram_state+SMRAM_GS);
-	cpustate->ldtr.segment = READ32(cpustate,smram_state+SMRAM_LDTR);
-	cpustate->task.segment = READ32(cpustate,smram_state+SMRAM_TR);
-
-	cpustate->dr[7] = READ32(cpustate,smram_state+SMRAM_DR7);
-	cpustate->dr[6] = READ32(cpustate,smram_state+SMRAM_DR6);
-	REG32(EAX) = READ32(cpustate,smram_state+SMRAM_EAX);
-	REG32(ECX) = READ32(cpustate,smram_state+SMRAM_ECX);
-	REG32(EDX) = READ32(cpustate,smram_state+SMRAM_EDX);
-	REG32(EBX) = READ32(cpustate,smram_state+SMRAM_EBX);
-	REG32(ESP) = READ32(cpustate,smram_state+SMRAM_ESP);
-	REG32(EBP) = READ32(cpustate,smram_state+SMRAM_EBP);
-	REG32(ESI) = READ32(cpustate,smram_state+SMRAM_ESI);
-	REG32(EDI) = READ32(cpustate,smram_state+SMRAM_EDI);
-	cpustate->eip = READ32(cpustate,smram_state+SMRAM_EIP);
-	cpustate->eflags = READ32(cpustate,smram_state+SMRAM_EFLAGS);
-	cpustate->cr[3] = READ32(cpustate,smram_state+SMRAM_CR3);
-	cpustate->cr[0] = READ32(cpustate,smram_state+SMRAM_CR0);
-
-	cpustate->CPL = (cpustate->sreg[SS].flags >> 13) & 3; // cpl == dpl of ss
-
-	for(int i = 0; i <= GS; i++)
-	{
-		if(PROTECTED_MODE && !V8086_MODE)
-		{
-			cpustate->sreg[i].valid = cpustate->sreg[i].selector ? true : false;
-			cpustate->sreg[i].d = (cpustate->sreg[i].flags & 0x4000) ? 1 : 0;
-		}
-		else
-			cpustate->sreg[i].valid = true;
-	}
-
-//	if(!cpustate->smiact.isnull())
-//		cpustate->smiact(false);
-	cpustate->smm = false;
-
-	CHANGE_PC(cpustate,cpustate->eip);
-	cpustate->nmi_masked = false;
+	leave_smm(cpustate);
 	if(cpustate->smi_latched)
 	{
-		pentium_smi(cpustate);
+		enter_smm(cpustate);
 		return;
 	}
 	if(cpustate->nmi_latched)
 	{
 		cpustate->nmi_latched = false;
-		i386_trap(cpustate, 2, 1, 0);
+		i386_trap(cpustate, 2, 1);
 	}
 }
 
@@ -207,6 +145,7 @@ static void PENTIUMOP(prefetch_m8)(i386_state* cpustate)    // Opcode 0x0f 18
 {
 	UINT8 modrm = FETCH(cpustate);
 	UINT32 ea = GetEA(cpustate,modrm,0,1);
+	// TODO: manage the cache if present
 	CYCLES(cpustate,1+(ea & 1)); // TODO: correct cycle count
 }
 
@@ -1049,7 +988,7 @@ static void PENTIUMOP(movnti_m16_r16)(i386_state* cpustate) // Opcode 0f c3
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 2);
 		WRITE16(cpustate,ea,LOAD_RM16(modrm));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -1063,7 +1002,7 @@ static void PENTIUMOP(movnti_m32_r32)(i386_state* cpustate) // Opcode 0f c3
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 4);
 		WRITE32(cpustate,ea,LOAD_RM32(modrm));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -1072,12 +1011,12 @@ static void PENTIUMOP(movnti_m32_r32)(i386_state* cpustate) // Opcode 0f c3
 
 static void I386OP(cyrix_special)(i386_state* cpustate)     // Opcode 0x0f 3a-3d
 {
-/*
-0f 3a       BB0_RESET (set BB0 pointer = base)
-0f 3b       BB1_RESET (set BB1 pointer = base)
-0f 3c       CPU_WRITE (write special CPU memory-mapped register, [ebx] = eax)
-0f 3d       CPU_READ (read special CPU memory-mapped register, eax, = [ebx])
-*/
+	/*
+	0f 3a       BB0_RESET (set BB0 pointer = base)
+	0f 3b       BB1_RESET (set BB1 pointer = base)
+	0f 3c       CPU_WRITE (write special CPU memory-mapped register, [ebx] = eax)
+	0f 3d       CPU_READ (read special CPU memory-mapped register, eax, = [ebx])
+	*/
 
 	CYCLES(cpustate,1);
 }
@@ -1115,12 +1054,12 @@ static void PENTIUMOP(cmpxchg8b_m64)(i386_state* cpustate)  // Opcode 0x0f c7
 
 static void PENTIUMOP(movntq_m64_r64)(i386_state* cpustate) // Opcode 0f e7
 {
-	//MMXPROLOG(cpustate); // TODO: check if needed
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		CYCLES(cpustate,1);     // unsupported
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 8);
 		WRITEMMX(cpustate, ea, MMX((modrm >> 3) & 0x7));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -1132,7 +1071,7 @@ static void PENTIUMOP(maskmovq_r64_r64)(i386_state* cpustate)  // Opcode 0f f7
 	int s,m,n;
 	UINT8 modm = FETCH(cpustate);
 	UINT32 ea = GetEA(cpustate,7, 0, 8); // ds:di/edi/rdi register
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	s=(modm >> 3) & 7;
 	m=modm & 7;
 	for (n=0;n <= 7;n++)
@@ -1144,6 +1083,7 @@ static void SSEOP(maskmovdqu_r128_r128)(i386_state* cpustate)  // Opcode 66 0f f
 {
 	int s,m,n;
 	UINT8 modm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	UINT32 ea = GetEA(cpustate,7, 0, 16); // ds:di/edi/rdi register
 	s=(modm >> 3) & 7;
 	m=modm & 7;
@@ -1248,7 +1188,7 @@ static void MMXOP(group_0f71)(i386_state* cpustate)  // Opcode 0f 71
 {
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modm >= 0xc0 ) {
 		switch ( (modm & 0x38) >> 3 )
 		{
@@ -1280,6 +1220,7 @@ static void SSEOP(group_660f71)(i386_state* cpustate)  // Opcode 66 0f 71
 {
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modm >= 0xc0) {
 		switch ((modm & 0x38) >> 3)
 		{
@@ -1305,7 +1246,7 @@ static void MMXOP(group_0f72)(i386_state* cpustate)  // Opcode 0f 72
 {
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modm >= 0xc0 ) {
 		switch ( (modm & 0x38) >> 3 )
 		{
@@ -1331,6 +1272,7 @@ static void SSEOP(group_660f72)(i386_state* cpustate)  // Opcode 66 0f 72
 {
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modm >= 0xc0) {
 		switch ((modm & 0x38) >> 3)
 		{
@@ -1356,7 +1298,7 @@ static void MMXOP(group_0f73)(i386_state* cpustate)  // Opcode 0f 73
 {
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modm >= 0xc0 ) {
 		switch ( (modm & 0x38) >> 3 )
 		{
@@ -1377,6 +1319,7 @@ static void SSEOP(group_660f73)(i386_state* cpustate)  // Opcode 66 0f 73
 	UINT64 t0;
 	UINT8 modm = FETCH(cpustate);
 	UINT8 imm8 = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modm >= 0xc0) {
 		switch ((modm & 0x38) >> 3)
 		{
@@ -1435,7 +1378,7 @@ static void SSEOP(group_660f73)(i386_state* cpustate)  // Opcode 66 0f 73
 
 static void MMXOP(psrlw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d1
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1458,7 +1401,7 @@ static void MMXOP(psrlw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d1
 
 static void MMXOP(psrld_r64_rm64)(i386_state* cpustate)  // Opcode 0f d2
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1477,7 +1420,7 @@ static void MMXOP(psrld_r64_rm64)(i386_state* cpustate)  // Opcode 0f d2
 
 static void MMXOP(psrlq_r64_rm64)(i386_state* cpustate)  // Opcode 0f d3
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1494,7 +1437,7 @@ static void MMXOP(psrlq_r64_rm64)(i386_state* cpustate)  // Opcode 0f d3
 
 static void MMXOP(paddq_r64_rm64)(i386_state* cpustate)  // Opcode 0f d4
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=MMX((modrm >> 3) & 0x7).q+MMX(modrm & 7).q;
@@ -1509,7 +1452,7 @@ static void MMXOP(paddq_r64_rm64)(i386_state* cpustate)  // Opcode 0f d4
 
 static void MMXOP(pmullw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d5
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).w[0]=(UINT32)((INT32)MMX((modrm >> 3) & 0x7).s[0]*(INT32)MMX(modrm & 7).s[0]) & 0xffff;
@@ -1531,7 +1474,7 @@ static void MMXOP(pmullw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d5
 static void MMXOP(psubusb_r64_rm64)(i386_state* cpustate)  // Opcode 0f d8
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1549,7 +1492,7 @@ static void MMXOP(psubusb_r64_rm64)(i386_state* cpustate)  // Opcode 0f d8
 static void MMXOP(psubusw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d9
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1566,7 +1509,7 @@ static void MMXOP(psubusw_r64_rm64)(i386_state* cpustate)  // Opcode 0f d9
 
 static void MMXOP(pand_r64_rm64)(i386_state* cpustate)  // Opcode 0f db
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=MMX((modrm >> 3) & 0x7).q & MMX(modrm & 7).q;
@@ -1582,7 +1525,7 @@ static void MMXOP(pand_r64_rm64)(i386_state* cpustate)  // Opcode 0f db
 static void MMXOP(paddusb_r64_rm64)(i386_state* cpustate)  // Opcode 0f dc
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1600,7 +1543,7 @@ static void MMXOP(paddusb_r64_rm64)(i386_state* cpustate)  // Opcode 0f dc
 static void MMXOP(paddusw_r64_rm64)(i386_state* cpustate)  // Opcode 0f dd
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1617,7 +1560,7 @@ static void MMXOP(paddusw_r64_rm64)(i386_state* cpustate)  // Opcode 0f dd
 
 static void MMXOP(pandn_r64_rm64)(i386_state* cpustate)  // Opcode 0f df
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=(~MMX((modrm >> 3) & 0x7).q) & MMX(modrm & 7).q;
@@ -1632,7 +1575,7 @@ static void MMXOP(pandn_r64_rm64)(i386_state* cpustate)  // Opcode 0f df
 
 static void MMXOP(psraw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e1
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1655,7 +1598,7 @@ static void MMXOP(psraw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e1
 
 static void MMXOP(psrad_r64_rm64)(i386_state* cpustate)  // Opcode 0f e2
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1674,7 +1617,7 @@ static void MMXOP(psrad_r64_rm64)(i386_state* cpustate)  // Opcode 0f e2
 
 static void MMXOP(pmulhw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e5
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).w[0]=(UINT32)((INT32)MMX((modrm >> 3) & 0x7).s[0]*(INT32)MMX(modrm & 7).s[0]) >> 16;
@@ -1696,7 +1639,7 @@ static void MMXOP(pmulhw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e5
 static void MMXOP(psubsb_r64_rm64)(i386_state* cpustate)  // Opcode 0f e8
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1714,7 +1657,7 @@ static void MMXOP(psubsb_r64_rm64)(i386_state* cpustate)  // Opcode 0f e8
 static void MMXOP(psubsw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e9
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1731,7 +1674,7 @@ static void MMXOP(psubsw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e9
 
 static void MMXOP(por_r64_rm64)(i386_state* cpustate)  // Opcode 0f eb
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=MMX((modrm >> 3) & 0x7).q | MMX(modrm & 7).q;
@@ -1747,7 +1690,7 @@ static void MMXOP(por_r64_rm64)(i386_state* cpustate)  // Opcode 0f eb
 static void MMXOP(paddsb_r64_rm64)(i386_state* cpustate)  // Opcode 0f ec
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1765,7 +1708,7 @@ static void MMXOP(paddsb_r64_rm64)(i386_state* cpustate)  // Opcode 0f ec
 static void MMXOP(paddsw_r64_rm64)(i386_state* cpustate)  // Opcode 0f ed
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1782,7 +1725,7 @@ static void MMXOP(paddsw_r64_rm64)(i386_state* cpustate)  // Opcode 0f ed
 
 static void MMXOP(pxor_r64_rm64)(i386_state* cpustate)  // Opcode 0f ef
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=MMX((modrm >> 3) & 0x7).q ^ MMX(modrm & 7).q;
@@ -1797,7 +1740,7 @@ static void MMXOP(pxor_r64_rm64)(i386_state* cpustate)  // Opcode 0f ef
 
 static void MMXOP(psllw_r64_rm64)(i386_state* cpustate)  // Opcode 0f f1
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1820,7 +1763,7 @@ static void MMXOP(psllw_r64_rm64)(i386_state* cpustate)  // Opcode 0f f1
 
 static void MMXOP(pslld_r64_rm64)(i386_state* cpustate)  // Opcode 0f f2
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1839,7 +1782,7 @@ static void MMXOP(pslld_r64_rm64)(i386_state* cpustate)  // Opcode 0f f2
 
 static void MMXOP(psllq_r64_rm64)(i386_state* cpustate)  // Opcode 0f f3
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int count=(int)MMX(modrm & 7).q;
@@ -1856,7 +1799,7 @@ static void MMXOP(psllq_r64_rm64)(i386_state* cpustate)  // Opcode 0f f3
 
 static void MMXOP(pmaddwd_r64_rm64)(i386_state* cpustate)  // Opcode 0f f5
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).i[0]=(INT32)MMX((modrm >> 3) & 0x7).s[0]*(INT32)MMX(modrm & 7).s[0]+
@@ -1878,7 +1821,7 @@ static void MMXOP(pmaddwd_r64_rm64)(i386_state* cpustate)  // Opcode 0f f5
 static void MMXOP(psubb_r64_rm64)(i386_state* cpustate)  // Opcode 0f f8
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1896,7 +1839,7 @@ static void MMXOP(psubb_r64_rm64)(i386_state* cpustate)  // Opcode 0f f8
 static void MMXOP(psubw_r64_rm64)(i386_state* cpustate)  // Opcode 0f f9
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1914,7 +1857,7 @@ static void MMXOP(psubw_r64_rm64)(i386_state* cpustate)  // Opcode 0f f9
 static void MMXOP(psubd_r64_rm64)(i386_state* cpustate)  // Opcode 0f fa
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 2;n++)
@@ -1932,7 +1875,7 @@ static void MMXOP(psubd_r64_rm64)(i386_state* cpustate)  // Opcode 0f fa
 static void MMXOP(paddb_r64_rm64)(i386_state* cpustate)  // Opcode 0f fc
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -1950,7 +1893,7 @@ static void MMXOP(paddb_r64_rm64)(i386_state* cpustate)  // Opcode 0f fc
 static void MMXOP(paddw_r64_rm64)(i386_state* cpustate)  // Opcode 0f fd
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -1968,7 +1911,7 @@ static void MMXOP(paddw_r64_rm64)(i386_state* cpustate)  // Opcode 0f fd
 static void MMXOP(paddd_r64_rm64)(i386_state* cpustate)  // Opcode 0f fe
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 2;n++)
@@ -1985,13 +1928,17 @@ static void MMXOP(paddd_r64_rm64)(i386_state* cpustate)  // Opcode 0f fe
 
 static void MMXOP(emms)(i386_state* cpustate) // Opcode 0f 77
 {
-	if (cpustate->cr[0] & 0xc)
+	if (cpustate->cr[0] & CR0_TS)
 	{
-		i386_trap(cpustate, FAULT_NM, 0, 0);
+		i386_trap(cpustate, FAULT_NM, 0);
+		return;
+	}
+	if (cpustate->cr[0] & CR0_EM)
+	{
+		i386_trap(cpustate, FAULT_UD, 0);
 		return;
 	}
 	cpustate->x87_tw = 0xffff; // tag word = 0xffff
-	// TODO
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
@@ -2037,7 +1984,7 @@ static void I386OP(cyrix_svdc)(i386_state* cpustate) // Opcode 0f 78
 
 			default:
 			{
-				i386_trap(cpustate, 6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 		}
 
@@ -2054,7 +2001,7 @@ static void I386OP(cyrix_svdc)(i386_state* cpustate) // Opcode 0f 78
 		WRITE8(cpustate,ea + 7, cpustate->sreg[index].base >> 24);
 		WRITE16(cpustate,ea + 8, cpustate->sreg[index].selector);
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -2103,7 +2050,7 @@ static void I386OP(cyrix_rsdc)(i386_state* cpustate) // Opcode 0f 79
 
 			default:
 			{
-				i386_trap(cpustate, 6, 0, 0);
+				i386_trap(cpustate, 6, 0);
 			}
 		}
 
@@ -2121,7 +2068,7 @@ static void I386OP(cyrix_rsdc)(i386_state* cpustate) // Opcode 0f 79
 		cpustate->sreg[index].base = base;
 		cpustate->sreg[index].limit = limit;
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -2147,10 +2094,10 @@ static void I386OP(cyrix_svldt)(i386_state* cpustate) // Opcode 0f 7a
 			WRITE8(cpustate,ea + 7, cpustate->ldtr.base >> 24);
 			WRITE16(cpustate,ea + 8, cpustate->ldtr.segment);
 		} else {
-			i386_trap(cpustate, 6, 0, 0);
+			i386_trap(cpustate, 6, 0);
 		}
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -2183,10 +2130,10 @@ static void I386OP(cyrix_rsldt)(i386_state* cpustate) // Opcode 0f 7b
 			cpustate->ldtr.base = base;
 			cpustate->ldtr.flags = flags;
 		} else {
-			i386_trap(cpustate, 6, 0, 0);
+			i386_trap(cpustate, 6, 0);
 		}
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -2212,10 +2159,10 @@ static void I386OP(cyrix_svts)(i386_state* cpustate) // Opcode 0f 7c
 			WRITE8(cpustate,ea + 7, cpustate->task.base >> 24);
 			WRITE16(cpustate,ea + 8, cpustate->task.segment);
 		} else {
-			i386_trap(cpustate, 6, 0, 0);
+			i386_trap(cpustate, 6, 0);
 		}
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 }
 
@@ -2243,17 +2190,17 @@ static void I386OP(cyrix_rsts)(i386_state* cpustate) // Opcode 0f 7d
 			cpustate->task.base = base;
 			cpustate->task.flags = flags;
 		} else {
-			i386_trap(cpustate, 6, 0, 0);
+			i386_trap(cpustate, 6, 0);
 		}
 	} else {
-		i386_trap(cpustate, 6, 0, 0);
+		i386_trap(cpustate, 6, 0);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
 static void MMXOP(movd_r64_rm32)(i386_state* cpustate) // Opcode 0f 6e
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).d[0]=LOAD_RM32(modrm);
@@ -2267,7 +2214,7 @@ static void MMXOP(movd_r64_rm32)(i386_state* cpustate) // Opcode 0f 6e
 
 static void MMXOP(movq_r64_rm64)(i386_state* cpustate) // Opcode 0f 6f
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).l=MMX(modrm & 0x7).l;
@@ -2280,7 +2227,7 @@ static void MMXOP(movq_r64_rm64)(i386_state* cpustate) // Opcode 0f 6f
 
 static void MMXOP(movd_rm32_r64)(i386_state* cpustate) // Opcode 0f 7e
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		STORE_RM32(modrm, MMX((modrm >> 3) & 0x7).d[0]);
@@ -2293,7 +2240,7 @@ static void MMXOP(movd_rm32_r64)(i386_state* cpustate) // Opcode 0f 7e
 
 static void MMXOP(movq_rm64_r64)(i386_state* cpustate) // Opcode 0f 7f
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX(modrm & 0x7)=MMX((modrm >> 3) & 0x7);
@@ -2307,7 +2254,7 @@ static void MMXOP(movq_rm64_r64)(i386_state* cpustate) // Opcode 0f 7f
 static void MMXOP(pcmpeqb_r64_rm64)(i386_state* cpustate) // Opcode 0f 74
 {
 	int c;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2328,7 +2275,7 @@ static void MMXOP(pcmpeqb_r64_rm64)(i386_state* cpustate) // Opcode 0f 74
 
 static void MMXOP(pcmpeqw_r64_rm64)(i386_state* cpustate) // Opcode 0f 75
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2353,7 +2300,7 @@ static void MMXOP(pcmpeqw_r64_rm64)(i386_state* cpustate) // Opcode 0f 75
 
 static void MMXOP(pcmpeqd_r64_rm64)(i386_state* cpustate) // Opcode 0f 76
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2374,7 +2321,7 @@ static void MMXOP(pcmpeqd_r64_rm64)(i386_state* cpustate) // Opcode 0f 76
 
 static void MMXOP(pshufw_r64_rm64_i8)(i386_state* cpustate) // Opcode 0f 70
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX_REG t;
@@ -2404,6 +2351,7 @@ static void MMXOP(pshufw_r64_rm64_i8)(i386_state* cpustate) // Opcode 0f 70
 static void SSEOP(punpcklbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 60
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG xd,xs;
 		int s, d;
@@ -2445,6 +2393,7 @@ static void SSEOP(punpcklbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 60
 static void SSEOP(punpcklwd_r128_rm128)(i386_state* cpustate)
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG xd, xs;
 		int s, d;
@@ -2474,6 +2423,7 @@ static void SSEOP(punpcklwd_r128_rm128)(i386_state* cpustate)
 static void SSEOP(punpckldq_r128_rm128)(i386_state* cpustate)
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG xd, xs;
 		int s, d;
@@ -2503,6 +2453,7 @@ static void SSEOP(punpckldq_r128_rm128)(i386_state* cpustate)
 static void SSEOP(punpcklqdq_r128_rm128)(i386_state* cpustate)
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG xd, xs;
 		int s, d;
@@ -2527,119 +2478,116 @@ static void SSEOP(punpcklqdq_r128_rm128)(i386_state* cpustate)
 
 static void MMXOP(punpcklbw_r64_r64m32)(i386_state* cpustate) // Opcode 0f 60
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
-		UINT32 t;
-		int s,d;
-		s=modrm & 0x7;
-		d=(modrm >> 3) & 0x7;
-		t=MMX(d).d[0];
-		MMX(d).b[0]=t & 0xff;
-		MMX(d).b[1]=MMX(s).b[0];
-		MMX(d).b[2]=(t >> 8) & 0xff;
-		MMX(d).b[3]=MMX(s).b[1];
-		MMX(d).b[4]=(t >> 16) & 0xff;
-		MMX(d).b[5]=MMX(s).b[2];
-		MMX(d).b[6]=(t >> 24) & 0xff;
-		MMX(d).b[7]=MMX(s).b[3];
+		int s, d;
+		s = modrm & 0x7;
+		d = (modrm >> 3) & 0x7;
+		MMX(d).b[7] = MMX(s).b[3];
+		MMX(d).b[6] = MMX(d).b[3];
+		MMX(d).b[5] = MMX(s).b[2];
+		MMX(d).b[4] = MMX(d).b[2];
+		MMX(d).b[3] = MMX(s).b[1];
+		MMX(d).b[2] = MMX(d).b[1];
+		MMX(d).b[1] = MMX(s).b[0];
+		MMX(d).b[0] = MMX(d).b[0];
 	} else {
-		UINT32 s,t;
-		int d=(modrm >> 3) & 0x7;
+		UINT32 s;
+		int d = (modrm >> 3) & 0x7;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 4);
 		s = READ32(cpustate,ea);
-		t=MMX(d).d[0];
-		MMX(d).b[0]=t & 0xff;
-		MMX(d).b[1]=s & 0xff;
-		MMX(d).b[2]=(t >> 8) & 0xff;
-		MMX(d).b[3]=(s >> 8) & 0xff;
-		MMX(d).b[4]=(t >> 16) & 0xff;
-		MMX(d).b[5]=(s >> 16) & 0xff;
-		MMX(d).b[6]=(t >> 24) & 0xff;
-		MMX(d).b[7]=(s >> 24) & 0xff;
+		MMX(d).b[7] = (s >> 24) & 0xff;
+		MMX(d).b[6] = MMX(d).b[3];
+		MMX(d).b[5] = (s >> 16) & 0xff;
+		MMX(d).b[4] = MMX(d).b[2];
+		MMX(d).b[3] = (s >> 8) & 0xff;
+		MMX(d).b[2] = MMX(d).b[1];
+		MMX(d).b[1] = s & 0xff;
+		MMX(d).b[0] = MMX(d).b[0];
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
 static void MMXOP(punpcklwd_r64_r64m32)(i386_state* cpustate) // Opcode 0f 61
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
-		UINT16 t;
-		int s,d;
-		s=modrm & 0x7;
-		d=(modrm >> 3) & 0x7;
-		t=MMX(d).w[1];
-		MMX(d).w[0]=MMX(d).w[0];
-		MMX(d).w[1]=MMX(s).w[0];
-		MMX(d).w[2]=t;
-		MMX(d).w[3]=MMX(s).w[1];
+		int s, d;
+		s = modrm & 0x7;
+		d = (modrm >> 3) & 0x7;
+		MMX(d).w[3] = MMX(s).w[1];
+		MMX(d).w[2] = MMX(d).w[1];
+		MMX(d).w[1] = MMX(s).w[0];
+		MMX(d).w[0] = MMX(d).w[0];
 	} else {
 		UINT32 s;
-		UINT16 t;
-		int d=(modrm >> 3) & 0x7;
+		int d = (modrm >> 3) & 0x7;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 4);
 		s = READ32(cpustate,ea);
-		t=MMX(d).w[1];
-		MMX(d).w[0]=MMX(d).w[0];
-		MMX(d).w[1]=s & 0xffff;
-		MMX(d).w[2]=t;
-		MMX(d).w[3]=(s >> 16) & 0xffff;
+		MMX(d).w[3] = (s >> 16) & 0xffff;
+		MMX(d).w[2] = MMX(d).w[1];
+		MMX(d).w[1] = s & 0xffff;
+		MMX(d).w[0] = MMX(d).w[0];
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
 static void MMXOP(punpckldq_r64_r64m32)(i386_state* cpustate) // Opcode 0f 62
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
-		int s,d;
-		s=modrm & 0x7;
-		d=(modrm >> 3) & 0x7;
-		MMX(d).d[0]=MMX(d).d[0];
-		MMX(d).d[1]=MMX(s).d[0];
+		int s, d;
+		s = modrm & 0x7;
+		d = (modrm >> 3) & 0x7;
+		MMX(d).d[1] = MMX(s).d[0];
+		MMX(d).d[0] = MMX(d).d[0];
 	} else {
 		UINT32 s;
-		int d=(modrm >> 3) & 0x7;
+		int d = (modrm >> 3) & 0x7;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 4);
 		s = READ32(cpustate,ea);
-		MMX(d).d[0]=MMX(d).d[0];
-		MMX(d).d[1]=s;
+		MMX(d).d[1] = s;
+		MMX(d).d[0] = MMX(d).d[0];
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
 static void MMXOP(packsswb_r64_rm64)(i386_state* cpustate) // Opcode 0f 63
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
-		int s,d;
-		s=modrm & 0x7;
-		d=(modrm >> 3) & 0x7;
-		MMX(d).c[0]=SaturatedSignedWordToSignedByte(MMX(d).s[0]);
-		MMX(d).c[1]=SaturatedSignedWordToSignedByte(MMX(d).s[1]);
-		MMX(d).c[2]=SaturatedSignedWordToSignedByte(MMX(d).s[2]);
-		MMX(d).c[3]=SaturatedSignedWordToSignedByte(MMX(d).s[3]);
-		MMX(d).c[4]=SaturatedSignedWordToSignedByte(MMX(s).s[0]);
-		MMX(d).c[5]=SaturatedSignedWordToSignedByte(MMX(s).s[1]);
-		MMX(d).c[6]=SaturatedSignedWordToSignedByte(MMX(s).s[2]);
-		MMX(d).c[7]=SaturatedSignedWordToSignedByte(MMX(s).s[3]);
+		MMX_REG ds, sd;
+		int s, d;
+		s = modrm & 0x7;
+		d = (modrm >> 3) & 0x7;
+		ds.q = MMX(d).q;
+		sd.q = MMX(s).q;
+		MMX(d).c[0] = SaturatedSignedWordToSignedByte(ds.s[0]);
+		MMX(d).c[1] = SaturatedSignedWordToSignedByte(ds.s[1]);
+		MMX(d).c[2] = SaturatedSignedWordToSignedByte(ds.s[2]);
+		MMX(d).c[3] = SaturatedSignedWordToSignedByte(ds.s[3]);
+		MMX(d).c[4] = SaturatedSignedWordToSignedByte(sd.s[0]);
+		MMX(d).c[5] = SaturatedSignedWordToSignedByte(sd.s[1]);
+		MMX(d).c[6] = SaturatedSignedWordToSignedByte(sd.s[2]);
+		MMX(d).c[7] = SaturatedSignedWordToSignedByte(sd.s[3]);
 	} else {
-		MMX_REG s;
-		int d=(modrm >> 3) & 0x7;
+		MMX_REG s, t;
+		int d = (modrm >> 3) & 0x7;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 8);
 		READMMX(cpustate, ea, s);
-		MMX(d).c[0]=SaturatedSignedWordToSignedByte(MMX(d).s[0]);
-		MMX(d).c[1]=SaturatedSignedWordToSignedByte(MMX(d).s[1]);
-		MMX(d).c[2]=SaturatedSignedWordToSignedByte(MMX(d).s[2]);
-		MMX(d).c[3]=SaturatedSignedWordToSignedByte(MMX(d).s[3]);
-		MMX(d).c[4]=SaturatedSignedWordToSignedByte(s.s[0]);
-		MMX(d).c[5]=SaturatedSignedWordToSignedByte(s.s[1]);
-		MMX(d).c[6]=SaturatedSignedWordToSignedByte(s.s[2]);
-		MMX(d).c[7]=SaturatedSignedWordToSignedByte(s.s[3]);
+		t.q = MMX(d).q;
+		MMX(d).c[0] = SaturatedSignedWordToSignedByte(t.s[0]);
+		MMX(d).c[1] = SaturatedSignedWordToSignedByte(t.s[1]);
+		MMX(d).c[2] = SaturatedSignedWordToSignedByte(t.s[2]);
+		MMX(d).c[3] = SaturatedSignedWordToSignedByte(t.s[3]);
+		MMX(d).c[4] = SaturatedSignedWordToSignedByte(s.s[0]);
+		MMX(d).c[5] = SaturatedSignedWordToSignedByte(s.s[1]);
+		MMX(d).c[6] = SaturatedSignedWordToSignedByte(s.s[2]);
+		MMX(d).c[7] = SaturatedSignedWordToSignedByte(s.s[3]);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -2647,7 +2595,7 @@ static void MMXOP(packsswb_r64_rm64)(i386_state* cpustate) // Opcode 0f 63
 static void MMXOP(pcmpgtb_r64_rm64)(i386_state* cpustate) // Opcode 0f 64
 {
 	int c;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2669,7 +2617,7 @@ static void MMXOP(pcmpgtb_r64_rm64)(i386_state* cpustate) // Opcode 0f 64
 static void MMXOP(pcmpgtw_r64_rm64)(i386_state* cpustate) // Opcode 0f 65
 {
 	int c;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2691,7 +2639,7 @@ static void MMXOP(pcmpgtw_r64_rm64)(i386_state* cpustate) // Opcode 0f 65
 static void MMXOP(pcmpgtd_r64_rm64)(i386_state* cpustate) // Opcode 0f 66
 {
 	int c;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2712,7 +2660,7 @@ static void MMXOP(pcmpgtd_r64_rm64)(i386_state* cpustate) // Opcode 0f 66
 
 static void MMXOP(packuswb_r64_rm64)(i386_state* cpustate) // Opcode 0f 67
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX_REG ds, sd;
@@ -2749,7 +2697,7 @@ static void MMXOP(packuswb_r64_rm64)(i386_state* cpustate) // Opcode 0f 67
 
 static void MMXOP(punpckhbw_r64_rm64)(i386_state* cpustate) // Opcode 0f 68
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2782,7 +2730,7 @@ static void MMXOP(punpckhbw_r64_rm64)(i386_state* cpustate) // Opcode 0f 68
 
 static void MMXOP(punpckhwd_r64_rm64)(i386_state* cpustate) // Opcode 0f 69
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2807,7 +2755,7 @@ static void MMXOP(punpckhwd_r64_rm64)(i386_state* cpustate) // Opcode 0f 69
 
 static void MMXOP(punpckhdq_r64_rm64)(i386_state* cpustate) // Opcode 0f 6a
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2828,7 +2776,7 @@ static void MMXOP(punpckhdq_r64_rm64)(i386_state* cpustate) // Opcode 0f 6a
 
 static void MMXOP(packssdw_r64_rm64)(i386_state* cpustate) // Opcode 0f 6b
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int s,d;
@@ -2874,6 +2822,70 @@ static void SSEOP(group_0fae)(i386_state* cpustate)  // Opcode 0f ae
 		UINT32 ea;
 		switch ( (modm & 0x38) >> 3 )
 		{
+			case 0: // fxsave instruction
+			{
+				UINT8 atag = 0;
+				ea = GetEA(cpustate,modm, 1, 512);
+				WRITE16(cpustate,ea + 0, cpustate->x87_cw);
+				WRITE16(cpustate,ea + 2, cpustate->x87_sw);
+				for(int i = 0; i < 8; i++)
+					if (((cpustate->x87_tw >> (i * 2)) & 3) != X87_TW_EMPTY) atag |= 1 << i;
+				WRITE16(cpustate,ea + 4, atag);
+				WRITE16(cpustate,ea + 6, cpustate->x87_opcode);
+				WRITE32(cpustate,ea + 8, cpustate->x87_inst_ptr);
+				WRITE32(cpustate,ea + 12, cpustate->x87_cs);
+				WRITE32(cpustate,ea + 16, cpustate->x87_data_ptr);
+				WRITE32(cpustate,ea + 20, cpustate->x87_ds);
+				WRITE32(cpustate,ea + 24, cpustate->mxcsr);
+				WRITE32(cpustate,ea + 28, 0); // mxcsr_mask
+				for(int i = 0; i < 8; i++)
+				{
+					WRITE64(cpustate, ea + i*16 + 32, cpustate->x87_reg[i].low);
+					WRITE64(cpustate, ea + i*16 + 40, cpustate->x87_reg[i].high);
+				}
+				for(int i = 0; i < 8; i++)
+				{
+					WRITE64(cpustate, ea + i*16 + 160, cpustate->sse_reg[i].q[0]);
+					WRITE64(cpustate, ea + i*16 + 168, cpustate->sse_reg[i].q[1]);
+				}
+				break;
+			}
+			case 1: // fxrstor instruction
+			{
+				UINT8 atag;
+				ea = GetEA(cpustate,modm, 0, 512);
+				x87_write_cw(cpustate,READ16(cpustate,ea));
+				cpustate->x87_sw = READ16(cpustate,ea + 2);
+				atag = READ8(cpustate,ea + 4);
+				cpustate->x87_opcode = READ16(cpustate,ea + 6);
+				cpustate->x87_inst_ptr = READ32(cpustate,ea + 8);
+				cpustate->x87_cs = READ16(cpustate,ea + 12);
+				cpustate->x87_data_ptr = READ32(cpustate,ea + 16);
+				cpustate->x87_ds = READ16(cpustate,ea + 20);
+				cpustate->mxcsr = READ32(cpustate,ea + 24);
+				// mxcsr_mask
+				for(int i = 0; i < 8; i++)
+				{
+					int tag;
+					cpustate->x87_reg[i].low = READ64(cpustate, ea + i*16 + 32);
+					cpustate->x87_reg[i].high = READ16(cpustate,ea + i*16 + 40);
+					if(!(atag & (1 << i)))
+						tag = X87_TW_EMPTY;
+					else if(floatx80_is_zero(cpustate->x87_reg[i]))
+						tag = X87_TW_ZERO;
+					else if(floatx80_is_inf(cpustate->x87_reg[i]) || floatx80_is_nan(cpustate->x87_reg[i]))
+						tag = X87_TW_SPECIAL;
+					else
+						tag = X87_TW_VALID;
+					x87_set_tag(cpustate, i, tag);
+				}
+				for(int i = 0; i < 8; i++)
+				{
+					cpustate->sse_reg[i].q[0] = READ64(cpustate, ea + i*16 + 160);
+					cpustate->sse_reg[i].q[1] = READ64(cpustate, ea + i*16 + 168);
+				}
+				break;
+			}
 			case 2: // ldmxcsr m32
 				ea = GetEA(cpustate,modm, 0, 4);
 				cpustate->mxcsr = READ32(cpustate,ea);
@@ -2896,6 +2908,7 @@ static void SSEOP(group_0fae)(i386_state* cpustate)  // Opcode 0f ae
 static void SSEOP(cvttps2dq_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 5b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).i[0]=(INT32)XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).i[1]=(INT32)XMM(modrm & 0x7).f[1];
@@ -2916,6 +2929,7 @@ static void SSEOP(cvttps2dq_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 5b
 static void SSEOP(cvtss2sd_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 5a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM(modrm & 0x7).f[0];
 	} else {
@@ -2931,6 +2945,7 @@ static void SSEOP(cvttss2si_r32_r128m32)(i386_state* cpustate) // Opcode f3 0f 2
 {
 	INT32 src;
 	UINT8 modrm = FETCH(cpustate); // get mordm byte
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) { // if bits 7-6 are 11 the source is a xmm register (low doubleword)
 		src = (INT32)XMM(modrm & 0x7).f[0^NATIVE_ENDIAN_VALUE_LE_BE(0,1)];
 	} else { // otherwise is a memory address
@@ -2947,6 +2962,7 @@ static void SSEOP(cvtss2si_r32_r128m32)(i386_state* cpustate) // Opcode f3 0f 2d
 {
 	INT32 src;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		src = (INT32)XMM(modrm & 0x7).f[0];
 	} else {
@@ -2962,6 +2978,7 @@ static void SSEOP(cvtss2si_r32_r128m32)(i386_state* cpustate) // Opcode f3 0f 2d
 static void SSEOP(cvtsi2ss_r128_rm32)(i386_state* cpustate) // Opcode f3 0f 2a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = (INT32)LOAD_RM32(modrm);
 	} else {
@@ -2974,7 +2991,7 @@ static void SSEOP(cvtsi2ss_r128_rm32)(i386_state* cpustate) // Opcode f3 0f 2a
 static void SSEOP(cvtpi2ps_r128_rm64)(i386_state* cpustate) // Opcode 0f 2a
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = (float)MMX(modrm & 0x7).i[0];
 		XMM((modrm >> 3) & 0x7).f[1] = (float)MMX(modrm & 0x7).i[1];
@@ -2991,7 +3008,7 @@ static void SSEOP(cvtpi2ps_r128_rm64)(i386_state* cpustate) // Opcode 0f 2a
 static void SSEOP(cvttps2pi_r64_r128m64)(i386_state* cpustate) // Opcode 0f 2c
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).i[0] = XMM(modrm & 0x7).f[0];
 		MMX((modrm >> 3) & 0x7).i[1] = XMM(modrm & 0x7).f[1];
@@ -3008,7 +3025,7 @@ static void SSEOP(cvttps2pi_r64_r128m64)(i386_state* cpustate) // Opcode 0f 2c
 static void SSEOP(cvtps2pi_r64_r128m64)(i386_state* cpustate) // Opcode 0f 2d
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).i[0] = XMM(modrm & 0x7).f[0];
 		MMX((modrm >> 3) & 0x7).i[1] = XMM(modrm & 0x7).f[1];
@@ -3025,6 +3042,7 @@ static void SSEOP(cvtps2pi_r64_r128m64)(i386_state* cpustate) // Opcode 0f 2d
 static void SSEOP(cvtps2pd_r128_r128m64)(i386_state* cpustate) // Opcode 0f 5a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = (double)XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = (double)XMM(modrm & 0x7).f[1];
@@ -3041,6 +3059,7 @@ static void SSEOP(cvtps2pd_r128_r128m64)(i386_state* cpustate) // Opcode 0f 5a
 static void SSEOP(cvtdq2ps_r128_rm128)(i386_state* cpustate) // Opcode 0f 5b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = (float)XMM(modrm & 0x7).i[0];
 		XMM((modrm >> 3) & 0x7).f[1] = (float)XMM(modrm & 0x7).i[1];
@@ -3061,6 +3080,7 @@ static void SSEOP(cvtdq2ps_r128_rm128)(i386_state* cpustate) // Opcode 0f 5b
 static void SSEOP(cvtdq2pd_r128_r128m64)(i386_state* cpustate) // Opcode f3 0f e6
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = (double)XMM(modrm & 0x7).i[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = (double)XMM(modrm & 0x7).i[1];
@@ -3077,6 +3097,7 @@ static void SSEOP(cvtdq2pd_r128_r128m64)(i386_state* cpustate) // Opcode f3 0f e
 static void SSEOP(movss_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 10
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).d[0] = XMM(modrm & 0x7).d[0];
 	} else {
@@ -3089,6 +3110,7 @@ static void SSEOP(movss_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 10
 static void SSEOP(movss_rm128_r128)(i386_state* cpustate) // Opcode f3 0f 11
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7).d[0] = XMM((modrm >> 3) & 0x7).d[0];
 	} else {
@@ -3101,6 +3123,7 @@ static void SSEOP(movss_rm128_r128)(i386_state* cpustate) // Opcode f3 0f 11
 static void SSEOP(movsldup_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 12
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).d[0] = XMM(modrm & 0x7).d[0];
 		XMM((modrm >> 3) & 0x7).d[1] = XMM(modrm & 0x7).d[0];
@@ -3121,6 +3144,7 @@ static void SSEOP(movsldup_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 12
 static void SSEOP(movshdup_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 16
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).d[0] = XMM(modrm & 0x7).d[1];
 		XMM((modrm >> 3) & 0x7).d[1] = XMM(modrm & 0x7).d[1];
@@ -3141,6 +3165,7 @@ static void SSEOP(movshdup_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 16
 static void SSEOP(movaps_r128_rm128)(i386_state* cpustate) // Opcode 0f 28
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7) = XMM(modrm & 0x7);
 	} else {
@@ -3153,6 +3178,7 @@ static void SSEOP(movaps_r128_rm128)(i386_state* cpustate) // Opcode 0f 28
 static void SSEOP(movaps_rm128_r128)(i386_state* cpustate) // Opcode 0f 29
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7) = XMM((modrm >> 3) & 0x7);
 	} else {
@@ -3165,6 +3191,7 @@ static void SSEOP(movaps_rm128_r128)(i386_state* cpustate) // Opcode 0f 29
 static void SSEOP(movups_r128_rm128)(i386_state* cpustate) // Opcode 0f 10
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7) = XMM(modrm & 0x7);
 	} else {
@@ -3177,6 +3204,7 @@ static void SSEOP(movups_r128_rm128)(i386_state* cpustate) // Opcode 0f 10
 static void SSEOP(movupd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 10
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7) = XMM(modrm & 0x7);
 	} else {
@@ -3189,6 +3217,7 @@ static void SSEOP(movupd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 10
 static void SSEOP(movups_rm128_r128)(i386_state* cpustate) // Opcode 0f 11
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7) = XMM((modrm >> 3) & 0x7);
 	} else {
@@ -3201,6 +3230,7 @@ static void SSEOP(movups_rm128_r128)(i386_state* cpustate) // Opcode 0f 11
 static void SSEOP(movupd_rm128_r128)(i386_state* cpustate) // Opcode 66 0f 11
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7) = XMM((modrm >> 3) & 0x7);
 	} else {
@@ -3213,6 +3243,7 @@ static void SSEOP(movupd_rm128_r128)(i386_state* cpustate) // Opcode 66 0f 11
 static void SSEOP(movlps_r128_m64)(i386_state* cpustate) // Opcode 0f 12
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// MOVHLPS opcode
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[1];
@@ -3228,6 +3259,7 @@ static void SSEOP(movlps_r128_m64)(i386_state* cpustate) // Opcode 0f 12
 static void SSEOP(movlpd_r128_m64)(i386_state* cpustate) // Opcode 66 0f 12
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		CYCLES(cpustate,1);     // TODO: correct cycle count
 	} else {
@@ -3241,6 +3273,7 @@ static void SSEOP(movlpd_r128_m64)(i386_state* cpustate) // Opcode 66 0f 12
 static void SSEOP(movlps_m64_r128)(i386_state* cpustate) // Opcode 0f 13
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3254,6 +3287,7 @@ static void SSEOP(movlps_m64_r128)(i386_state* cpustate) // Opcode 0f 13
 static void SSEOP(movlpd_m64_r128)(i386_state* cpustate) // Opcode 66 0f 13
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3267,6 +3301,7 @@ static void SSEOP(movlpd_m64_r128)(i386_state* cpustate) // Opcode 66 0f 13
 static void SSEOP(movhps_r128_m64)(i386_state* cpustate) // Opcode 0f 16
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// MOVLHPS opcode
 		XMM((modrm >> 3) & 0x7).q[1] = XMM(modrm & 0x7).q[0];
@@ -3282,6 +3317,7 @@ static void SSEOP(movhps_r128_m64)(i386_state* cpustate) // Opcode 0f 16
 static void SSEOP(movhpd_r128_m64)(i386_state* cpustate) // Opcode 66 0f 16
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3296,6 +3332,7 @@ static void SSEOP(movhpd_r128_m64)(i386_state* cpustate) // Opcode 66 0f 16
 static void SSEOP(movhps_m64_r128)(i386_state* cpustate) // Opcode 0f 17
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3309,6 +3346,7 @@ static void SSEOP(movhps_m64_r128)(i386_state* cpustate) // Opcode 0f 17
 static void SSEOP(movhpd_m64_r128)(i386_state* cpustate) // Opcode 66 0f 17
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3322,11 +3360,12 @@ static void SSEOP(movhpd_m64_r128)(i386_state* cpustate) // Opcode 66 0f 17
 static void SSEOP(movntps_m128_r128)(i386_state* cpustate) // Opcode 0f 2b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 16);
 		WRITEXMM(cpustate, ea, XMM((modrm >> 3) & 0x7));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -3336,6 +3375,7 @@ static void SSEOP(movntps_m128_r128)(i386_state* cpustate) // Opcode 0f 2b
 static void SSEOP(movmskps_r16_r128)(i386_state* cpustate) // Opcode 0f 50
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int b;
 		b=(XMM(modrm & 0x7).d[0] >> 31) & 1;
@@ -3350,6 +3390,7 @@ static void SSEOP(movmskps_r16_r128)(i386_state* cpustate) // Opcode 0f 50
 static void SSEOP(movmskps_r32_r128)(i386_state* cpustate) // Opcode 0f 50
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int b;
 		b=(XMM(modrm & 0x7).d[0] >> 31) & 1;
@@ -3364,6 +3405,7 @@ static void SSEOP(movmskps_r32_r128)(i386_state* cpustate) // Opcode 0f 50
 static void SSEOP(movmskpd_r32_r128)(i386_state* cpustate) // Opcode 66 0f 50
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int b;
 		b=(XMM(modrm & 0x7).q[0] >> 63) & 1;
@@ -3375,8 +3417,8 @@ static void SSEOP(movmskpd_r32_r128)(i386_state* cpustate) // Opcode 66 0f 50
 
 static void SSEOP(movq2dq_r128_r64)(i386_state* cpustate) // Opcode f3 0f d6
 {
-	MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = MMX(modrm & 7).q;
 		XMM((modrm >> 3) & 0x7).q[1] = 0;
@@ -3386,8 +3428,8 @@ static void SSEOP(movq2dq_r128_r64)(i386_state* cpustate) // Opcode f3 0f d6
 
 static void SSEOP(movdqu_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 6f
 {
-	MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM(modrm & 0x7).q[1];
@@ -3400,8 +3442,8 @@ static void SSEOP(movdqu_r128_rm128)(i386_state* cpustate) // Opcode f3 0f 6f
 
 static void SSEOP(movdqu_rm128_r128)(i386_state* cpustate) // Opcode f3 0f 7f
 {
-	MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0];
 		XMM(modrm & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1];
@@ -3415,6 +3457,7 @@ static void SSEOP(movdqu_rm128_r128)(i386_state* cpustate) // Opcode f3 0f 7f
 static void SSEOP(movd_m128_rm32)(i386_state* cpustate) // Opcode 66 0f 6e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM((modrm >> 3) & 0x7).d[0] = LOAD_RM32(modrm);
 	}
@@ -3430,6 +3473,7 @@ static void SSEOP(movd_m128_rm32)(i386_state* cpustate) // Opcode 66 0f 6e
 static void SSEOP(movdqa_m128_rm128)(i386_state* cpustate) // Opcode 66 0f 6f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM(modrm & 0x7).q[1];
@@ -3443,8 +3487,8 @@ static void SSEOP(movdqa_m128_rm128)(i386_state* cpustate) // Opcode 66 0f 6f
 
 static void SSEOP(movq_r128_r128m64)(i386_state* cpustate) // Opcode f3 0f 7e
 {
-	MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = 0;
@@ -3459,6 +3503,7 @@ static void SSEOP(movq_r128_r128m64)(i386_state* cpustate) // Opcode f3 0f 7e
 static void SSEOP(movd_rm32_r128)(i386_state* cpustate) // Opcode 66 0f 7e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		STORE_RM32(modrm, XMM((modrm >> 3) & 0x7).d[0]);
 	}
@@ -3472,6 +3517,7 @@ static void SSEOP(movd_rm32_r128)(i386_state* cpustate) // Opcode 66 0f 7e
 static void SSEOP(movdqa_rm128_r128)(i386_state* cpustate) // Opcode 66 0f 7f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM(modrm & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0];
 		XMM(modrm & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1];
@@ -3485,7 +3531,7 @@ static void SSEOP(movdqa_rm128_r128)(i386_state* cpustate) // Opcode 66 0f 7f
 
 static void SSEOP(pmovmskb_r16_r64)(i386_state* cpustate) // Opcode 0f d7
 {
-	//MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		int b;
@@ -3504,8 +3550,8 @@ static void SSEOP(pmovmskb_r16_r64)(i386_state* cpustate) // Opcode 0f d7
 
 static void SSEOP(pmovmskb_r32_r64)(i386_state* cpustate) // Opcode 0f d7
 {
-	//MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int b;
 		b=(MMX(modrm & 0x7).b[0] >> 7) & 1;
@@ -3524,6 +3570,7 @@ static void SSEOP(pmovmskb_r32_r64)(i386_state* cpustate) // Opcode 0f d7
 static void SSEOP(pmovmskb_r32_r128)(i386_state* cpustate) // Opcode 66 0f d7
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		UINT32 b;
 		b=(XMM(modrm & 0x7).b[0] >> 7) & 1;
@@ -3550,6 +3597,7 @@ static void SSEOP(pmovmskb_r32_r128)(i386_state* cpustate) // Opcode 66 0f d7
 static void SSEOP(xorps)(i386_state* cpustate) // Opcode 0f 57
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).d[0] = XMM((modrm >> 3) & 0x7).d[0] ^ XMM(modrm & 0x7).d[0];
 		XMM((modrm >> 3) & 0x7).d[1] = XMM((modrm >> 3) & 0x7).d[1] ^ XMM(modrm & 0x7).d[1];
@@ -3570,6 +3618,7 @@ static void SSEOP(xorps)(i386_state* cpustate) // Opcode 0f 57
 static void SSEOP(xorpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 57
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0] ^ XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1] ^ XMM(modrm & 0x7).q[1];
@@ -3586,6 +3635,7 @@ static void SSEOP(xorpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 57
 static void SSEOP(addps)(i386_state* cpustate) // Opcode 0f 58
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] + XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1] = XMM((modrm >> 3) & 0x7).f[1] + XMM(modrm & 0x7).f[1];
@@ -3606,6 +3656,7 @@ static void SSEOP(addps)(i386_state* cpustate) // Opcode 0f 58
 static void SSEOP(sqrtps_r128_rm128)(i386_state* cpustate) // Opcode 0f 51
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = sqrt(XMM(modrm & 0x7).f[0]);
 		XMM((modrm >> 3) & 0x7).f[1] = sqrt(XMM(modrm & 0x7).f[1]);
@@ -3626,6 +3677,7 @@ static void SSEOP(sqrtps_r128_rm128)(i386_state* cpustate) // Opcode 0f 51
 static void SSEOP(rsqrtps_r128_rm128)(i386_state* cpustate) // Opcode 0f 52
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = 1.0 / sqrt(XMM(modrm & 0x7).f[0]);
 		XMM((modrm >> 3) & 0x7).f[1] = 1.0 / sqrt(XMM(modrm & 0x7).f[1]);
@@ -3646,6 +3698,7 @@ static void SSEOP(rsqrtps_r128_rm128)(i386_state* cpustate) // Opcode 0f 52
 static void SSEOP(rcpps_r128_rm128)(i386_state* cpustate) // Opcode 0f 53
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = 1.0f / XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1] = 1.0f / XMM(modrm & 0x7).f[1];
@@ -3666,6 +3719,7 @@ static void SSEOP(rcpps_r128_rm128)(i386_state* cpustate) // Opcode 0f 53
 static void SSEOP(andps_r128_rm128)(i386_state* cpustate) // Opcode 0f 54
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0] & XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1] & XMM(modrm & 0x7).q[1];
@@ -3682,6 +3736,7 @@ static void SSEOP(andps_r128_rm128)(i386_state* cpustate) // Opcode 0f 54
 static void SSEOP(andpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 54
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0] & XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1] & XMM(modrm & 0x7).q[1];
@@ -3698,6 +3753,7 @@ static void SSEOP(andpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 54
 static void SSEOP(andnps_r128_rm128)(i386_state* cpustate) // Opcode 0f 55
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = ~(XMM((modrm >> 3) & 0x7).q[0]) & XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = ~(XMM((modrm >> 3) & 0x7).q[1]) & XMM(modrm & 0x7).q[1];
@@ -3714,6 +3770,7 @@ static void SSEOP(andnps_r128_rm128)(i386_state* cpustate) // Opcode 0f 55
 static void SSEOP(andnpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 55
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = ~(XMM((modrm >> 3) & 0x7).q[0]) & XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = ~(XMM((modrm >> 3) & 0x7).q[1]) & XMM(modrm & 0x7).q[1];
@@ -3730,6 +3787,7 @@ static void SSEOP(andnpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 55
 static void SSEOP(orps_r128_rm128)(i386_state* cpustate) // Opcode 0f 56
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0] | XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1] | XMM(modrm & 0x7).q[1];
@@ -3746,6 +3804,7 @@ static void SSEOP(orps_r128_rm128)(i386_state* cpustate) // Opcode 0f 56
 static void SSEOP(orpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 56
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0] | XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[1] | XMM(modrm & 0x7).q[1];
@@ -3762,6 +3821,7 @@ static void SSEOP(orpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 56
 static void SSEOP(mulps)(i386_state* cpustate) // Opcode 0f 59 ????
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] * XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1] = XMM((modrm >> 3) & 0x7).f[1] * XMM(modrm & 0x7).f[1];
@@ -3782,6 +3842,7 @@ static void SSEOP(mulps)(i386_state* cpustate) // Opcode 0f 59 ????
 static void SSEOP(subps)(i386_state* cpustate) // Opcode 0f 5c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] - XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1] = XMM((modrm >> 3) & 0x7).f[1] - XMM(modrm & 0x7).f[1];
@@ -3828,6 +3889,7 @@ INLINE double sse_min_double(double src1, double src2)
 static void SSEOP(minps)(i386_state* cpustate) // Opcode 0f 5d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = sse_min_single(XMM((modrm >> 3) & 0x7).f[0], XMM(modrm & 0x7).f[0]);
 		XMM((modrm >> 3) & 0x7).f[1] = sse_min_single(XMM((modrm >> 3) & 0x7).f[1], XMM(modrm & 0x7).f[1]);
@@ -3848,6 +3910,7 @@ static void SSEOP(minps)(i386_state* cpustate) // Opcode 0f 5d
 static void SSEOP(divps)(i386_state* cpustate) // Opcode 0f 5e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] / XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1] = XMM((modrm >> 3) & 0x7).f[1] / XMM(modrm & 0x7).f[1];
@@ -3894,6 +3957,7 @@ INLINE double sse_max_double(double src1, double src2)
 static void SSEOP(maxps)(i386_state* cpustate) // Opcode 0f 5f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = sse_max_single(XMM((modrm >> 3) & 0x7).f[0], XMM(modrm & 0x7).f[0]);
 		XMM((modrm >> 3) & 0x7).f[1] = sse_max_single(XMM((modrm >> 3) & 0x7).f[1], XMM(modrm & 0x7).f[1]);
@@ -3914,6 +3978,7 @@ static void SSEOP(maxps)(i386_state* cpustate) // Opcode 0f 5f
 static void SSEOP(maxss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 5f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = sse_max_single(XMM((modrm >> 3) & 0x7).f[0], XMM(modrm & 0x7).f[0]);
 	} else {
@@ -3928,6 +3993,7 @@ static void SSEOP(maxss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 5f
 static void SSEOP(addss)(i386_state* cpustate) // Opcode f3 0f 58
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] + XMM(modrm & 0x7).f[0];
 	} else {
@@ -3942,6 +4008,7 @@ static void SSEOP(addss)(i386_state* cpustate) // Opcode f3 0f 58
 static void SSEOP(subss)(i386_state* cpustate) // Opcode f3 0f 5c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] - XMM(modrm & 0x7).f[0];
 	} else {
@@ -3956,6 +4023,7 @@ static void SSEOP(subss)(i386_state* cpustate) // Opcode f3 0f 5c
 static void SSEOP(mulss)(i386_state* cpustate) // Opcode f3 0f 5e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] * XMM(modrm & 0x7).f[0];
 	} else {
@@ -3970,6 +4038,7 @@ static void SSEOP(mulss)(i386_state* cpustate) // Opcode f3 0f 5e
 static void SSEOP(divss)(i386_state* cpustate) // Opcode 0f 59
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] / XMM(modrm & 0x7).f[0];
 	} else {
@@ -3984,6 +4053,7 @@ static void SSEOP(divss)(i386_state* cpustate) // Opcode 0f 59
 static void SSEOP(rcpss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 53
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = 1.0f / XMM(modrm & 0x7).f[0];
 	} else {
@@ -3998,6 +4068,7 @@ static void SSEOP(rcpss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 53
 static void SSEOP(sqrtss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 51
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = sqrt(XMM(modrm & 0x7).f[0]);
 	} else {
@@ -4012,6 +4083,7 @@ static void SSEOP(sqrtss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 51
 static void SSEOP(rsqrtss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 52
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = 1.0 / sqrt(XMM(modrm & 0x7).f[0]);
 	} else {
@@ -4026,6 +4098,7 @@ static void SSEOP(rsqrtss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 52
 static void SSEOP(minss_r128_r128m32)(i386_state* cpustate) // Opcode f3 0f 5d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM((modrm >> 3) & 0x7).f[0] < XMM(modrm & 0x7).f[0] ? XMM((modrm >> 3) & 0x7).f[0] : XMM(modrm & 0x7).f[0];
 	} else {
@@ -4041,6 +4114,7 @@ static void SSEOP(comiss_r128_r128m32)(i386_state* cpustate) // Opcode 0f 2f
 {
 	float32 a,b;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		a = XMM((modrm >> 3) & 0x7).d[0];
 		b = XMM(modrm & 0x7).d[0];
@@ -4078,6 +4152,7 @@ static void SSEOP(comisd_r128_r128m64)(i386_state* cpustate) // Opcode 66 0f 2f
 {
 	float64 a,b;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		a = XMM((modrm >> 3) & 0x7).q[0];
 		b = XMM(modrm & 0x7).q[0];
@@ -4115,6 +4190,7 @@ static void SSEOP(ucomiss_r128_r128m32)(i386_state* cpustate) // Opcode 0f 2e
 {
 	float32 a,b;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		a = XMM((modrm >> 3) & 0x7).d[0];
 		b = XMM(modrm & 0x7).d[0];
@@ -4152,6 +4228,7 @@ static void SSEOP(ucomisd_r128_r128m64)(i386_state* cpustate) // Opcode 66 0f 2e
 {
 	float64 a,b;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		a = XMM((modrm >> 3) & 0x7).q[0];
 		b = XMM(modrm & 0x7).q[0];
@@ -4189,6 +4266,7 @@ static void SSEOP(shufps)(i386_state* cpustate) // Opcode 0f c6
 {
 	UINT8 modrm = FETCH(cpustate);
 	UINT8 sel = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int m1,m2,m3,m4;
 	int s,d;
 	m1=sel & 3;
@@ -4226,6 +4304,7 @@ static void SSEOP(shufpd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f c6
 {
 	UINT8 modrm = FETCH(cpustate);
 	UINT8 sel = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int m1,m2;
 	int s,d;
 	m1=sel & 1;
@@ -4253,6 +4332,7 @@ static void SSEOP(shufpd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f c6
 static void SSEOP(unpcklps_r128_rm128)(i386_state* cpustate) // Opcode 0f 14
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int s,d;
 	UINT32 t1, t2, t3, t4;
 	s=modrm & 0x7;
@@ -4281,6 +4361,7 @@ static void SSEOP(unpcklps_r128_rm128)(i386_state* cpustate) // Opcode 0f 14
 static void SSEOP(unpcklpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 14
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int s,d;
 	s=modrm & 0x7;
 	d=(modrm >> 3) & 0x7;
@@ -4300,6 +4381,7 @@ static void SSEOP(unpcklpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 14
 static void SSEOP(unpckhps_r128_rm128)(i386_state* cpustate) // Opcode 0f 15
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int s,d;
 	UINT32 t1, t2, t3, t4;
 	s=modrm & 0x7;
@@ -4330,6 +4412,7 @@ static void SSEOP(unpckhps_r128_rm128)(i386_state* cpustate) // Opcode 0f 15
 static void SSEOP(unpckhpd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 15
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	int s,d;
 	s=modrm & 0x7;
 	d=(modrm >> 3) & 0x7;
@@ -4529,6 +4612,7 @@ static void SSEOP(predicate_compare_double_scalar)(UINT8 imm8, XMM_REG d, XMM_RE
 static void SSEOP(cmpps_r128_rm128_i8)(i386_state* cpustate) // Opcode 0f c2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		UINT8 imm8 = FETCH(cpustate);
@@ -4550,6 +4634,7 @@ static void SSEOP(cmpps_r128_rm128_i8)(i386_state* cpustate) // Opcode 0f c2
 static void SSEOP(cmppd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f c2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		UINT8 imm8 = FETCH(cpustate);
@@ -4571,6 +4656,7 @@ static void SSEOP(cmppd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f c2
 static void SSEOP(cmpss_r128_r128m32_i8)(i386_state* cpustate) // Opcode f3 0f c2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		UINT8 imm8 = FETCH(cpustate);
@@ -4591,30 +4677,37 @@ static void SSEOP(cmpss_r128_r128m32_i8)(i386_state* cpustate) // Opcode f3 0f c
 
 static void SSEOP(pinsrw_r64_r16m16_i8)(i386_state* cpustate) // Opcode 0f c4, 16bit register
 {
-	MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		UINT8 imm8 = FETCH(cpustate);
 		UINT16 v = LOAD_RM16(modrm);
-		if (cpustate->xmm_operand_size)
+		if (cpustate->xmm_operand_size) {
+			if(SSEPROLOG(cpustate)) return;
 			XMM((modrm >> 3) & 0x7).w[imm8 & 7] = v;
-		else
+		}
+		else {
+			if(MMXPROLOG(cpustate)) return;
 			MMX((modrm >> 3) & 0x7).w[imm8 & 3] = v;
+		}
 	} else {
 		UINT32 ea = GetEA(cpustate,modrm, 0, 2);
 		UINT8 imm8 = FETCH(cpustate);
 		UINT16 v = READ16(cpustate,ea);
-		if (cpustate->xmm_operand_size)
+		if (cpustate->xmm_operand_size) {
+			if(SSEPROLOG(cpustate)) return;
 			XMM((modrm >> 3) & 0x7).w[imm8 & 7] = v;
-		else
+		}
+		else {
+			if(MMXPROLOG(cpustate)) return;
 			MMX((modrm >> 3) & 0x7).w[imm8 & 3] = v;
+		}
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
 
 static void SSEOP(pinsrw_r64_r32m16_i8)(i386_state* cpustate) // Opcode 0f c4, 32bit register
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		UINT8 imm8 = FETCH(cpustate);
@@ -4632,6 +4725,7 @@ static void SSEOP(pinsrw_r64_r32m16_i8)(i386_state* cpustate) // Opcode 0f c4, 3
 static void SSEOP(pinsrw_r128_r32m16_i8)(i386_state* cpustate) // Opcode 66 0f c4
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		UINT8 imm8 = FETCH(cpustate);
 		UINT16 v = (UINT16)LOAD_RM32(modrm);
@@ -4648,16 +4742,18 @@ static void SSEOP(pinsrw_r128_r32m16_i8)(i386_state* cpustate) // Opcode 66 0f c
 
 static void SSEOP(pextrw_r16_r64_i8)(i386_state* cpustate) // Opcode 0f c5
 {
-	//MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		UINT8 imm8 = FETCH(cpustate);
-		if (cpustate->xmm_operand_size)
+		if (cpustate->xmm_operand_size) {
+			if(SSEPROLOG(cpustate)) return;
 			STORE_REG16(modrm, XMM(modrm & 0x7).w[imm8 & 7]);
-		else
+		}
+		else {
+			if(MMXPROLOG(cpustate)) return;
 			STORE_REG16(modrm, MMX(modrm & 0x7).w[imm8 & 3]);
+		}
 	} else {
-		//UINT8 imm8 = FETCH(cpustate);
 		report_invalid_modrm(cpustate, "pextrw_r16_r64_i8", modrm);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -4665,13 +4761,12 @@ static void SSEOP(pextrw_r16_r64_i8)(i386_state* cpustate) // Opcode 0f c5
 
 static void SSEOP(pextrw_r32_r64_i8)(i386_state* cpustate) // Opcode 0f c5
 {
-	//MMXPROLOG(cpustate);
 	UINT8 modrm = FETCH(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		UINT8 imm8 = FETCH(cpustate);
 		STORE_REG32(modrm, MMX(modrm & 0x7).w[imm8 & 3]);
 	} else {
-		//UINT8 imm8 = FETCH(cpustate);
 		report_invalid_modrm(cpustate, "pextrw_r32_r64_i8", modrm);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -4680,12 +4775,12 @@ static void SSEOP(pextrw_r32_r64_i8)(i386_state* cpustate) // Opcode 0f c5
 static void SSEOP(pextrw_reg_r128_i8)(i386_state* cpustate) // Opcode 66 0f c5
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		UINT8 imm8 = FETCH(cpustate);
 		STORE_REG32(modrm, XMM(modrm & 0x7).w[imm8 & 7]);
 	}
 	else {
-		//UINT8 imm8 = FETCH(cpustate);
 		report_invalid_modrm(cpustate, "sse_pextrw_reg_r128_i8", modrm);
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -4694,7 +4789,7 @@ static void SSEOP(pextrw_reg_r128_i8)(i386_state* cpustate) // Opcode 66 0f c5
 static void SSEOP(pminub_r64_rm64)(i386_state* cpustate) // Opcode 0f da
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -4712,6 +4807,7 @@ static void SSEOP(pminub_r64_rm64)(i386_state* cpustate) // Opcode 0f da
 static void SSEOP(pminub_r128_rm128)(i386_state* cpustate) // Opcode 66 0f da
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n] = XMM((modrm >> 3) & 0x7).b[n] < XMM(modrm & 0x7).b[n] ? XMM((modrm >> 3) & 0x7).b[n] : XMM(modrm & 0x7).b[n];
@@ -4728,7 +4824,7 @@ static void SSEOP(pminub_r128_rm128)(i386_state* cpustate) // Opcode 66 0f da
 static void SSEOP(pmaxub_r64_rm64)(i386_state* cpustate) // Opcode 0f de
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -4746,7 +4842,7 @@ static void SSEOP(pmaxub_r64_rm64)(i386_state* cpustate) // Opcode 0f de
 static void SSEOP(pavgb_r64_rm64)(i386_state* cpustate) // Opcode 0f e0
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 8;n++)
@@ -4764,7 +4860,7 @@ static void SSEOP(pavgb_r64_rm64)(i386_state* cpustate) // Opcode 0f e0
 static void SSEOP(pavgw_r64_rm64)(i386_state* cpustate) // Opcode 0f e3
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -4781,7 +4877,7 @@ static void SSEOP(pavgw_r64_rm64)(i386_state* cpustate) // Opcode 0f e3
 
 static void SSEOP(pmulhuw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e4
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).w[0]=((UINT32)MMX((modrm >> 3) & 0x7).w[0]*(UINT32)MMX(modrm & 7).w[0]) >> 16;
@@ -4803,7 +4899,7 @@ static void SSEOP(pmulhuw_r64_rm64)(i386_state* cpustate)  // Opcode 0f e4
 static void SSEOP(pminsw_r64_rm64)(i386_state* cpustate) // Opcode 0f ea
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -4821,7 +4917,7 @@ static void SSEOP(pminsw_r64_rm64)(i386_state* cpustate) // Opcode 0f ea
 static void SSEOP(pmaxsw_r64_rm64)(i386_state* cpustate) // Opcode 0f ee
 {
 	int n;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		for (n=0;n < 4;n++)
@@ -4838,7 +4934,7 @@ static void SSEOP(pmaxsw_r64_rm64)(i386_state* cpustate) // Opcode 0f ee
 
 static void SSEOP(pmuludq_r64_rm64)(i386_state* cpustate) // Opcode 0f f4
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q = (UINT64)MMX((modrm >> 3) & 0x7).d[0] * (UINT64)MMX(modrm & 0x7).d[0];
@@ -4854,6 +4950,7 @@ static void SSEOP(pmuludq_r64_rm64)(i386_state* cpustate) // Opcode 0f f4
 static void SSEOP(pmuludq_r128_rm128)(i386_state* cpustate) // Opcode 66 0f f4
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = (UINT64)XMM((modrm >> 3) & 0x7).d[0] * (UINT64)XMM(modrm & 0x7).d[0];
 		XMM((modrm >> 3) & 0x7).q[1] = (UINT64)XMM((modrm >> 3) & 0x7).d[2] * (UINT64)XMM(modrm & 0x7).d[2];
@@ -4871,7 +4968,7 @@ static void SSEOP(psadbw_r64_rm64)(i386_state* cpustate) // Opcode 0f f6
 {
 	int n;
 	INT32 temp;
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		temp=0;
@@ -4892,7 +4989,7 @@ static void SSEOP(psadbw_r64_rm64)(i386_state* cpustate) // Opcode 0f f6
 
 static void SSEOP(psubq_r64_rm64)(i386_state* cpustate)  // Opcode 0f fb
 {
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q=MMX((modrm >> 3) & 0x7).q - MMX(modrm & 7).q;
@@ -4908,6 +5005,7 @@ static void SSEOP(psubq_r64_rm64)(i386_state* cpustate)  // Opcode 0f fb
 static void SSEOP(psubq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fb
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] - XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1]=XMM((modrm >> 3) & 0x7).q[1] - XMM(modrm & 7).q[1];
@@ -4924,6 +5022,7 @@ static void SSEOP(psubq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fb
 static void SSEOP(pshufd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f 70
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -4953,6 +5052,7 @@ static void SSEOP(pshufd_r128_rm128_i8)(i386_state* cpustate) // Opcode 66 0f 70
 static void SSEOP(pshuflw_r128_rm128_i8)(i386_state* cpustate) // Opcode f2 0f 70
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -4983,6 +5083,7 @@ static void SSEOP(pshuflw_r128_rm128_i8)(i386_state* cpustate) // Opcode f2 0f 7
 static void SSEOP(pshufhw_r128_rm128_i8)(i386_state* cpustate) // Opcode f3 0f 70
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5013,6 +5114,7 @@ static void SSEOP(pshufhw_r128_rm128_i8)(i386_state* cpustate) // Opcode f3 0f 7
 static void SSEOP(packsswb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 63
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG t;
 		int s, d;
@@ -5041,6 +5143,7 @@ static void SSEOP(packsswb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 63
 static void SSEOP(packssdw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if (modrm >= 0xc0) {
 		XMM_REG t;
 		int s, d;
@@ -5077,6 +5180,7 @@ static void SSEOP(packssdw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6b
 static void SSEOP(pcmpgtb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 64
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5097,6 +5201,7 @@ static void SSEOP(pcmpgtb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 64
 static void SSEOP(pcmpgtw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 65
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5117,6 +5222,7 @@ static void SSEOP(pcmpgtw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 65
 static void SSEOP(pcmpgtd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 66
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5137,6 +5243,7 @@ static void SSEOP(pcmpgtd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 66
 static void SSEOP(packuswb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 67
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5164,6 +5271,7 @@ static void SSEOP(packuswb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 67
 static void SSEOP(punpckhbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 68
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5190,6 +5298,7 @@ static void SSEOP(punpckhbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 68
 static void SSEOP(punpckhwd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 69
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5216,6 +5325,7 @@ static void SSEOP(punpckhwd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 69
 static void SSEOP(unpckhdq_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5242,6 +5352,7 @@ static void SSEOP(unpckhdq_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6a
 static void SSEOP(punpckhqdq_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM_REG t;
 		int s,d;
@@ -5264,6 +5375,7 @@ static void SSEOP(punpckhqdq_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 6
 static void SSEOP(pcmpeqb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 74
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5284,6 +5396,7 @@ static void SSEOP(pcmpeqb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 74
 static void SSEOP(pcmpeqw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 75
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5304,6 +5417,7 @@ static void SSEOP(pcmpeqw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 75
 static void SSEOP(pcmpeqd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 76
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5324,6 +5438,7 @@ static void SSEOP(pcmpeqd_r128_rm128)(i386_state* cpustate) // Opcode 66 0f 76
 static void SSEOP(paddq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d4
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5344,6 +5459,7 @@ static void SSEOP(paddq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d4
 static void SSEOP(pmullw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d5
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		s=modrm & 0x7;
@@ -5365,6 +5481,7 @@ static void SSEOP(pmullw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d5
 static void SSEOP(paddb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fc
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n]=XMM((modrm >> 3) & 0x7).b[n] + XMM(modrm & 7).b[n];
@@ -5381,6 +5498,7 @@ static void SSEOP(paddb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fc
 static void SSEOP(paddw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fd
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=XMM((modrm >> 3) & 0x7).w[n] + XMM(modrm & 7).w[n];
@@ -5397,6 +5515,7 @@ static void SSEOP(paddw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fd
 static void SSEOP(paddd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fe
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 4;n++)
 			XMM((modrm >> 3) & 0x7).d[n]=XMM((modrm >> 3) & 0x7).d[n] + XMM(modrm & 7).d[n];
@@ -5413,6 +5532,7 @@ static void SSEOP(paddd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fe
 static void SSEOP(psubusb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d8
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n]=XMM((modrm >> 3) & 0x7).b[n] < XMM(modrm & 7).b[n] ? 0 : XMM((modrm >> 3) & 0x7).b[n]-XMM(modrm & 7).b[n];
@@ -5429,6 +5549,7 @@ static void SSEOP(psubusb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d8
 static void SSEOP(psubusw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d9
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=XMM((modrm >> 3) & 0x7).w[n] < XMM(modrm & 7).w[n] ? 0 : XMM((modrm >> 3) & 0x7).w[n]-XMM(modrm & 7).w[n];
@@ -5445,6 +5566,7 @@ static void SSEOP(psubusw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d9
 static void SSEOP(pand_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f db
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] & XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1]=XMM((modrm >> 3) & 0x7).q[1] & XMM(modrm & 7).q[1];
@@ -5461,6 +5583,7 @@ static void SSEOP(pand_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f db
 static void SSEOP(pandn_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f df
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0]=(~XMM((modrm >> 3) & 0x7).q[0]) & XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1]=(~XMM((modrm >> 3) & 0x7).q[1]) & XMM(modrm & 7).q[1];
@@ -5477,6 +5600,7 @@ static void SSEOP(pandn_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f df
 static void SSEOP(paddusb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f dc
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n]=XMM((modrm >> 3) & 0x7).b[n] > (0xff-XMM(modrm & 7).b[n]) ? 0xff : XMM((modrm >> 3) & 0x7).b[n]+XMM(modrm & 7).b[n];
@@ -5493,6 +5617,7 @@ static void SSEOP(paddusb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f dc
 static void SSEOP(paddusw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f dd
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=XMM((modrm >> 3) & 0x7).w[n] > (0xffff-XMM(modrm & 7).w[n]) ? 0xffff : XMM((modrm >> 3) & 0x7).w[n]+XMM(modrm & 7).w[n];
@@ -5509,6 +5634,7 @@ static void SSEOP(paddusw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f dd
 static void SSEOP(pmaxub_r128_rm128)(i386_state* cpustate) // Opcode 66 0f de
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n] = XMM((modrm >> 3) & 0x7).b[n] > XMM(modrm & 0x7).b[n] ? XMM((modrm >> 3) & 0x7).b[n] : XMM(modrm & 0x7).b[n];
@@ -5525,6 +5651,7 @@ static void SSEOP(pmaxub_r128_rm128)(i386_state* cpustate) // Opcode 66 0f de
 static void SSEOP(pmulhuw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e4
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=((UINT32)XMM((modrm >> 3) & 0x7).w[n]*(UINT32)XMM(modrm & 7).w[n]) >> 16;
@@ -5541,6 +5668,7 @@ static void SSEOP(pmulhuw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e4
 static void SSEOP(pmulhw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e5
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=(UINT32)((INT32)XMM((modrm >> 3) & 0x7).s[n]*(INT32)XMM(modrm & 7).s[n]) >> 16;
@@ -5557,6 +5685,7 @@ static void SSEOP(pmulhw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e5
 static void SSEOP(psubsb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e8
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).c[n]=SaturatedSignedWordToSignedByte((INT16)XMM((modrm >> 3) & 0x7).c[n] - (INT16)XMM(modrm & 7).c[n]);
@@ -5573,6 +5702,7 @@ static void SSEOP(psubsb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e8
 static void SSEOP(psubsw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e9
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).s[n]=SaturatedSignedDwordToSignedWord((INT32)XMM((modrm >> 3) & 0x7).s[n] - (INT32)XMM(modrm & 7).s[n]);
@@ -5589,6 +5719,7 @@ static void SSEOP(psubsw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e9
 static void SSEOP(pminsw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f ea
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).s[n] = XMM((modrm >> 3) & 0x7).s[n] < XMM(modrm & 0x7).s[n] ? XMM((modrm >> 3) & 0x7).s[n] : XMM(modrm & 0x7).s[n];
@@ -5605,6 +5736,7 @@ static void SSEOP(pminsw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f ea
 static void SSEOP(pmaxsw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f ee
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).s[n] = XMM((modrm >> 3) & 0x7).s[n] > XMM(modrm & 0x7).s[n] ? XMM((modrm >> 3) & 0x7).s[n] : XMM(modrm & 0x7).s[n];
@@ -5621,6 +5753,7 @@ static void SSEOP(pmaxsw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f ee
 static void SSEOP(paddsb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ec
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).c[n]=SaturatedSignedWordToSignedByte((INT16)XMM((modrm >> 3) & 0x7).c[n] + (INT16)XMM(modrm & 7).c[n]);
@@ -5637,6 +5770,7 @@ static void SSEOP(paddsb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ec
 static void SSEOP(paddsw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ed
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).s[n]=SaturatedSignedDwordToSignedWord((INT32)XMM((modrm >> 3) & 0x7).s[n] + (INT32)XMM(modrm & 7).s[n]);
@@ -5653,6 +5787,7 @@ static void SSEOP(paddsw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ed
 static void SSEOP(por_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f eb
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] | XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1]=XMM((modrm >> 3) & 0x7).q[1] | XMM(modrm & 7).q[1];
@@ -5669,6 +5804,7 @@ static void SSEOP(por_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f eb
 static void SSEOP(pxor_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ef
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] ^ XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1]=XMM((modrm >> 3) & 0x7).q[1] ^ XMM(modrm & 7).q[1];
@@ -5685,17 +5821,20 @@ static void SSEOP(pxor_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f ef
 static void SSEOP(pmaddwd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f5
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
+		int s, d;
+		s=modrm & 0x7;
+		d=(modrm >> 3) & 0x7;
 		for (int n=0;n < 4;n++)
-			XMM((modrm >> 3) & 0x7).i[n]=(INT32)XMM((modrm >> 3) & 0x7).s[n]*(INT32)XMM(modrm & 7).s[n]+
-										(INT32)XMM((modrm >> 3) & 0x7).s[n]*(INT32)XMM(modrm & 7).s[n];
+			XMM(d).i[n]=(INT32)XMM(d).s[n << 1]*(INT32)XMM(s).s[n << 1]+(INT32)XMM(d).s[(n << 1) + 1]*(INT32)XMM(s).s[(n << 1) + 1];
 	} else {
+		int d = (modrm >> 3) & 0x7;
 		XMM_REG s;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 16);
 		READXMM(cpustate, ea, s);
 		for (int n=0;n < 4;n++)
-			XMM((modrm >> 3) & 0x7).i[n]=(INT32)XMM((modrm >> 3) & 0x7).s[n]*(INT32)s.s[n]+
-										(INT32)XMM((modrm >> 3) & 0x7).s[n]*(INT32)s.s[n];
+			XMM(d).i[n]=(INT32)XMM(d).s[n << 1]*(INT32)s.s[n << 1]+(INT32)XMM(d).s[(n << 1) + 1]*(INT32)s.s[(n << 1) + 1];
 	}
 	CYCLES(cpustate,1);     // TODO: correct cycle count
 }
@@ -5703,6 +5842,7 @@ static void SSEOP(pmaddwd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f5
 static void SSEOP(psubb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f8
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n]=XMM((modrm >> 3) & 0x7).b[n] - XMM(modrm & 7).b[n];
@@ -5719,6 +5859,7 @@ static void SSEOP(psubb_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f8
 static void SSEOP(psubw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f9
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n]=XMM((modrm >> 3) & 0x7).w[n] - XMM(modrm & 7).w[n];
@@ -5735,6 +5876,7 @@ static void SSEOP(psubw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f9
 static void SSEOP(psubd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f fa
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 4;n++)
 			XMM((modrm >> 3) & 0x7).d[n]=XMM((modrm >> 3) & 0x7).d[n] - XMM(modrm & 7).d[n];
@@ -5752,6 +5894,7 @@ static void SSEOP(psadbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f f6
 {
 	INT32 temp;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		temp=0;
 		for (int n=0;n < 8;n++)
@@ -5780,6 +5923,7 @@ static void SSEOP(psadbw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f f6
 static void SSEOP(pavgb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f e0
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 16;n++)
 			XMM((modrm >> 3) & 0x7).b[n] = ((UINT16)XMM((modrm >> 3) & 0x7).b[n] + (UINT16)XMM(modrm & 0x7).b[n] + 1) >> 1;
@@ -5796,6 +5940,7 @@ static void SSEOP(pavgb_r128_rm128)(i386_state* cpustate) // Opcode 66 0f e0
 static void SSEOP(pavgw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f e3
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		for (int n=0;n < 8;n++)
 			XMM((modrm >> 3) & 0x7).w[n] = ((UINT32)XMM((modrm >> 3) & 0x7).w[n] + (UINT32)XMM(modrm & 0x7).w[n] + 1) >> 1;
@@ -5812,6 +5957,7 @@ static void SSEOP(pavgw_r128_rm128)(i386_state* cpustate) // Opcode 66 0f e3
 static void SSEOP(psrlw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d1
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		for (int n=0; n < 8;n++)
@@ -5830,6 +5976,7 @@ static void SSEOP(psrlw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d1
 static void SSEOP(psrld_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).d[0]=XMM((modrm >> 3) & 0x7).d[0] >> count;
@@ -5852,6 +5999,7 @@ static void SSEOP(psrld_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d2
 static void SSEOP(psrlq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d3
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] >> count;
@@ -5870,6 +6018,7 @@ static void SSEOP(psrlq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d3
 static void SSEOP(psllw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f1
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		for (int n=0; n < 8;n++)
@@ -5888,6 +6037,7 @@ static void SSEOP(psllw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f1
 static void SSEOP(pslld_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).d[0]=XMM((modrm >> 3) & 0x7).d[0] << count;
@@ -5910,6 +6060,7 @@ static void SSEOP(pslld_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f2
 static void SSEOP(psllq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f3
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0] << count;
@@ -5928,6 +6079,7 @@ static void SSEOP(psllq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f f3
 static void SSEOP(psraw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e1
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		for (int n=0; n < 8;n++)
@@ -5946,6 +6098,7 @@ static void SSEOP(psraw_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e1
 static void SSEOP(psrad_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int count=(int)XMM(modrm & 7).q[0];
 		XMM((modrm >> 3) & 0x7).i[0]=XMM((modrm >> 3) & 0x7).i[0] >> count;
@@ -5968,10 +6121,11 @@ static void SSEOP(psrad_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e2
 static void SSEOP(movntdq_m128_r128)(i386_state* cpustate)  // Opcode 66 0f e7
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		CYCLES(cpustate,1);     // unsupported
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 16);
 		WRITEXMM(cpustate, ea, XMM((modrm >> 3) & 0x7));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -5981,6 +6135,7 @@ static void SSEOP(movntdq_m128_r128)(i386_state* cpustate)  // Opcode 66 0f e7
 static void SSEOP(cvttpd2dq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e6
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).i[0]=(INT32)XMM((modrm >> 3) & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).i[1]=(INT32)XMM((modrm >> 3) & 0x7).f64[1];
@@ -5999,6 +6154,7 @@ static void SSEOP(cvttpd2dq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f e
 static void SSEOP(movq_r128m64_r128)(i386_state* cpustate)  // Opcode 66 0f d6
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7).q[0]=XMM((modrm >> 3) & 0x7).q[0];
 		XMM(modrm & 0x7).q[1] = 0;
@@ -6012,6 +6168,7 @@ static void SSEOP(movq_r128m64_r128)(i386_state* cpustate)  // Opcode 66 0f d6
 static void SSEOP(addsubpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d0
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s, d;
 		s=modrm & 0x7;
@@ -6033,12 +6190,16 @@ static void SSEOP(addsubpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f d0
 static void SSEOP(haddpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 7c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
+		XMM_REG t;
 		int s, d;
 		s=modrm & 0x7;
 		d=(modrm >> 3) & 0x7;
-		XMM(d).f64[0]=XMM(d).f64[0]+XMM(d).f64[1];
-		XMM(d).f64[1]=XMM(s).f64[0]+XMM(s).f64[1];
+		t.f64[0]=XMM(d).f64[0]+XMM(d).f64[1];
+		t.f64[1]=XMM(s).f64[0]+XMM(s).f64[1];
+		XMM(d).f64[0]=t.f64[0];
+		XMM(d).f64[1]=t.f64[1];
 	} else {
 		XMM_REG src;
 		int d;
@@ -6054,12 +6215,16 @@ static void SSEOP(haddpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 7c
 static void SSEOP(hsubpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 7d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
+		XMM_REG t;
 		int s, d;
 		s=modrm & 0x7;
 		d=(modrm >> 3) & 0x7;
-		XMM(d).f64[0]=XMM(d).f64[0]-XMM(d).f64[1];
-		XMM(d).f64[1]=XMM(s).f64[0]-XMM(s).f64[1];
+		t.f64[0]=XMM(d).f64[0]-XMM(d).f64[1];
+		t.f64[1]=XMM(s).f64[0]-XMM(s).f64[1];
+		XMM(d).f64[0]=t.f64[0];
+		XMM(d).f64[1]=t.f64[1];
 	} else {
 		XMM_REG src;
 		int d;
@@ -6075,6 +6240,7 @@ static void SSEOP(hsubpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 7d
 static void SSEOP(sqrtpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 51
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s, d;
 		s=modrm & 0x7;
@@ -6097,11 +6263,12 @@ static void SSEOP(cvtpi2pd_r128_rm64)(i386_state* cpustate)  // Opcode 66 0f 2a
 {
 	UINT8 modrm = FETCH(cpustate);
 	if( modrm >= 0xc0 ) {
-		MMXPROLOG(cpustate);
+		if(MMXPROLOG(cpustate)) return; // only when using mmx register operands
 		XMM((modrm >> 3) & 0x7).f64[0] = (double)MMX(modrm & 0x7).i[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = (double)MMX(modrm & 0x7).i[1];
 	} else {
 		MMX_REG r;
+		if(SSEPROLOG(cpustate)) return;
 		UINT32 ea = GetEA(cpustate,modrm, 0, 8);
 		READMMX(cpustate, ea, r);
 		XMM((modrm >> 3) & 0x7).f64[0] = (double)r.i[0];
@@ -6113,7 +6280,8 @@ static void SSEOP(cvtpi2pd_r128_rm64)(i386_state* cpustate)  // Opcode 66 0f 2a
 static void SSEOP(cvttpd2pi_r64_rm128)(i386_state* cpustate)  // Opcode 66 0f 2c
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
+	// TODO: manage inexact conversion to integer
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).i[0] = XMM(modrm & 0x7).f64[0];
 		MMX((modrm >> 3) & 0x7).i[1] = XMM(modrm & 0x7).f64[1];
@@ -6130,7 +6298,8 @@ static void SSEOP(cvttpd2pi_r64_rm128)(i386_state* cpustate)  // Opcode 66 0f 2c
 static void SSEOP(cvtpd2pi_r64_rm128)(i386_state* cpustate)  // Opcode 66 0f 2d
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
+	// TODO: manage inexact conversion to integer
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).i[0] = XMM(modrm & 0x7).f64[0];
 		MMX((modrm >> 3) & 0x7).i[1] = XMM(modrm & 0x7).f64[1];
@@ -6147,6 +6316,7 @@ static void SSEOP(cvtpd2pi_r64_rm128)(i386_state* cpustate)  // Opcode 66 0f 2d
 static void SSEOP(cvtpd2ps_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = (float)XMM(modrm & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).f[1] = (float)XMM(modrm & 0x7).f64[1];
@@ -6165,6 +6335,7 @@ static void SSEOP(cvtpd2ps_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5a
 static void SSEOP(cvtps2dq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).i[0] = XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).i[1] = XMM(modrm & 0x7).f[1];
@@ -6185,6 +6356,7 @@ static void SSEOP(cvtps2dq_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5b
 static void SSEOP(addpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 58
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] + XMM(modrm & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = XMM((modrm >> 3) & 0x7).f64[1] + XMM(modrm & 0x7).f64[1];
@@ -6201,6 +6373,7 @@ static void SSEOP(addpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 58
 static void SSEOP(mulpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 59
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] * XMM(modrm & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = XMM((modrm >> 3) & 0x7).f64[1] * XMM(modrm & 0x7).f64[1];
@@ -6217,6 +6390,7 @@ static void SSEOP(mulpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 59
 static void SSEOP(subpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] - XMM(modrm & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = XMM((modrm >> 3) & 0x7).f64[1] - XMM(modrm & 0x7).f64[1];
@@ -6233,6 +6407,7 @@ static void SSEOP(subpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5c
 static void SSEOP(minpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = sse_min_double(XMM((modrm >> 3) & 0x7).f64[0], XMM(modrm & 0x7).f64[0]);
 		XMM((modrm >> 3) & 0x7).f64[1] = sse_min_double(XMM((modrm >> 3) & 0x7).f64[1], XMM(modrm & 0x7).f64[1]);
@@ -6249,6 +6424,7 @@ static void SSEOP(minpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5d
 static void SSEOP(divpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] / XMM(modrm & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).f64[1] = XMM((modrm >> 3) & 0x7).f64[1] / XMM(modrm & 0x7).f64[1];
@@ -6265,6 +6441,7 @@ static void SSEOP(divpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5e
 static void SSEOP(maxpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = sse_max_double(XMM((modrm >> 3) & 0x7).f64[0], XMM(modrm & 0x7).f64[0]);
 		XMM((modrm >> 3) & 0x7).f64[1] = sse_max_double(XMM((modrm >> 3) & 0x7).f64[1], XMM(modrm & 0x7).f64[1]);
@@ -6281,11 +6458,12 @@ static void SSEOP(maxpd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 5f
 static void SSEOP(movntpd_m128_r128)(i386_state* cpustate)  // Opcode 66 0f 2b
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count
 	} else {
-		// since cache is not implemented
+		// TODO: manage the cache if present
 		UINT32 ea = GetEA(cpustate,modrm, 0, 16);
 		WRITEXMM(cpustate, ea, XMM((modrm >> 3) & 0x7));
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -6295,6 +6473,7 @@ static void SSEOP(movntpd_m128_r128)(i386_state* cpustate)  // Opcode 66 0f 2b
 static void SSEOP(movapd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 28
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7) = XMM(modrm & 0x7);
 	} else {
@@ -6307,6 +6486,7 @@ static void SSEOP(movapd_r128_rm128)(i386_state* cpustate)  // Opcode 66 0f 28
 static void SSEOP(movapd_rm128_r128)(i386_state* cpustate)  // Opcode 66 0f 29
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7) = XMM((modrm >> 3) & 0x7);
 	} else {
@@ -6319,6 +6499,7 @@ static void SSEOP(movapd_rm128_r128)(i386_state* cpustate)  // Opcode 66 0f 29
 static void SSEOP(movsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 10
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[0];
 	} else {
@@ -6332,6 +6513,7 @@ static void SSEOP(movsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 10
 static void SSEOP(movsd_r128m64_r128)(i386_state* cpustate) // Opcode f2 0f 11
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM(modrm & 0x7).q[0] = XMM((modrm >> 3) & 0x7).q[0];
 	} else {
@@ -6344,6 +6526,7 @@ static void SSEOP(movsd_r128m64_r128)(i386_state* cpustate) // Opcode f2 0f 11
 static void SSEOP(movddup_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 12
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).q[0] = XMM(modrm & 0x7).q[0];
 		XMM((modrm >> 3) & 0x7).q[1] = XMM((modrm >> 3) & 0x7).q[0];
@@ -6358,6 +6541,7 @@ static void SSEOP(movddup_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 12
 static void SSEOP(cvtsi2sd_r128_rm32)(i386_state* cpustate) // Opcode f2 0f 2a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = (INT32)LOAD_RM32(modrm);
 	} else {
@@ -6371,6 +6555,7 @@ static void SSEOP(cvttsd2si_r32_r128m64)(i386_state* cpustate) // Opcode f2 0f 2
 {
 	INT32 src;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		src = (INT32)XMM(modrm & 0x7).f64[0];
 	} else { // otherwise is a memory address
@@ -6387,6 +6572,7 @@ static void SSEOP(cvtsd2si_r32_r128m64)(i386_state* cpustate) // Opcode f2 0f 2d
 {
 	INT32 src;
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		src = (INT32)XMM(modrm & 0x7).f64[0];
 	} else { // otherwise is a memory address
@@ -6402,6 +6588,7 @@ static void SSEOP(cvtsd2si_r32_r128m64)(i386_state* cpustate) // Opcode f2 0f 2d
 static void SSEOP(sqrtsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 51
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s, d;
 		s=modrm & 0x7;
@@ -6421,6 +6608,7 @@ static void SSEOP(sqrtsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 51
 static void SSEOP(addsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 58
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] + XMM(modrm & 0x7).f64[0];
 	} else {
@@ -6435,6 +6623,7 @@ static void SSEOP(addsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 58
 static void SSEOP(mulsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 59
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] * XMM(modrm & 0x7).f64[0];
 	} else {
@@ -6449,6 +6638,7 @@ static void SSEOP(mulsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 59
 static void SSEOP(cvtsd2ss_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5a
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0] = XMM(modrm & 0x7).f64[0];
 	} else {
@@ -6463,6 +6653,7 @@ static void SSEOP(cvtsd2ss_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5
 static void SSEOP(subsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] - XMM(modrm & 0x7).f64[0];
 	} else {
@@ -6477,6 +6668,7 @@ static void SSEOP(subsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5c
 static void SSEOP(minsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = sse_min_double(XMM((modrm >> 3) & 0x7).f64[0], XMM(modrm & 0x7).f64[0]);
 	} else {
@@ -6491,6 +6683,7 @@ static void SSEOP(minsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5d
 static void SSEOP(divsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5e
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = XMM((modrm >> 3) & 0x7).f64[0] / XMM(modrm & 0x7).f64[0];
 	} else {
@@ -6505,6 +6698,7 @@ static void SSEOP(divsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5e
 static void SSEOP(maxsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5f
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f64[0] = sse_max_double(XMM((modrm >> 3) & 0x7).f64[0], XMM(modrm & 0x7).f64[0]);
 	} else {
@@ -6519,6 +6713,7 @@ static void SSEOP(maxsd_r128_r128m64)(i386_state* cpustate) // Opcode f2 0f 5f
 static void SSEOP(haddps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f 7c
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s, d;
 		float f1, f2, f3, f4;
@@ -6552,6 +6747,7 @@ static void SSEOP(haddps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f 7c
 static void SSEOP(hsubps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f 7d
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s, d;
 		float f1, f2, f3, f4;
@@ -6585,6 +6781,7 @@ static void SSEOP(hsubps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f 7d
 static void SSEOP(cmpsd_r128_r128m64_i8)(i386_state* cpustate) // Opcode f2 0f c2
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		int s,d;
 		UINT8 imm8 = FETCH(cpustate);
@@ -6606,6 +6803,7 @@ static void SSEOP(cmpsd_r128_r128m64_i8)(i386_state* cpustate) // Opcode f2 0f c
 static void SSEOP(addsubps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f d0
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).f[0]=XMM((modrm >> 3) & 0x7).f[0] - XMM(modrm & 0x7).f[0];
 		XMM((modrm >> 3) & 0x7).f[1]=XMM((modrm >> 3) & 0x7).f[1] + XMM(modrm & 0x7).f[1];
@@ -6626,7 +6824,7 @@ static void SSEOP(addsubps_r128_rm128)(i386_state* cpustate) // Opcode f2 0f d0
 static void SSEOP(movdq2q_r64_r128)(i386_state* cpustate) // Opcode f2 0f d6
 {
 	UINT8 modrm = FETCH(cpustate);
-	MMXPROLOG(cpustate);
+	if(MMXPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		MMX((modrm >> 3) & 0x7).q = XMM(modrm & 0x7).q[0];
 		CYCLES(cpustate,1);     // TODO: correct cycle count
@@ -6639,6 +6837,7 @@ static void SSEOP(movdq2q_r64_r128)(i386_state* cpustate) // Opcode f2 0f d6
 static void SSEOP(cvtpd2dq_r128_rm128)(i386_state* cpustate) // Opcode f2 0f e6
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		XMM((modrm >> 3) & 0x7).i[0]=(INT32)XMM((modrm >> 3) & 0x7).f64[0];
 		XMM((modrm >> 3) & 0x7).i[1]=(INT32)XMM((modrm >> 3) & 0x7).f64[1];
@@ -6657,6 +6856,7 @@ static void SSEOP(cvtpd2dq_r128_rm128)(i386_state* cpustate) // Opcode f2 0f e6
 static void SSEOP(lddqu_r128_m128)(i386_state* cpustate) // Opcode f2 0f f0
 {
 	UINT8 modrm = FETCH(cpustate);
+	if(SSEPROLOG(cpustate)) return;
 	if( modrm >= 0xc0 ) {
 		// unsupported by cpu
 		CYCLES(cpustate,1);     // TODO: correct cycle count

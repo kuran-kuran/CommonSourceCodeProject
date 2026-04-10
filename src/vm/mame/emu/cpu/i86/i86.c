@@ -44,6 +44,7 @@ struct i8086_state
 	UINT8 TF, IF;                  /* 0 or 1 valued flags */
 	UINT8 MF, MF_WriteDisabled;    /* V30 mode flag */
 	UINT8 NF;                      /* 8080 N flag */
+	UINT8 i80flags;                /* 8080 flags */
 
 	UINT8 int_vector;
 	INT8 nmi_state;
@@ -254,6 +255,7 @@ static CPU_RESET( v30 )
 	CPU_RESET_CALL(i8086);
 	cpustate->MF = cpustate->MF_WriteDisabled = 1;
 	cpustate->NF = 0; /* is this correct ? */
+	cpustate->i80flags = 0;
 }
 
 /* ASG 971222 -- added these interface functions */

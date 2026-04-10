@@ -10,24 +10,24 @@
 #include "vdp.h"
 #include "../upd7801.h"
 
-static const scrntype_t palette_pc[16] = {
-#if 1
+static const scrntype_t palette_rf[16] = {
 	RGB_COLOR(  0, 90,156), RGB_COLOR(  0,  0,  0), RGB_COLOR( 58,148,255), RGB_COLOR(  0,  0,255),
 	RGB_COLOR( 16,214,  0), RGB_COLOR( 66,255, 16), RGB_COLOR(123,230,197), RGB_COLOR(  0,173,  0),
 	RGB_COLOR(255, 41,148), RGB_COLOR(255, 49, 16), RGB_COLOR(255, 58,255), RGB_COLOR(239,156,255),
 	RGB_COLOR(255,206, 33), RGB_COLOR( 74,123, 16), RGB_COLOR(165,148,165), RGB_COLOR(255,255,255)
-#else
-	RGB_COLOR(  0, 90,156), RGB_COLOR(  0,  0,  0), RGB_COLOR(  0, 58,255), RGB_COLOR(  0,  0,255),
-	RGB_COLOR(  0,255,  0), RGB_COLOR( 58,255, 90), RGB_COLOR(  0,255,255), RGB_COLOR(  0,255,  0),
-	RGB_COLOR(255, 58,156), RGB_COLOR(255,156,156), RGB_COLOR(255, 58,255), RGB_COLOR(255,156,255),
-	RGB_COLOR(255,255, 90), RGB_COLOR(123,156,  0), RGB_COLOR(189,189,189), RGB_COLOR(255,255,255)
-#endif
+};
+
+static const scrntype_t palette_rgb[16] = {
+	RGB_COLOR(  0,  0,160), RGB_COLOR(  0,  0,  0), RGB_COLOR(  0,  0,245), RGB_COLOR(160,  0,235),
+	RGB_COLOR(  0,245,  0), RGB_COLOR(150,235,150), RGB_COLOR(  0,235,235), RGB_COLOR(  0,160,  0),
+	RGB_COLOR(245,  0,  0), RGB_COLOR(235,160,  0), RGB_COLOR(235,  0,235), RGB_COLOR(235,150,150),
+	RGB_COLOR(235,235,  0), RGB_COLOR(160,160,  0), RGB_COLOR(150,150,150), RGB_COLOR(225,225,225),
 };
 
 #if 1
 // table analyzed by Enri
 static const uint8_t color_pair0[16] = {0x0, 0xf, 0xc, 0xd, 0xa, 0xb, 0x8, 0x9, 0x6, 0x7, 0x4, 0x5, 0x2, 0x3, 0x1, 0x1};
-static const uint8_t color_pair1[16] = {0x0, 0x1, 0x8, 0xb, 0x2, 0x3, 0xa, 0x9, 0x4, 0x5, 0xc, 0xd, 0x6, 0x7, 0xe, 0xf};
+static const uint8_t color_pair1[16] = {0x0, 0x1, 0x8, 0xb, 0x2, 0x3, 0xa, 0x9, 0x4, 0x5, 0xc, 0xd, 0x6, 0x7, 0xe, 0x1/*0xf*/}; // PUNCH BOY
 #else
 static const uint8_t color_pair0[16] = {0xe, 0xf, 0xc, 0xd, 0xa, 0xb, 0x8, 0x9, 0x6, 0x7, 0x4, 0x5, 0x2, 0x3, 0x0, 0x1};
 static const uint8_t color_pair1[16] = {0x0, 0x1, 0x8, 0x9, 0x2, 0x3, 0xa, 0xb, 0x4, 0x5, 0xc, 0xd, 0x6, 0x7, 0xe, 0xf};
@@ -79,9 +79,9 @@ void VDP::initialize()
 
 void VDP::event_vline(int v, int clock)
 {
-	if(v == 239) {
+	if(v == 248) {
 		d_cpu->write_signal(SIG_UPD7801_INTF2, 1, 1);
-	} else if(v == 261) {
+	} else if(v == 16) {
 		d_cpu->write_signal(SIG_UPD7801_INTF2, 0, 1);
 	}
 }
@@ -106,6 +106,7 @@ void VDP::draw_screen()
 	
 	// mix screens
 	int ty = ((vdc0 & 0xf7) == 0x17 && (vdc2 & 0xef) == 0x4f) ? 32 : 0;
+	const scrntype_t *palette_pc = (config.monitor_type == 0) ? palette_rf : palette_rgb;
 	uint16_t back = palette_pc[vdc1 & 0xf];
 	
 	for(int y = 0; y < ty; y++) {
@@ -251,7 +252,7 @@ void VDP::draw_graph(int dx, int dy, uint8_t data, uint8_t col)
 
 void VDP::draw_sprite_screen()
 {
-	for(int index = 0; index < 128; index++) {
+	for(int index = 0; index < ((vdc0 & 4) ? 64 : 128); index++) {
 		uint8_t atb0 = vram1[0x200 + (index << 2)];
 		uint8_t atb1 = vram1[0x201 + (index << 2)];
 		uint8_t atb2 = vram1[0x202 + (index << 2)];
@@ -263,6 +264,10 @@ void VDP::draw_sprite_screen()
 		bool cony = ((atb0 & 1) != 0);
 		uint8_t col0 = atb1 & 0xf;
 		
+		// color #0 is transparent
+		if(!col0 || !dy) {
+			continue;
+		}
 		int sx = 0, ex = 4;
 		int sy = atb1 >> 4, ey = 8;
 		if(atb3 & 0x80) {
@@ -310,10 +315,6 @@ void VDP::draw_sprite_screen()
 
 void VDP::draw_sprite(int dx, int dy, int sx, int ex, int sy, int ey, int no, uint8_t col)
 {
-	// color #0 is transparent
-	if(!col) {
-		return;
-	}
 	for(int y = (sy < 0 ? 0 : sy), no32 = no << 5; y < ey; y++) {
 		int y2u = (y << 1) + dy, y2l = (y << 1) + dy + 1, y4 = (y << 2) + no32;
 		

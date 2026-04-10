@@ -102,13 +102,13 @@ uint32_t MEMORY::read_data8(uint32_t addr)
 
 void MEMORY::write_data8w(uint32_t addr, uint32_t data, int* wait)
 {
-	*wait = (0x2000 <= addr && addr < 0x3600) ? MEM_WAIT_VDP : 0;
+	*wait = 1;
 	write_data8(addr, data);
 }
 
 uint32_t MEMORY::read_data8w(uint32_t addr, int* wait)
 {
-	*wait = (0x2000 <= addr && addr < 0x3600) ? MEM_WAIT_VDP : 0;
+	*wait = (0x3000 <= addr && addr < 0x31ff) ? 3 : 2;
 	return read_data8(addr);
 }
 
@@ -124,6 +124,12 @@ void MEMORY::set_bank(uint8_t bank)
 		if(header.ctype == 1 && (bank & 1)) {
 			SET_BANK(0xe000, 0xff7f, sram, sram);
 		}
+		if(header.ctype == 2 && (bank & 2)) {
+			if(cart[0x10000] == 0x54 && cart[0x10001] == 0x06) {
+				// Pole Position II
+				SET_BANK(0xf000, 0xff7f, sram, sram);
+			}
+		}
 		cur_bank = bank;
 //	}
 }
@@ -135,7 +141,7 @@ void MEMORY::open_cart(const _TCHAR* file_path)
 	
 	// get save file path
 	my_tcscpy_s(save_path, _MAX_PATH, file_path);
-	int len = _tcslen(save_path);
+	size_t len = _tcslen(save_path);
 	if(save_path[len - 4] == _T('.')) {
 		save_path[len - 3] = _T('S');
 		save_path[len - 2] = _T('A');
@@ -156,23 +162,24 @@ void MEMORY::open_cart(const _TCHAR* file_path)
 		}
 		
 		// load rom image, PC5=0, PC6=0
-		fio->Fread(cart, 0x8000, 1);
-		memcpy(cart + 0x8000, cart, 0x8000);
+		fio->Fread(cart, 0x4000, 1);
+		memcpy(cart + 0x4000, cart, 0x4000);
+		fio->Fread(cart + 0x4000, 0x4000, 1);
 		
 		// load rom image, PC5=1, PC6=0
+		memcpy(cart + 0x8000, cart, 0x8000);
 		if(header.ctype == 0) {
 			fio->Fread(cart + 0xe000, 0x2000, 1);
 		} else if(header.ctype == 2) {
 			fio->Fread(cart + 0x8000, 0x8000, 1);
 		}
-		memcpy(cart + 0x10000, cart, 0x10000);
 		
 		// load rom image, PC5=0/1, PC6=1
-		if(header.ctype == 2) {
-			fio->Fread(cart + 0x10000, 0x10000, 1);
-		} else if(header.ctype == 3) {
+		memcpy(cart + 0x10000, cart, 0x10000);
+		if(header.ctype == 2 || header.ctype == 3) {
 			fio->Fread(cart + 0x10000, 0x8000, 1);
 			memcpy(cart + 0x18000, cart + 0x10000, 0x8000);
+			fio->Fread(cart + 0x18000, 0x8000, 1);
 		}
 		fio->Fclose();
 		

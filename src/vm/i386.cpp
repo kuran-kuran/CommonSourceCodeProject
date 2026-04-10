@@ -54,6 +54,7 @@
 #define INLINE inline
 #endif
 
+#define S64(v) INT64(v)
 #define U64(v) UINT64(v)
 
 #define fatalerror(...) exit(1)
@@ -100,21 +101,25 @@ enum
 
 /*****************************************************************************/
 /* src/emu/dimemory.h */
+/* src/emu/divtlb.h */
 
 // Translation intentions
-const int TRANSLATE_TYPE_MASK       = 0x03;     // read write or fetch
-const int TRANSLATE_USER_MASK       = 0x04;     // user mode or fully privileged
-const int TRANSLATE_DEBUG_MASK      = 0x08;     // debug mode (no side effects)
+enum
+{
+	TR_READ  = 0,	// translate for read
+	TR_WRITE = 1,	// translate for write
+	TR_FETCH = 2	// translate for instruction fetch
+};
 
-const int TRANSLATE_READ            = 0;        // translate for read
-const int TRANSLATE_WRITE           = 1;        // translate for write
-const int TRANSLATE_FETCH           = 2;        // translate for instruction fetch
-const int TRANSLATE_READ_USER       = (TRANSLATE_READ | TRANSLATE_USER_MASK);
-const int TRANSLATE_WRITE_USER      = (TRANSLATE_WRITE | TRANSLATE_USER_MASK);
-const int TRANSLATE_FETCH_USER      = (TRANSLATE_FETCH | TRANSLATE_USER_MASK);
-const int TRANSLATE_READ_DEBUG      = (TRANSLATE_READ | TRANSLATE_DEBUG_MASK);
-const int TRANSLATE_WRITE_DEBUG     = (TRANSLATE_WRITE | TRANSLATE_DEBUG_MASK);
-const int TRANSLATE_FETCH_DEBUG     = (TRANSLATE_FETCH | TRANSLATE_DEBUG_MASK);
+enum
+{
+	TR_UREAD  = 4,	// TR_USER | TR_READ
+	TR_UWRITE = 5,	// TR_USER | TR_WRITE
+	TR_UFETCH = 6,	// TR_USER | TR_FETCH
+
+	TR_TYPE   = 3,	// read write or fetch
+	TR_USER   = 4	// user mode or fully privileged
+};
 
 /*****************************************************************************/
 /* src/emu/emucore.h */
@@ -205,6 +210,9 @@ static CPU_TRANSLATE(i386);
 
 #include "mame/lib/softfloat/softfloat.c"
 #include "mame/lib/softfloat/fsincos.c"
+#include "mame/lib/softfloat/fpatan.c"
+#include "mame/lib/softfloat/f2xm1.c"
+#include "mame/lib/softfloat/fyl2x.c"
 #include "mame/emu/cpu/vtlb.c"
 #include "mame/emu/cpu/i386/i386.c"
 
@@ -337,7 +345,7 @@ uint32_t I386::get_next_pc()
 {
 	i386_state *cpustate = (i386_state *)opaque;
 	uint32_t addr = cpustate->pc;
-	translate_address(cpustate, cpustate->CPL, TRANSLATE_FETCH, &addr, NULL);
+	translate_address(cpustate, cpustate->CPL, TR_FETCH, &addr, NULL);
 	return addr;
 }
 
@@ -611,7 +619,7 @@ int I386::get_shutdown_flag()
 	return cpustate->shutdown;
 }
 
-#define STATE_VERSION	4
+#define STATE_VERSION	5
 
 void process_state_SREG(I386_SREG* val, FILEIO* state_fio)
 {
@@ -722,6 +730,7 @@ bool I386::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(cpustate->VIP);
 	state_fio->StateValue(cpustate->ID);
 	state_fio->StateValue(cpustate->CPL);
+	state_fio->StateValue(cpustate->auto_clear_RF);
 	state_fio->StateValue(cpustate->performed_intersegment_jump);
 	state_fio->StateValue(cpustate->delayed_interrupt_enable);
 	state_fio->StateArray(cpustate->cr, sizeof(cpustate->cr), 1);
@@ -788,6 +797,8 @@ bool I386::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(cpustate->opcode_bytes, sizeof(cpustate->opcode_bytes), 1);
 	state_fio->StateValue(cpustate->opcode_pc);
 	state_fio->StateValue(cpustate->opcode_bytes_length);
+	state_fio->StateArray(cpustate->opcode_addrs, sizeof(cpustate->opcode_addrs), 1);
+	state_fio->StateValue(cpustate->opcode_addrs_index);
 #endif
 	
 #ifdef USE_DEBUGGER
