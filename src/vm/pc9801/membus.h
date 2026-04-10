@@ -26,10 +26,13 @@ class DISPLAY;
 
 #if defined(SUPPORT_32BIT_ADDRESS)
 	#define RAM_SIZE	0x800000	// 8MB
+	#define EMS_SIZE	RAM_SIZE
 #elif defined(SUPPORT_24BIT_ADDRESS)
 	#define RAM_SIZE	0x400000	// 4MB
+	#define EMS_SIZE	RAM_SIZE
 #else
 	#define RAM_SIZE	0x100000	// 1MB
+	#define EMS_SIZE	0x300000
 #endif
 
 class MEMBUS : public MEMORY
@@ -38,7 +41,7 @@ private:
 	DISPLAY *d_display;
 	
 	// RAM
-	uint8_t ram[RAM_SIZE];
+	uint8_t ram[EMS_SIZE];
 	
 	// BIOS/ITF
 #if !defined(SUPPORT_HIRESO)
@@ -95,8 +98,8 @@ private:
 	void update_nec_ems();
 #endif
 	// EMS PC-9801-53
-	uint8_t ems[0x200000];
 	uint8_t ems_bank[4];
+	uint8_t ems_target;
 	void update_ems(int bank);
 #endif
 	

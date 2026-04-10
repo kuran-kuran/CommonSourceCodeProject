@@ -906,11 +906,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0x043d, memory);
 #endif
 #if !defined(SUPPORT_HIRESO)
-	io->set_iomap_single_w(0x043f, memory);
-	io->set_iomap_single_w(0x08e1, memory);
-	io->set_iomap_single_w(0x08e3, memory);
-	io->set_iomap_single_w(0x08e5, memory);
-	io->set_iomap_single_w(0x08e7, memory);
+	io->set_iomap_single_w (0x043f, memory);
+	io->set_iomap_single_w (0x08e1, memory);
+	io->set_iomap_single_w (0x08e3, memory);
+	io->set_iomap_single_w (0x08e5, memory);
+	io->set_iomap_single_w (0x08e7, memory);
+	io->set_iomap_single_rw(0x08e9, memory);
 #endif
 #if defined(SUPPORT_24BIT_ADDRESS) || defined(SUPPORT_32BIT_ADDRESS)
 #if !defined(_PC98XA)

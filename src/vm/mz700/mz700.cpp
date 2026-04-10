@@ -360,7 +360,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		// Z80SIO:DCDA <- QD:INSERT
 		// Z80SIO:DCDB <- QD:HOE
 		qd->set_context_sio(sio_qd);
-	}	
+	}
 #if defined(SUPPORT_80COLUMN)
 	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
 		crtc->set_vram_ptr(memory->get_vram80(), 0x800);

@@ -1,3 +1,12 @@
+12/31/2025
+
+[MZ80B/MEMORY] fix text vram size (thanks Mr.kuran_kuran)
+[MZ2200/MEMORY] fix text vram size (thanks Mr.kuran_kuran)
+[PC9801/MEMBUS] improve SASI BIOS rom/ram switching
+[PC9801/MEMBUS] improve EMS memory to use protect memory (thanks NP2)
+[X1/EMM] fix crash issue while releasing (thanks Mr.Tsuneoka)
+
+
 12/15/2025
 
 [BX1] support I/O CONTROLLER X-7101B

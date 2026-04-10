@@ -87,7 +87,7 @@ uint32_t CPUREG::read_io8(uint32_t addr)
 //		value |= 0x80; // CPU MODE, 1 = High/Low, 0 = Middle (PC-9821Ap/As/Ae/Af)
 //		value |= 0x40; // ODP, 1 = Existing (PC-9821Ts)
 #if defined(SUPPORT_SCSI_IF)
-#if defined(SUPPORT_32BIT_ADDRESS)
+#if defined(SUPPORT_32BIT_ADDRESS) && defined(_PC9801DA)
 		if(!(d_memory->bios_selected & 0x20)) {
 			value |= 0x40;
 		}
@@ -96,7 +96,7 @@ uint32_t CPUREG::read_io8(uint32_t addr)
 #endif
 #endif
 #if defined(SUPPORT_SASI_IF)
-#if defined(SUPPORT_32BIT_ADDRESS)
+#if defined(SUPPORT_32BIT_ADDRESS) && defined(_PC9801DA)
 		if(!(d_memory->bios_selected & 0x40)) {
 			value |= 0x20;
 		}
