@@ -79,6 +79,7 @@ CPU_REGS cpu_debug_rep_regs;
 void
 exec_1step(void)
 {
+#if 0
 	int prefix;
 	UINT32 op;
 
@@ -279,17 +280,12 @@ exec_1step(void)
 			}
 		}
 	}
-}
-
-#if 0
-void
-exec_allstep(void)
-{
+#else
 	int prefix;
 	UINT32 op;
 	void (*func)(void);
 	
-	do {
+	//do {
 
 		CPU_PREV_EIP = CPU_EIP;
 		CPU_STATSAVE.cpu_inst = CPU_STATSAVE.cpu_inst_default;
@@ -363,6 +359,11 @@ exec_allstep(void)
 			{
 				GET_PCBYTE(op);
 			}
+#ifdef USE_DEBUGGER
+			if (prefix == 0) {
+				device_debugger->add_cpu_trace(codefetch_address, CPU_PREV_EIP, (CPU_INST_OP32 != 0));
+			}
+#endif
 #if defined(IA32_INSTRUCTION_TRACE)
 			ctx[ctx_index].op[prefix] = op;
 			ctx[ctx_index].opbytes++;
@@ -373,39 +374,49 @@ exec_allstep(void)
 			{
 #if defined(USE_CPU_INLINEINST)
 				// インライン命令群　関数テーブルよりも呼び出しが高速だが、多く置きすぎるとifが増えて逆に遅くなる。なので呼び出し頻度が高い物を優先して配置
-				if (op == 0x66)
-				{
-					CPU_INST_OP32 = !CPU_STATSAVE.cpu_inst_default.op_32;
-					continue;
-				}
-				else if (op == 0x26)
-				{
-					CPU_INST_SEGUSE = 1;
-					CPU_INST_SEGREG_INDEX = CPU_ES_INDEX;
-					continue;
-				}
-				else if (op == 0x67)
-				{
-					CPU_INST_AS32 = !CPU_STATSAVE.cpu_inst_default.as_32;
-					continue;
-				}
-				else if (op == 0x2E)
-				{
-					CPU_INST_SEGUSE = 1;
-					CPU_INST_SEGREG_INDEX = CPU_CS_INDEX;
-					continue;
-				}
-				else if (op == 0xF3)
-				{
-					CPU_INST_REPUSE = 0xf3;
-					continue;
-				}
-				else
-#endif
-				{
+				if (!(op & 0x26)) {
 					(*insttable_1byte[0][op])();
 					continue;
 				}
+				else {
+					if (op == 0x66)
+					{
+						CPU_INST_OP32 = !CPU_STATSAVE.cpu_inst_default.op_32;
+						continue;
+					}
+					else if (op == 0x26)
+					{
+						CPU_INST_SEGUSE = 1;
+						CPU_INST_SEGREG_INDEX = CPU_ES_INDEX;
+						continue;
+					}
+					else if (op == 0x67)
+					{
+						CPU_INST_AS32 = !CPU_STATSAVE.cpu_inst_default.as_32;
+						continue;
+					}
+					else if (op == 0x2E)
+					{
+						CPU_INST_SEGUSE = 1;
+						CPU_INST_SEGREG_INDEX = CPU_CS_INDEX;
+						continue;
+					}
+					//else if (op == 0xF3)
+					//{
+					//	CPU_INST_REPUSE = 0xf3;
+					//	continue;
+					//}
+					else
+					{
+						(*insttable_1byte[0][op])();
+						continue;
+					}
+				}
+#else
+
+				(*insttable_1byte[0][op])();
+				continue;
+#endif
 			}
 			break;
 		}
@@ -435,11 +446,11 @@ exec_allstep(void)
 
 				PREPART_REG32_EA(op2, src, out, 2, 5);
 				*out = src;
-				continue;
+				//continue;
+				return;
 			}
 			else if (op == 0x0f)
 			{
-				UINT32 op;
 				UINT8 repuse = CPU_INST_REPUSE;
 
 				GET_MODRM_PCBYTE(op);
@@ -463,7 +474,8 @@ exec_allstep(void)
 #else
 				(*insttable_2byte[1][op])();
 #endif
-				continue;
+				//continue;
+				return;
 			}
 			else if (op == 0x74)
 			{
@@ -475,7 +487,8 @@ exec_allstep(void)
 				{
 					JMPSHORT(7);
 				}
-				continue;
+				//continue;
+				return;
 			}
 		}
 #endif
@@ -484,7 +497,8 @@ exec_allstep(void)
 			cpu_debug_rep_cont = 0;
 #endif
 			(*insttable_1byte[CPU_INST_OP32][op])();
-			continue;
+			//continue;
+			return;
 		}
 
 		/* rep */
@@ -629,6 +643,6 @@ exec_allstep(void)
 				}
 			}
 		}
-	} while (CPU_REMCLOCK > 0);
-}
+	//} while (CPU_REMCLOCK > 0);
 #endif
+}

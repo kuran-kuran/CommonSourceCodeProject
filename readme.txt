@@ -1,5 +1,5 @@
 retro pc emulator common source code
-								4/28/2024
+								11/9/2025
 
 --- What's this ?
 
@@ -58,6 +58,8 @@ This archive includes the all source codes of emulators listed below:
 		eCEFUCOM-21	CEFUCOM-21
 	Homebrew
 		eZ80TVGAME	Homebrew Z80 TV GAME SYSTEM
+	Hudson
+		eHuX-883	HuX-883
 	IBM Japan Ltd
 		eJX		PC/JX
 	Japan Electronics College

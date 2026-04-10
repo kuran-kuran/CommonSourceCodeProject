@@ -162,24 +162,23 @@ void MEMORY::open_cart(const _TCHAR* file_path)
 		}
 		
 		// load rom image, PC5=0, PC6=0
-		fio->Fread(cart, 0x4000, 1);
-		memcpy(cart + 0x4000, cart, 0x4000);
-		fio->Fread(cart + 0x4000, 0x4000, 1);
+		fio->Fread(cart, 0x8000, 1);
+		memcpy(cart + 0x8000, cart, 0x8000);
 		
 		// load rom image, PC5=1, PC6=0
-		memcpy(cart + 0x8000, cart, 0x8000);
 		if(header.ctype == 0) {
 			fio->Fread(cart + 0xe000, 0x2000, 1);
 		} else if(header.ctype == 2) {
 			fio->Fread(cart + 0x8000, 0x8000, 1);
 		}
+		memcpy(cart + 0x10000, cart, 0x10000);
 		
 		// load rom image, PC5=0/1, PC6=1
-		memcpy(cart + 0x10000, cart, 0x10000);
-		if(header.ctype == 2 || header.ctype == 3) {
+		if(header.ctype == 2) {
+			fio->Fread(cart + 0x10000, 0x10000, 1);
+		} else if(header.ctype == 3) {
 			fio->Fread(cart + 0x10000, 0x8000, 1);
 			memcpy(cart + 0x18000, cart + 0x10000, 0x8000);
-			fio->Fread(cart + 0x18000, 0x8000, 1);
 		}
 		fio->Fclose();
 		

@@ -79,9 +79,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	cpu->set_context_debugger(debugger);
 	
 	debugger->add_symbol(0x015c, _T("VRAM_TOP"));
+	debugger->add_symbol(0x03f8, _T("KEY_IDX"));
+	debugger->add_symbol(0x03fc, _T("KEY_NUM"));
+	debugger->add_symbol(0x03fd, _T("KEY_PREV"));
 	
 	debugger->add_symbol(0xe121, _T("KEY_DOWN"));
 	debugger->add_symbol(0xe122, _T("KEY_UP"));
+	debugger->add_symbol(0xe128, _T("KEY_CLEAR"));
 	debugger->add_symbol(0xe140, _T("DMA[0].ADDR_HI"));
 	debugger->add_symbol(0xe141, _T("DMA[0].ADDR_LO"));
 	debugger->add_symbol(0xe142, _T("DMA[0].COUNT_HI"));

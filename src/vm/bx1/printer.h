@@ -21,10 +21,11 @@ class PRINTER : public DEVICE
 private:
 	uint8_t *ram;
 	FILEIO *fio;
-	uint8_t column, htab;
+	uint8_t column, func;
 	uint8_t strobe, outdata;
 	
-	void output(uint8_t);
+	void output_char(uint8_t value);
+	void output_file(uint8_t vale);
 	
 public:
 	PRINTER(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)

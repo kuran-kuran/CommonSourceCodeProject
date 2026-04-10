@@ -99,6 +99,27 @@ unsigned int OSD::get_console_code_page()
 	return GetConsoleCP();
 }
 
+void OSD::set_console_code_oage(unsigned int cp)
+{
+	SetConsoleOutputCP(cp);
+}
+
+void OSD::get_console_cursor_position(int *x, int *y)
+{
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	GetConsoleScreenBufferInfo(hStdOut, &csbi);
+	*x = csbi.dwCursorPosition.X;
+	*y = csbi.dwCursorPosition.Y;
+}
+
+void OSD::set_console_cursor_position(int x, int y)
+{
+	COORD co;
+	co.X = x;
+	co.Y = y;
+	SetConsoleCursorPosition(hStdOut, co);
+}
+
 void OSD::set_console_text_attribute(unsigned short attr)
 {
 	unsigned short new_attr = 0;
@@ -131,6 +152,26 @@ void OSD::write_console(const _TCHAR* buffer, unsigned int length)
 	}
 	DWORD dwWritten;
 	WriteConsole(hStdOut, buffer, length, &dwWritten, NULL);
+}
+
+void OSD::write_console_char(const char* buffer, unsigned int length)
+{
+	if(use_telnet) {
+		send_telnet(buffer);
+		return;
+	}
+	DWORD dwWritten;
+	WriteConsoleA(hStdOut, buffer, length, &dwWritten, NULL);
+}
+
+void OSD::write_console_wchar(const wchar_t* buffer, unsigned int length)
+{
+	if(use_telnet) {
+		send_telnet(wchar_to_char(buffer));
+		return;
+	}
+	DWORD dwWritten;
+	WriteConsoleW(hStdOut, buffer, length, &dwWritten, NULL);
 }
 
 int OSD::read_console_input(_TCHAR* buffer, unsigned int length)

@@ -1,3 +1,14 @@
+11/09/2025
+
+[VM/I386] don't set cpl until all reads are finished (thanks Mr. cracyc)
+[VM/I386_NP21] update to Neko Project 21/W ver0.86 rev96 beta8
+[VM/MC6800] Update MAME M6800 core to version 0.279
+
+[BX1/PRINTER] improve for htab/feed and drawing symbols
+[HUX883] support Hudson HuX-883
+[SCV/MEMORY] fix loading cart image
+
+
 9/23/2025
 
 [VM/I86] Update MAME i86 core for DIV/IDIV/NEG instructions

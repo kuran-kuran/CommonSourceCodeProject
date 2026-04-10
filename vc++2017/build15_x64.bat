@@ -123,6 +123,10 @@ msbuild.exe hc80.vcxproj /t:clean;rebuild /p:Configuration=Release;Platform="x64
 mkdir build_vc15\hc80
 copy bin\x64\Release\hc80.exe build_vc15\hc80\.
 
+msbuild.exe hux883.vcxproj /t:clean;rebuild /p:Configuration=Release;Platform="x64"
+mkdir build_vc15\hux883
+copy bin\x64\Release\hux883.exe build_vc15\hux883\.
+
 msbuild.exe jr100.vcxproj /t:clean;rebuild /p:Configuration=Release;Platform="x64"
 mkdir build_vc15\jr100
 copy bin\x64\Release\jr100.exe build_vc15\jr100\.

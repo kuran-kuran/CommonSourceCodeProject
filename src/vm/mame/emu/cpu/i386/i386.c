@@ -1277,10 +1277,10 @@ static void i386_task_switch(i386_state *cpustate, UINT16 selector, UINT8 nested
 
 	CHANGE_PC(cpustate,cpustate->eip);
 
-	cpustate->CPL = (cpustate->sreg[SS].flags >> 5) & 3;
-
 	int t_bit = READ32(cpustate,tss+0x64) & 1;
 	if(t_bit) cpustate->dr[6] |= (1 << 15); //If the T bit of the new TSS is set, set the BT bit of DR6.
+
+	cpustate->CPL = (cpustate->sreg[SS].flags >> 5) & 3;
 
 	cpustate->dr[7] &= ~(0x155); //Clear all of the local enable bits from DR7.
 

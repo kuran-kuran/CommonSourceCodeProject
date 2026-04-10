@@ -298,11 +298,15 @@ uint32_t KEYBOARD::read_io8(uint32_t addr)
 		}
 		break;
 	case 0xe122:
-		// bit7: JPN/ENG Jumper?
-		// bit5: PROG.SELECT
-		fifo_down->read();
-		value  = (config.dipswitch & 2) ? 0 : 0x20;
-		value |= (config.dipswitch & 4) ? 0 : 0x80;
+		if(!fifo_down->empty()) {
+			value = fifo_down->read() | 0x80;
+//			value = 0;
+		} else {
+			// bit7: JPN/ENG Jumper?
+			// bit5: PROG.SELECT
+			value  = (config.dipswitch & 2) ? 0 : 0x20;
+			value |= (config.dipswitch & 4) ? 0 : 0x80;
+		}
 		break;
 	}
 	return value;

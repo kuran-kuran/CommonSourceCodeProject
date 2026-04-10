@@ -101,7 +101,6 @@ ia32_initreg(void)
 void
 ia32reset(void)
 {
-
 	memset(&i386core.s, 0, sizeof(i386core.s));
 	ia32_initreg();
 }
@@ -109,7 +108,6 @@ ia32reset(void)
 void
 ia32shut(void)
 {
-
 	memset(&i386core.s, 0, offsetof(I386STAT, cpu_type));
 	ia32_initreg();
 }
@@ -145,11 +143,9 @@ ia32(void)
 		break;
 	}
 #endif
-/*
-	if (!CPU_TRAP && !dmac.working) {
-		exec_allstep();
-	}else 
-*/
+//	if (!CPU_TRAP && !dmac.working) {
+//		exec_allstep();
+//	}else
 	if (!CPU_TRAP) {
 		do {
 			exec_1step();
@@ -187,12 +183,10 @@ ia32(void)
 #endif
 }
 
+#if 0
 void
 ia32_step(void)
 {
-#ifdef __cplusplus
-	try {
-#else
 	switch (sigsetjmp(exec_1step_jmpbuf, 1)) {
 	case 0:
 		break;
@@ -209,38 +203,19 @@ ia32_step(void)
 		VERBOSE(("ia32: return from unknown cause"));
 		break;
 	}
-#endif
+
 	do {
 		exec_1step();
 		if (CPU_TRAP) {
 			CPU_DR6 |= CPU_DR6_BS;
 			INTERRUPT(1, INTR_TYPE_EXCEPTION);
 		}
-		//if (dmac.working) {
+		if (dmac.working) {
 			dmax86();
-		//}
-	} while (CPU_REMCLOCK > 0);
-#ifdef __cplusplus
-	} catch (int e) {
-		switch (e) {
-		case 0:
-			break;
-
-		case 1:
-			VERBOSE(("ia32: return from exception"));
-			break;
-
-		case 2:
-			VERBOSE(("ia32: return from panic"));
-			return;
-
-		default:
-			VERBOSE(("ia32: return from unknown cause"));
-			break;
 		}
-	}
-#endif
+	} while (CPU_REMCLOCK > 0);
 }
+#endif
 //#pragma optimize("", on)
 
 void CPUCALL

@@ -184,6 +184,7 @@ typedef  UINT32	PF_UINT32;
 #define USE_CPU_INLINEINST
 #define USE_CPU_DIRECTREG
 #define USE_CPU_EIPMASK
+//#define IA32_INSTRUCTION_TRACE
 #define IA32_REBOOT_ON_PANIC
 
 enum {
@@ -1445,7 +1446,7 @@ void ia32reset(void);
 void ia32shut(void);
 void ia32a20enable(BOOL enable);
 void ia32(void);
-void ia32_step(void);
+//void ia32_step(void);
 void CPUCALL ia32_interrupt(int vect, int soft);
 
 void exec_1step(void);
