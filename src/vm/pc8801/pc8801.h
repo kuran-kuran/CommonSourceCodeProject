@@ -89,7 +89,6 @@
 	#define SUPPORT_PC88_FDD_8INCH
 	#define SUPPORT_PC88_16BIT
 	#define SUPPORT_M88_DISKDRV
-	#define SUPPORT_CMU800
 #elif defined(_PC8801)
 	#define SUPPORT_PC88_KANJI1
 //	#define SUPPORT_PC88_KANJI2
@@ -98,7 +97,6 @@
 	#define SUPPORT_PC88_FDD_8INCH
 	#define SUPPORT_PC88_16BIT
 	#define SUPPORT_M88_DISKDRV
-	#define SUPPORT_CMU800
 #elif defined(_PC8001SR)
 	#define SUPPORT_PC88_KANJI1
 //	#define SUPPORT_PC88_KANJI2
@@ -114,13 +112,11 @@
 	#define PC88_EXRAM_BANKS	1
 	#define SUPPORT_PC88_FDD_8INCH
 	#define SUPPORT_M88_DISKDRV
-	#define SUPPORT_CMU800
 #elif defined(_PC8001)
 //	#define SUPPORT_PC88_KANJI1
 //	#define SUPPORT_PC88_KANJI2
 //	#define SUPPORT_PC88_FDD_8INCH
 //	#define SUPPORT_M88_DISKDRV
-	#define SUPPORT_CMU800
 #endif
 #define SUPPORT_PC88_GSX8800
 #define SUPPORT_PC88_PCG8100
@@ -158,29 +154,18 @@
 #define CPU_TYPE_DEFAULT	1
 #endif
 #define USE_DIPSWITCH
-#define USE_OPTION_SWITCH
-#define DIPSWITCH_MEMWAIT		(1 << 0)
-#define OPTION_SWITCH_HMB20		(1 << 1)
-#define OPTION_SWITCH_GSX8800		(1 << 2)
-#define OPTION_SWITCH_PCG8100		(1 << 3)
-#define DIPSWITCH_CMDSING		(1 << 4)
-#define DIPSWITCH_PALETTE		(1 << 5)
-#define OPTION_SWITCH_FDD_5INCH		(1 << 6)
-#define OPTION_SWITCH_FDD_8INCH		(1 << 7)
-#define OPTION_SWITCH_M88_DISKDRV	(1 << 8)
-#define DIPSWITCH_QUASIS88_CMT		(1 << 9)
-#define OPTION_SWITCH_16BIT		(1 << 10)
-#define OPTION_SWITCH_CDROM		(1 << 11)
-#define OPTION_SWITCH_CMU800		(1 << 12)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 13)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 14)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 15)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 16)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 17)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 18)
-#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 19)
-#define DIPSWITCH_DEFAULT	DIPSWITCH_CMDSING
-#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_HMB20 | OPTION_SWITCH_GSX8800 | OPTION_SWITCH_PCG8100 | OPTION_SWITCH_FDD_5INCH | OPTION_SWITCH_CDROM | OPTION_SWITCH_CMU800)
+#define DIPSWITCH_MEMWAIT	0x01
+#define DIPSWITCH_HMB20		0x02
+#define DIPSWITCH_GSX8800	0x04
+#define DIPSWITCH_PCG8100	0x08
+#define DIPSWITCH_CMDSING	0x10
+#define DIPSWITCH_PALETTE	0x20
+#define DIPSWITCH_FDD_5INCH	0x40
+#define DIPSWITCH_FDD_8INCH	0x80
+#define DIPSWITCH_M88_DISKDRV	0x100
+#define DIPSWITCH_QUASIS88_CMT	0x200
+#define DIPSWITCH_16BIT		0x400
+#define DIPSWITCH_DEFAULT	(DIPSWITCH_HMB20 + DIPSWITCH_GSX8800 + DIPSWITCH_PCG8100 + DIPSWITCH_CMDSING + DIPSWITCH_FDD_5INCH)
 #define USE_JOYSTICK_TYPE	2
 #if defined(SUPPORT_PC88_FDD_8INCH)
 #define USE_FLOPPY_DISK		4
@@ -191,10 +176,6 @@
 #define TAPE_BINARY_ONLY
 #if defined(SUPPORT_PC88_CDROM)
 #define USE_COMPACT_DISC	1
-#endif
-#if defined(SUPPORT_CMU800)
-#define USE_GENERAL_PARAM	1
-#define USE_MIDI
 #endif
 #define USE_KEY_LOCKED
 // slow enough for N88-“ú–{ŒêBASIC
@@ -361,10 +342,6 @@ class MEMORY;
 class DiskIO;
 #endif
 
-#ifdef SUPPORT_CMU800
-class CMU800;
-#endif
-
 class PC88;
 
 class VM : public VM_TEMPLATE
@@ -442,10 +419,6 @@ protected:
 	DiskIO* pc88diskio;
 #endif
 	
-#ifdef SUPPORT_CMU800
-	CMU800* cmu800;
-#endif
-	
 	PC88* pc88;
 	
 	int boot_mode;
@@ -511,7 +484,6 @@ public:
 	void close_compact_disc(int drv);
 	bool is_compact_disc_inserted(int drv);
 	uint32_t is_compact_disc_accessed();
-	bool is_compact_disc_connected(int drv);
 #endif
 	bool is_frame_skippable();
 	

@@ -297,7 +297,4 @@
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="..\src\res\vista.manifest" />
-  </ItemGroup>
 </Project>

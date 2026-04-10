@@ -81,9 +81,6 @@
     <ClCompile Include="..\src\win32\osd_input.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\win32\osd_midi.cpp">
-      <Filter>Source Files\OSD Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\win32\osd_screen.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
@@ -95,9 +92,6 @@
     </ClCompile>
     <ClCompile Include="..\src\win32\winmain.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vm\cmu800.cpp">
-      <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\datarec.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
@@ -121,9 +115,6 @@
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\mb8877.cpp">
-      <Filter>Source Files\VM Common Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vm\midi.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\mz1p17.cpp">
@@ -210,12 +201,6 @@
     <ClCompile Include="..\src\vm\mz2500\mz1e30.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\mz2500\mz1e32.cpp">
-      <Filter>Source Files\VM Driver Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp">
-      <Filter>Source Files\VM Driver Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
@@ -254,9 +239,6 @@
     <ClInclude Include="..\src\win32\osd.h">
       <Filter>Header Files\OSD Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\cmu800.h">
-      <Filter>Header Files\VM Common Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vm\datarec.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
@@ -285,9 +267,6 @@
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\mb8877.h">
-      <Filter>Header Files\VM Common Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vm\midi.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\mz1p17.h">
@@ -392,12 +371,6 @@
     <ClInclude Include="..\src\vm\mz2500\mz1e30.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\mz2500\mz1e32.h">
-      <Filter>Header Files\VM Driver Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vm\mz2500\mz1r12.h">
-      <Filter>Header Files\VM Driver Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
@@ -438,8 +411,5 @@
     <ResourceCompile Include="..\src\res\mz2500.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

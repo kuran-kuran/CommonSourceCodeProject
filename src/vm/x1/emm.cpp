@@ -14,39 +14,7 @@
 
 void EMM::initialize()
 {
-	// init memory
-	data_buffer = (uint8_t*)malloc(EMM_BUFFER_SIZE);
-	memset(data_buffer, 0, EMM_BUFFER_SIZE);
-	modified = false;
-	
-	// load emm image
-	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("EMM.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(data_buffer, EMM_BUFFER_SIZE, 1);
-		fio->Fclose();
-	} else if(fio->Fopen(create_local_path(_T("EMM.BIN")), FILEIO_READ_BINARY)) {
-		fio->Fread(data_buffer, EMM_BUFFER_SIZE, 1);
-		fio->Fclose();
-	}
-	delete fio;
-}
-
-void EMM::release()
-{
-	// save emm image
-	if(modified) {
-		FILEIO* fio = new FILEIO();
-		if(fio->Fopen(create_local_path(_T("EMM.BIN")), FILEIO_WRITE_BINARY)) {
-			fio->Fwrite(data_buffer, EMM_BUFFER_SIZE, 1);
-			fio->Fclose();
-		}
-		delete fio;
-	}
-	
-	// release memory
-	if(data_buffer != NULL) {
-		free(data_buffer);
-	}
+	memset(data_buffer, 0, sizeof(data_buffer));
 }
 
 void EMM::reset()
@@ -68,10 +36,7 @@ void EMM::write_io8(uint32_t addr, uint32_t data)
 		break;
 	case 3:
 		if(data_addr < EMM_BUFFER_SIZE) {
-			if(data_buffer[data_addr] != (uint8_t)data) {
-				data_buffer[data_addr] = data;
-				modified = true;
-			}
+			data_buffer[data_addr] = data;
 		}
 		data_addr = (data_addr + 1) & 0xffffff;
 		break;
@@ -93,7 +58,7 @@ uint32_t EMM::read_io8(uint32_t addr)
 	return 0xff;
 }
 
-#define STATE_VERSION	2
+#define STATE_VERSION	1
 
 bool EMM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -105,6 +70,5 @@ bool EMM::process_state(FILEIO* state_fio, bool loading)
 	}
 	state_fio->StateArray(data_buffer, sizeof(data_buffer), 1);
 	state_fio->StateValue(data_addr);
-	state_fio->StateValue(modified);
 	return true;
 }

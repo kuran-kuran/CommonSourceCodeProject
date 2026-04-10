@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ PIO-3034 ]
+	[ emm ]
 */
 
 #ifndef _EMM_H_
@@ -21,12 +21,11 @@ class EMM : public DEVICE
 private:
 	uint8_t *data_buffer;
 	uint32_t data_addr;
-	bool modified;
 	
 public:
 	EMM(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("PIO-3034 EMM"));
+		set_device_name(_T("EMM"));
 	}
 	~EMM() {}
 	

@@ -69,11 +69,6 @@
 #include "diskio.h"
 #endif
 
-#ifdef SUPPORT_CMU800
-#include "../cmu800.h"
-#include "../midi.h"
-#endif
-
 #include "pc88.h"
 
 // ----------------------------------------------------------------------------
@@ -89,7 +84,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		config.boot_mode = MODE_PC80_N;
 	}
 	// 8inch floppy drives are not supported
-	config.option_switch &= ~OPTION_SWITCH_FDD_8INCH;
+	config.dipswitch &= ~DIPSWITCH_FDD_8INCH;
 #elif defined(_PC8001MK2)
 	if(config.boot_mode == MODE_PC80_V2) {
 		config.boot_mode = MODE_PC80_V1;
@@ -103,13 +98,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 #if defined(_PC8801MK2) || defined(PC8801SR_VARIANT)
 	// 5inch floppy drives are always existing
-	config.option_switch |= OPTION_SWITCH_FDD_5INCH;
+	config.dipswitch |= DIPSWITCH_FDD_5INCH;
 #endif
-#endif
-#if defined(SUPPORT_PC88_CDROM)
-	if(config.boot_mode == MODE_PC88_V2CD && !(config.option_switch & OPTION_SWITCH_CDROM)) {
-		config.boot_mode = MODE_PC88_V2;
-	}
 #endif
 	boot_mode = config.boot_mode;
 	
@@ -153,7 +143,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pc88cpu = new Z80(this, emu);
 //	pc88cpu->set_context_event_manager(pc88event);
 	
-	if(config.option_switch & OPTION_SWITCH_FDD_5INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_5INCH) {
 		pc88sub = new PC80S31K(this, emu);
 		pc88sub->set_device_name(_T("PC-80S31K (Sub)"));
 //		pc88sub->set_context_event_manager(pc88event);
@@ -180,7 +170,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		pc88cpu_sub = NULL;
 	}
 #ifdef SUPPORT_PC88_FDD_8INCH
-	if(config.option_switch & OPTION_SWITCH_FDD_8INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_8INCH) {
 		pc88fdc_8inch = new UPD765A(this, emu);
 		pc88fdc_8inch->set_device_name(_T("uPD765A FDC (8inch)"));
 //		pc88fdc_8inch->set_context_event_manager(pc88event);
@@ -196,14 +186,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_CDROM
-	if(config.option_switch & OPTION_SWITCH_CDROM) {
-		pc88scsi_host = new SCSI_HOST(this, emu);
-//		pc88scsi_host->set_context_event_manager(pc88event);
-		pc88scsi_cdrom = new SCSI_CDROM(this, emu);
-//		pc88scsi_cdrom->set_context_event_manager(pc88event);
-	} else {
-		pc88scsi_cdrom = NULL;
-	}
+	pc88scsi_host = new SCSI_HOST(this, emu);
+//	pc88scsi_host->set_context_event_manager(pc88event);
+	pc88scsi_cdrom = new SCSI_CDROM(this, emu);
+//	pc88scsi_cdrom->set_context_event_manager(pc88event);
 #endif
 #if defined(_PC8801MA)
 	// config.sound_type
@@ -299,7 +285,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 #endif
 #ifdef SUPPORT_PC88_HMB20
-	if(config.option_switch & OPTION_SWITCH_HMB20) {
+	if(config.dipswitch & DIPSWITCH_HMB20) {
 		pc88opm = new YM2151(this, emu);
 #ifdef USE_DEBUGGER
 		pc88opm->set_context_debugger(new DEBUGGER(this, emu));
@@ -311,7 +297,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_GSX8800
-	if(config.option_switch & OPTION_SWITCH_GSX8800) {
+	if(config.dipswitch & DIPSWITCH_GSX8800) {
 //		pc88gsx_pit = new I8253(this, emu);
 //		pc88gsx_pit->set_device_name(_T("8253 PIT (GSX-8800)"));
 //		pc88gsx_pit->set_context_event_manager(pc88event);
@@ -339,7 +325,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_PCG8100
-	if(config.option_switch & OPTION_SWITCH_PCG8100) {
+	if(config.dipswitch & DIPSWITCH_PCG8100) {
 		pc88pcg_pit = new I8253(this, emu);
 		pc88pcg_pit->set_device_name(_T("8253 PIT (PCG-8100)"));
 //		pc88pcg_pit->set_context_event_manager(pc88event);
@@ -358,7 +344,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_16BIT
-	if(config.option_switch & OPTION_SWITCH_16BIT) {
+	if(config.dipswitch & DIPSWITCH_16BIT) {
 		pc88pit_16bit = new I8253(this, emu);
 		pc88pio_16bit = new I8255(this, emu);
 		pc88pic_16bit = new I8259(this, emu);
@@ -376,18 +362,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
+	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
 		pc88diskio = new DiskIO(this, emu);
 //		pc88diskio->set_context_event_manager(pc88event);
 	} else {
 		pc88diskio = NULL;
-	}
-#endif
-#ifdef SUPPORT_CMU800
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
-		cmu800 = new CMU800(this, emu);
-		cmu800->set_context_midi(new MIDI(this, emu));
-		pc88->set_context_cmu800(cmu800);
 	}
 #endif
 	
@@ -409,9 +388,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	// set sound device contexts
 	pc88event->set_context_sound(pc88pcm);
 #ifdef SUPPORT_PC88_CDROM
-	if(config.option_switch & OPTION_SWITCH_CDROM) {
-		pc88event->set_context_sound(pc88scsi_cdrom);
-	}
+	pc88event->set_context_sound(pc88scsi_cdrom);
 #endif
 #ifdef SUPPORT_PC88_OPN1
 	if(pc88opn1 != NULL) {
@@ -424,12 +401,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_HMB20
-	if(config.option_switch & OPTION_SWITCH_HMB20) {
+	if(config.dipswitch & DIPSWITCH_HMB20) {
 		pc88event->set_context_sound(pc88opm);
 	}
 #endif
 #ifdef SUPPORT_PC88_GSX8800
-	if(config.option_switch & OPTION_SWITCH_GSX8800) {
+	if(config.dipswitch & DIPSWITCH_GSX8800) {
 		pc88event->set_context_sound(pc88gsx_psg1);
 		pc88event->set_context_sound(pc88gsx_psg2);
 		pc88event->set_context_sound(pc88gsx_psg3);
@@ -437,7 +414,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_PCG8100
-	if(config.option_switch & OPTION_SWITCH_PCG8100) {
+	if(config.dipswitch & DIPSWITCH_PCG8100) {
 		pc88event->set_context_sound(pc88pcg_pcm1);
 		pc88event->set_context_sound(pc88pcg_pcm2);
 		pc88event->set_context_sound(pc88pcg_pcm3);
@@ -448,13 +425,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		pc88event->set_context_sound(pc88prn);
 	}
 #endif
-	if(config.option_switch & OPTION_SWITCH_FDD_5INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_5INCH) {
 		pc88event->set_context_sound(pc88noise_seek);
 		pc88event->set_context_sound(pc88noise_head_down);
 		pc88event->set_context_sound(pc88noise_head_up);
 	}
 #ifdef SUPPORT_PC88_FDD_8INCH
-	if(config.option_switch & OPTION_SWITCH_FDD_8INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_8INCH) {
 		pc88event->set_context_sound(pc88noise_8inch_seek);
 		pc88event->set_context_sound(pc88noise_8inch_head_down);
 		pc88event->set_context_sound(pc88noise_8inch_head_up);
@@ -469,15 +446,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pc88->set_context_rtc(pc88rtc);
 	pc88->set_context_sio(pc88sio);
 #ifdef SUPPORT_PC88_FDD_8INCH
-	if(config.option_switch & OPTION_SWITCH_FDD_8INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_8INCH) {
 		pc88->set_context_fdc_8inch(pc88fdc_8inch);
 	}
 #endif
 #ifdef SUPPORT_PC88_CDROM
-	if(config.option_switch & OPTION_SWITCH_CDROM) {
-		pc88->set_context_scsi_host(pc88scsi_host);
-		pc88->set_context_scsi_cdrom(pc88scsi_cdrom);
-	}
+	pc88->set_context_scsi_host(pc88scsi_host);
+	pc88->set_context_scsi_cdrom(pc88scsi_cdrom);
 #endif
 #ifdef SUPPORT_PC88_OPN1
 	if(pc88opn1 != NULL) {
@@ -490,12 +465,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_HMB20
-	if(config.option_switch & OPTION_SWITCH_HMB20) {
+	if(config.dipswitch & DIPSWITCH_HMB20) {
 		pc88->set_context_opm(pc88opm);
 	}
 #endif
 #ifdef SUPPORT_PC88_GSX8800
-	if(config.option_switch & OPTION_SWITCH_GSX8800) {
+	if(config.dipswitch & DIPSWITCH_GSX8800) {
 //		pc88->set_context_gsx_pit(pc88gsx_pit);
 		pc88->set_context_gsx_psg1(pc88gsx_psg1);
 		pc88->set_context_gsx_psg2(pc88gsx_psg2);
@@ -504,7 +479,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_PCG8100
-	if(config.option_switch & OPTION_SWITCH_PCG8100) {
+	if(config.dipswitch & DIPSWITCH_PCG8100) {
 		pc88->set_context_pcg_pit(pc88pcg_pit);
 		pc88->set_context_pcg_pcm1(pc88pcg_pcm1);
 		pc88->set_context_pcg_pcm2(pc88pcg_pcm2);
@@ -512,12 +487,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_16BIT
-	if(config.option_switch & OPTION_SWITCH_16BIT) {
+	if(config.dipswitch & DIPSWITCH_16BIT) {
 		pc88->set_context_pio_16bit(pc88pio_16bit);
 	}
 #endif
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
+	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
 		pc88->set_context_diskio(pc88diskio);
 	}
 #endif
@@ -530,7 +505,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pc88sio->set_context_rxrdy(pc88, SIG_PC88_USART_IRQ, 1);
 	pc88sio->set_context_out(pc88, SIG_PC88_USART_OUT);
 	
-	if(config.option_switch & OPTION_SWITCH_FDD_5INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_5INCH) {
 		pc88sub->set_context_cpu(pc88cpu_sub);
 		pc88sub->set_context_fdc(pc88fdc_sub);
 		pc88sub->set_context_pio(pc88pio_sub);
@@ -556,7 +531,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	}
 #ifdef SUPPORT_PC88_FDD_8INCH
-	if(config.option_switch & OPTION_SWITCH_FDD_8INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_8INCH) {
 		pc88fdc_8inch->set_context_irq(pc88, SIG_PC88_8INCH_IRQ, 1);
 		pc88fdc_8inch->set_context_drq(pc88, SIG_PC88_8INCH_DRQ, 1);
 		pc88fdc_8inch->set_context_noise_seek(pc88noise_8inch_seek);
@@ -565,12 +540,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_CDROM
-	if(config.option_switch & OPTION_SWITCH_CDROM) {
-		pc88scsi_cdrom->scsi_id = 0;
-		pc88scsi_cdrom->set_context_interface(pc88scsi_host);
-		pc88scsi_host->set_context_target(pc88scsi_cdrom);
-		pc88scsi_host->set_context_drq(pc88, SIG_PC88_SCSI_DRQ, 1);
-	}
+	pc88scsi_cdrom->scsi_id = 0;
+	pc88scsi_cdrom->set_context_interface(pc88scsi_host);
+	pc88scsi_host->set_context_target(pc88scsi_cdrom);
+	pc88scsi_host->set_context_drq(pc88, SIG_PC88_SCSI_DRQ, 1);
 #endif
 #ifdef SUPPORT_PC88_OPN1
 	if(pc88opn1 != NULL) {
@@ -583,7 +556,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_GSX8800
-//	if(config.option_switch & OPTION_SWITCH_GSX8800) {
+//	if(config.dipswitch & DIPSWITCH_GSX8800) {
 //		pc88gsx_pit->set_context_ch0(pc88, SIG_PC88_GSX_IRQ, 1);
 //		pc88gsx_pit->set_context_ch1(pc88gsx_pit, SIG_I8253_CLOCK_2, 1);
 //		pc88gsx_pit->set_constant_clock(0, 1996800);
@@ -591,7 +564,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 //	}
 #endif
 #ifdef SUPPORT_PC88_PCG8100
-	if(config.option_switch & OPTION_SWITCH_PCG8100) {
+	if(config.dipswitch & DIPSWITCH_PCG8100) {
 		pc88pcg_pit->set_context_ch0(pc88pcg_pcm1, SIG_PCM1BIT_SIGNAL, 1);
 		pc88pcg_pit->set_context_ch1(pc88pcg_pcm2, SIG_PCM1BIT_SIGNAL, 1);
 		pc88pcg_pit->set_context_ch2(pc88pcg_pcm3, SIG_PCM1BIT_SIGNAL, 1);
@@ -601,7 +574,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_PC88_16BIT
-	if(config.option_switch & OPTION_SWITCH_16BIT) {
+	if(config.dipswitch & DIPSWITCH_16BIT) {
 		memset(pc88rom_16bit, 0xff, sizeof(pc88rom_16bit));
 		memset(pc88ram_16bit, 0x00, sizeof(pc88ram_16bit));
 		
@@ -651,7 +624,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		device->initialize();
 	}
 #ifdef SUPPORT_PC88_FDD_8INCH
-	if(config.option_switch & OPTION_SWITCH_FDD_8INCH) {
+	if(config.dipswitch & DIPSWITCH_FDD_8INCH) {
 		pc88fdc_8inch->set_drive_type(0, DRIVE_TYPE_2HD);
 		pc88fdc_8inch->set_drive_type(1, DRIVE_TYPE_2HD);
 //		pc88fdc_8inch->write_signal(SIG_UPD765A_MOTOR, 1, 1);
@@ -775,12 +748,12 @@ void VM::initialize_sound(int rate, int samples)
 	}
 #endif
 #ifdef SUPPORT_PC88_HMB20
-	if(config.option_switch & OPTION_SWITCH_HMB20) {
+	if(config.dipswitch & DIPSWITCH_HMB20) {
 		pc88opm->initialize_sound(rate, 4000000, samples, 0);
 	}
 #endif
 #ifdef SUPPORT_PC88_GSX8800
-	if(config.option_switch & OPTION_SWITCH_GSX8800) {
+	if(config.dipswitch & DIPSWITCH_GSX8800) {
 		pc88gsx_psg1->initialize_sound(rate, 3993624, samples, 0, 0);
 		pc88gsx_psg2->initialize_sound(rate, 3993624, samples, 0, 0);
 		pc88gsx_psg3->initialize_sound(rate, 3993624, samples, 0, 0);
@@ -788,7 +761,7 @@ void VM::initialize_sound(int rate, int samples)
 	}
 #endif
 #ifdef SUPPORT_PC88_PCG8100
-	if(config.option_switch & OPTION_SWITCH_PCG8100) {
+	if(config.dipswitch & DIPSWITCH_PCG8100) {
 		pc88pcg_pcm1->initialize_sound(rate, 8000);
 		pc88pcg_pcm2->initialize_sound(rate, 8000);
 		pc88pcg_pcm3->initialize_sound(rate, 8000);
@@ -873,9 +846,7 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 #endif
 #ifdef SUPPORT_PC88_CDROM
 	if(ch-- == 0) {
-		if(pc88scsi_cdrom) {
-			pc88scsi_cdrom->set_volume(0, decibel_l, decibel_r);
-		}
+		pc88scsi_cdrom->set_volume(0, decibel_l, decibel_r);
 		return;
 	}
 #endif
@@ -990,17 +961,6 @@ void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 	
 	if(controller != NULL) {
 		controller->open_disk(drv & 1, file_path, bank);
-		
-		// for convenience
-		if(controller->get_media_type(drv) == MEDIA_TYPE_144) {
-			if(controller->get_drive_type(drv) == DRIVE_TYPE_2HD) {
-				controller->set_drive_type(drv, DRIVE_TYPE_144);
-			}
-		} else if(controller->get_media_type(drv) == MEDIA_TYPE_2HD) {
-			if(controller->get_drive_type(drv) == DRIVE_TYPE_144) {
-				controller->set_drive_type(drv, DRIVE_TYPE_2HD);
-			}
-		}
 	}
 }
 
@@ -1118,37 +1078,22 @@ bool VM::is_tape_inserted(int drv)
 #ifdef SUPPORT_PC88_CDROM
 void VM::open_compact_disc(int drv, const _TCHAR* file_path)
 {
-	if(pc88scsi_cdrom) {
-		pc88scsi_cdrom->open(file_path);
-	}
+	pc88scsi_cdrom->open(file_path);
 }
 
 void VM::close_compact_disc(int drv)
 {
-	if(pc88scsi_cdrom) {
-		pc88scsi_cdrom->close();
-	}
+	pc88scsi_cdrom->close();
 }
 
 bool VM::is_compact_disc_inserted(int drv)
 {
-	if(pc88scsi_cdrom) {
-		return pc88scsi_cdrom->mounted();
-	}
-	return false;
+	return pc88scsi_cdrom->mounted();
 }
 
 uint32_t VM::is_compact_disc_accessed()
 {
-	if(pc88scsi_cdrom) {
-		return pc88scsi_cdrom->accessed();
-	}
-	return 0;
-}
-
-bool VM::is_compact_disc_connected(int drv)
-{
-	return (pc88scsi_cdrom != NULL);
+	return pc88scsi_cdrom->accessed();
 }
 #endif
 
@@ -1160,11 +1105,6 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
-#if defined(SUPPORT_PC88_CDROM)
-	if(config.boot_mode == MODE_PC88_V2CD && !pc88scsi_cdrom) {
-		config.boot_mode = MODE_PC88_V2;
-	}
-#endif
 	if(boot_mode != config.boot_mode) {
 		// boot mode is changed !!!
 		boot_mode = config.boot_mode;
@@ -1184,12 +1124,7 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
-#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
-#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
-#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

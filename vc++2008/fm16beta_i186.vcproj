@@ -809,6 +809,26 @@
 						/>
 					</FileConfiguration>
 				</File>
+				<File
+					RelativePath="..\src\vm\v30_dasm.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
 			</Filter>
 			<Filter
 				Name="VM Driver Source Files"
@@ -1032,6 +1052,10 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\pcm1bit.h"
+					>
+				</File>
+				<File
+					RelativePath="..\src\vm\v30_dasm.h"
 					>
 				</File>
 				<File

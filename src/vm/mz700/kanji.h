@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2014.12.26-
 
-	[ MZ-1R23 / MZ-1R24 ]
+	[ kanji/dictionary rom ]
 */
 
 #ifndef _KANJI_H_
@@ -27,7 +27,7 @@ private:
 public:
 	KANJI(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("MZ-1R23 Kanji ROM"));
+		set_device_name(_T("Kanji ROM"));
 	}
 	~KANJI() {}
 	

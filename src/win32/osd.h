@@ -283,7 +283,7 @@ private:
 	void send_telnet(const char* buffer);
 	
 	bool use_telnet, telnet_closed;
-	UINT_PTR svr_socket, cli_socket;
+	int svr_socket, cli_socket;
 	
 	// input
 	void initialize_input();
@@ -542,13 +542,8 @@ public:
 	void open_console(int width, int height, const _TCHAR* title);
 	void close_console();
 	unsigned int get_console_code_page();
-	void set_console_code_page(unsigned int cp);
-	void get_console_cursor_position(int *x, int *y);
-	void set_console_cursor_position(int x, int y);
 	void set_console_text_attribute(unsigned short attr);
 	void write_console(const _TCHAR* buffer, unsigned int length);
-	void write_console_char(const char* buffer, unsigned int length);
-	void write_console_wchar(const wchar_t* buffer, unsigned int length);
 	int read_console_input(_TCHAR* buffer, unsigned int length);
 	bool is_console_key_pressed(int vk);
 	bool is_console_closed();

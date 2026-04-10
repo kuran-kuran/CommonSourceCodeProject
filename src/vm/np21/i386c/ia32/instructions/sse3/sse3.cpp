@@ -39,7 +39,7 @@
 
 #if defined(USE_SSE3) && defined(USE_SSE2) && defined(USE_SSE) && defined(USE_FPU)
 
-#define CPU_SSE3WORKCLOCK	CPU_WORKCLOCK(2)
+#define CPU_SSE3WORKCLOCK	CPU_WORKCLOCK(8)
 
 static INLINE void
 SSE3_check_NM_EXCEPTION(){
@@ -97,7 +97,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_PD(double **data1, double **data2, dou
 	SSE3_check_NM_EXCEPTION();
 	SSE3_setTag();
 	CPU_SSE3WORKCLOCK;
-	GET_MODRM_PCBYTE((op));
+	GET_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (double*)(&(FPU_STAT.xmm_reg[idx]));
@@ -198,7 +198,7 @@ void SSE3_MOVDDUP(void)
 	SSE3_check_NM_EXCEPTION();
 	SSE3_setTag();
 	CPU_SSE3WORKCLOCK;
-	GET_MODRM_PCBYTE((op));
+	GET_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	if ((op) >= 0xc0) {

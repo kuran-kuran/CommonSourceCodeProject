@@ -270,7 +270,6 @@ void* debugger_thread(void *lpx)
 	
 	uint32_t dump_addr = 0;
 	uint32_t dasm_addr = cpu->get_next_pc();
-	uint32_t dasm_eip = cpu->get_next_eip();
 	
 	p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 	if(cpu->get_debug_regs_info(buffer, array_length(buffer))) {
@@ -281,7 +280,7 @@ void* debugger_thread(void *lpx)
 	my_printf(p->osd, _T("breaked at %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()));
 	
 	p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-	cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
+	cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer));
 	my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()), buffer);
 	p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 	
@@ -408,8 +407,7 @@ void* debugger_thread(void *lpx)
 					params[num++] = token;
 				}
 			}
-			if((_tcsicmp(params[0], _T("D")) == 0) || (_tcsicmp(params[0], _T("DI")) == 0)) {
-				bool invert = (_tcsicmp(params[0], _T("DI")) == 0);
+			if(_tcsicmp(params[0], _T("D")) == 0) {
 				if(num <= 3) {
 					uint32_t start_addr = dump_addr;
 					if(num >= 2) {
@@ -443,9 +441,6 @@ void* debugger_thread(void *lpx)
 							buffer[addr & 0x0f] = _T(' ');
 						} else {
 							uint32_t data = target->read_debug_data8((uint32_t)(addr % target->get_debug_data_addr_space()));
-							if (invert) {
-								data = data ^ 0xff;
-							}
 							my_printf(p->osd, ((addr & 0x0f) == 8) ? _T("-%02X"): _T(" %02X"), data);
 							buffer[addr & 0x0f] = ((data >= 0x20 && data <= 0x7e) || (cp932 && data >= 0xa1 && data <= 0xdf)) ? data : _T('.');
 						}
@@ -585,13 +580,12 @@ void* debugger_thread(void *lpx)
 				if(num <= 3) {
 					if(num >= 2) {
 						dasm_addr = my_hexatoi(target, params[1]) & target->get_debug_prog_addr_mask();
-						dasm_eip = dasm_addr - (cpu->get_next_pc() - cpu->get_next_eip());
 					}
 					if(num == 3) {
 						uint32_t end_addr = my_hexatoi(target, params[2]) & target->get_debug_prog_addr_mask();
 						while(dasm_addr <= end_addr) {
 							const _TCHAR *name = my_get_symbol(target, dasm_addr & target->get_debug_prog_addr_mask());
-							int len = target->debug_dasm(dasm_addr & target->get_debug_prog_addr_mask(), dasm_eip, buffer, array_length(buffer));
+							int len = target->debug_dasm(dasm_addr & target->get_debug_prog_addr_mask(), buffer, array_length(buffer));
 							if(name != NULL) {
 								my_printf(p->osd, _T("%08X                  "), dasm_addr & target->get_debug_prog_addr_mask());
 								p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
@@ -607,12 +601,11 @@ void* debugger_thread(void *lpx)
 							}
 							my_printf(p->osd, _T("  %s\n"), buffer);
 							dasm_addr += len;
-							dasm_eip += len;
 						}
 					} else {
 						for(int i = 0; i < 16; i++) {
 							const _TCHAR *name = my_get_symbol(target, dasm_addr & target->get_debug_prog_addr_mask());
-							int len = target->debug_dasm(dasm_addr & target->get_debug_prog_addr_mask(), dasm_eip, buffer, array_length(buffer));
+							int len = target->debug_dasm(dasm_addr & target->get_debug_prog_addr_mask(), buffer, array_length(buffer));
 							if(name != NULL) {
 								my_printf(p->osd, _T("%08X                  "), dasm_addr & target->get_debug_prog_addr_mask());
 								p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
@@ -628,7 +621,6 @@ void* debugger_thread(void *lpx)
 							}
 							my_printf(p->osd, _T("  %s\n"), buffer);
 							dasm_addr += len;
-							dasm_eip += len;
 						}
 					}
 					prev_command[1] = _T('\0'); // remove parameters to disassemble continuously
@@ -645,19 +637,18 @@ void* debugger_thread(void *lpx)
 					}
 					for(int i = MAX_CPU_TRACE - steps; i < MAX_CPU_TRACE; i++) {
 						int index = (target_debugger->cpu_trace_ptr + i) & (MAX_CPU_TRACE - 1);
-						cpu_trace_t *trace = &target_debugger->cpu_trace[index];
-						if(!(trace->pc & ~target->get_debug_prog_addr_mask())) {
-							const _TCHAR *name = my_get_symbol(target, trace->pc & target->get_debug_prog_addr_mask());
-							int len = target->debug_dasm(trace->pc & target->get_debug_prog_addr_mask(), trace->eip, trace->mode, buffer, array_length(buffer));
+						if(!(target_debugger->cpu_trace[index] & ~target->get_debug_prog_addr_mask())) {
+							const _TCHAR *name = my_get_symbol(target, target_debugger->cpu_trace[index] & target->get_debug_prog_addr_mask());
+							int len = target->debug_dasm(target_debugger->cpu_trace[index] & target->get_debug_prog_addr_mask(), buffer, array_length(buffer));
 							if(name != NULL) {
-								my_printf(p->osd, _T("%08X                  "), trace->pc & target->get_debug_prog_addr_mask());
+								my_printf(p->osd, _T("%08X                  "), target_debugger->cpu_trace[index] & target->get_debug_prog_addr_mask());
 								p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
 								my_printf(p->osd, _T("%s:\n"), name);
 								p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 							}
-							my_printf(p->osd, _T("%08X  "), trace->pc & target->get_debug_prog_addr_mask());
+							my_printf(p->osd, _T("%08X  "), target_debugger->cpu_trace[index] & target->get_debug_prog_addr_mask());
 							for(int i = 0; i < len; i++) {
-								my_printf(p->osd, _T("%02X"), target->read_debug_data8((trace->pc + i) & target->get_debug_prog_addr_mask()));
+								my_printf(p->osd, _T("%02X"), target->read_debug_data8((target_debugger->cpu_trace[index] + i) & target->get_debug_prog_addr_mask()));
 							}
 							for(int i = len; i < 8; i++) {
 								my_printf(p->osd, _T("  "));
@@ -1002,16 +993,14 @@ void* debugger_thread(void *lpx)
 					bool break_points_stored = false;
 					if(_tcsicmp(params[0], _T("P")) == 0) {
 						cpu_debugger->store_break_points();
-						int len = cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
-						cpu_debugger->bp.table[0].addr = (cpu->get_next_pc() + len) & cpu->get_debug_prog_addr_mask();
+						cpu_debugger->bp.table[0].addr = (cpu->get_next_pc() + cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer))) & cpu->get_debug_prog_addr_mask();
 						cpu_debugger->bp.table[0].mask = cpu->get_debug_prog_addr_mask();
 						cpu_debugger->bp.table[0].status = 1;
 						cpu_debugger->bp.table[0].check_point = false;
 						break_points_stored = true;
 					} else if(num >= 2) {
 						cpu_debugger->store_break_points();
-						uint32_t addr = my_hexatoi(cpu, params[1]) & cpu->get_debug_prog_addr_mask();
-						cpu_debugger->bp.table[0].addr = addr;
+						cpu_debugger->bp.table[0].addr = my_hexatoi(cpu, params[1]) & cpu->get_debug_prog_addr_mask();
 						cpu_debugger->bp.table[0].mask = cpu->get_debug_prog_addr_mask();
 						cpu_debugger->bp.table[0].status = 1;
 						cpu_debugger->bp.table[0].check_point = false;
@@ -1048,11 +1037,10 @@ RESTART_GO:
 					}
 					if(target == cpu) {
 						dasm_addr = cpu->get_next_pc();
-						dasm_eip = cpu->get_next_eip();
 					}
 					
 					p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-					cpu->debug_dasm(cpu->get_pc(), cpu->get_eip(), buffer, array_length(buffer));
+					cpu->debug_dasm(cpu->get_pc(), buffer, array_length(buffer));
 					my_printf(p->osd, _T("done\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_pc()), buffer);
 					
 					p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
@@ -1062,7 +1050,7 @@ RESTART_GO:
 					
 					if(target != cpu) {
 						p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
-						if(target->debug_dasm(target->get_next_pc(), target->get_next_eip(), buffer, array_length(buffer)) != 0) {
+						if(target->debug_dasm(target->get_next_pc(), buffer, array_length(buffer)) != 0) {
 							my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(target, _T("%08X"), target->get_next_pc()), buffer);
 						}
 						if(target->get_debug_regs_info(buffer, array_length(buffer))) {
@@ -1083,7 +1071,7 @@ RESTART_GO:
 						cpu_debugger->restore_break_points();
 					}
 					p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-					cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
+					cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer));
 					my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()), buffer);
 					p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 				} else {
@@ -1108,11 +1096,10 @@ RESTART_GO:
 						}
 						if(target == cpu) {
 							dasm_addr = cpu->get_next_pc();
-							dasm_eip = cpu->get_next_eip();
 						}
 						
 						p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-						cpu->debug_dasm(cpu->get_pc(), cpu->get_eip(), buffer, array_length(buffer));
+						cpu->debug_dasm(cpu->get_pc(), buffer, array_length(buffer));
 						my_printf(p->osd, _T("done\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_pc()), buffer);
 						
 						p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
@@ -1122,7 +1109,7 @@ RESTART_GO:
 						
 						if(target != cpu) {
 							p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
-							if(target->debug_dasm(target->get_next_pc(), target->get_next_eip(), buffer, array_length(buffer)) != 0) {
+							if(target->debug_dasm(target->get_next_pc(), buffer, array_length(buffer)) != 0) {
 								my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(target, _T("%08X"), target->get_next_pc()), buffer);
 							}
 							if(target->get_debug_regs_info(buffer, array_length(buffer))) {
@@ -1140,7 +1127,7 @@ RESTART_GO:
 						}
 					}
 					p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-					cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
+					cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer));
 					my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()), buffer);
 					p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 				} else {
@@ -1253,7 +1240,6 @@ RESTART_GO:
 								}
 								dump_addr = 0;
 								dasm_addr = target->get_next_pc();
-								dasm_eip = target->get_next_eip();
 							}
 						} else {
 							my_printf(p->osd, _T("device not found\n"));
@@ -1312,7 +1298,6 @@ RESTART_GO:
 								}
 								dump_addr = 0;
 								dasm_addr = cpu->get_next_pc();
-								dasm_eip = cpu->get_next_eip();
 								
 								p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 								if(cpu->get_debug_regs_info(buffer, array_length(buffer))) {
@@ -1323,7 +1308,7 @@ RESTART_GO:
 								my_printf(p->osd, _T("breaked at %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()));
 								
 								p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-								cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
+								cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer));
 								my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()), buffer);
 								p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 							}
@@ -1381,12 +1366,11 @@ RESTART_GO:
 							}
 							if(target == cpu) {
 								dasm_addr = cpu->get_next_pc();
-								dasm_eip = cpu->get_next_eip();
 							}
 							cpu_debugger->restore_break_points();
 							
 							p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-							cpu->debug_dasm(cpu->get_pc(), cpu->get_eip(), buffer, array_length(buffer));
+							cpu->debug_dasm(cpu->get_pc(), buffer, array_length(buffer));
 							my_printf(p->osd, _T("done\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_pc()), buffer);
 							
 							p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
@@ -1396,7 +1380,7 @@ RESTART_GO:
 							
 							if(target != cpu) {
 								p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_INTENSITY);
-								if(target->debug_dasm(target->get_next_pc(), target->get_next_eip(), buffer, array_length(buffer)) != 0) {
+								if(target->debug_dasm(target->get_next_pc(), buffer, array_length(buffer)) != 0) {
 									my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(target, _T("%08X"), target->get_next_pc()), buffer);
 								}
 								if(target->get_debug_regs_info(buffer, array_length(buffer))) {
@@ -1407,7 +1391,7 @@ RESTART_GO:
 							p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_INTENSITY);
 							my_printf(p->osd, _T("breaked at %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()));
 							p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-							cpu->debug_dasm(cpu->get_next_pc(), cpu->get_next_eip(), buffer, array_length(buffer));
+							cpu->debug_dasm(cpu->get_next_pc(), buffer, array_length(buffer));
 							my_printf(p->osd, _T("next\t%s  %s\n"), my_get_value_and_symbol(cpu, _T("%08X"), cpu->get_next_pc()), buffer);
 							p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
 						} else {
@@ -1491,7 +1475,6 @@ RESTART_GO:
 				// do nothing
 			} else if(_tcsicmp(params[0], _T("?")) == 0) {
 				my_printf(p->osd, _T("D [<range>] - dump memory\n"));
-				my_printf(p->osd, _T("DI [<range>] - dump memory with inverted bits\n"));
 				my_printf(p->osd, _T("E[{B,W,D}] <address> <list> - edit memory (byte,word,dword)\n"));
 				my_printf(p->osd, _T("EA <address> \"<value>\" - edit memory (ascii)\n"));
 				my_printf(p->osd, _T("I[{B,W,D}] <port> - input port (byte,word,dword)\n"));

@@ -720,28 +720,19 @@ static void I386OP(mov_dr_r32)(i386_state *cpustate)        // Opcode 0x0f 23
 	UINT8 modrm = FETCH(cpustate);
 	UINT8 dr = (modrm >> 3) & 0x7;
 
-	UINT32 rm32 = LOAD_RM32(modrm);
+	cpustate->dr[dr] = LOAD_RM32(modrm);
 	switch(dr)
 	{
 		case 0:
 		case 1:
 		case 2:
 		case 3:
-		{
-			cpustate->dr[dr] = rm32;
-//			dri_changed(cpustate);
 			CYCLES(cpustate,CYCLES_MOV_DR0_3_REG);
 			break;
-		}
-		case 6: CYCLES(cpustate,CYCLES_MOV_DR6_7_REG); cpustate->dr[dr] = LOAD_RM32(modrm); break;
+		case 6:
 		case 7:
-		{
-			UINT32 old_dr7 = cpustate->dr[7];
-			cpustate->dr[dr] = rm32;
-//			dr7_changed(cpustate, old_dr7, cpustate->dr[7]);
 			CYCLES(cpustate,CYCLES_MOV_DR6_7_REG);
 			break;
-		}
 		default:
 			logerror("i386: mov_dr_r32 DR%d!\n", dr);
 			return;
@@ -990,7 +981,7 @@ static void I386OP(arpl)(i386_state *cpustate)           // Opcode 0x63
 		SetZF(flag);
 	}
 	else
-		i386_trap(cpustate, 6, 0);  // invalid opcode in real mode or v8086 mode
+		i386_trap(cpustate, 6, 0, 0);  // invalid opcode in real mode or v8086 mode
 }
 
 static void I386OP(push_i8)(i386_state *cpustate)           // Opcode 0x6a
@@ -1144,19 +1135,11 @@ static void I386OP(repeat)(i386_state *cpustate, int invert_flag)
 		cpustate->segment_prefix=1;
 		break;
 		case 0x66:
-		if(!cpustate->operand_prefix)
-		{
-			cpustate->operand_size ^= 1;
-			cpustate->xmm_operand_size ^= 1;
-			cpustate->operand_prefix = 1;
-		}
+		cpustate->operand_size ^= 1;
+		cpustate->xmm_operand_size ^= 1;
 		break;
 		case 0x67:
-		if(!cpustate->address_prefix)
-		{
-			cpustate->address_size ^= 1;
-			cpustate->address_prefix = 1;
-		}
+		cpustate->address_size ^= 1;
 		break;
 		default:
 		prefix_flag=0;
@@ -1245,7 +1228,7 @@ static void I386OP(repeat)(i386_state *cpustate, int invert_flag)
 		default:
 			logerror("i386: Invalid REP/opcode %02X combination at %08x\n",opcode, cpustate->pc - 2);
 			cpustate->pc--;
-			return;
+			break;
 	}
 
 	if( cpustate->address_size ) {
@@ -2156,7 +2139,7 @@ static void I386OP(groupF6_8)(i386_state *cpustate)         // Opcode 0xf6
 							cpustate->CF = 1;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0);
+					i386_trap(cpustate, 0, 0, 0);
 				}
 			}
 			break;
@@ -2177,7 +2160,7 @@ static void I386OP(groupF6_8)(i386_state *cpustate)         // Opcode 0xf6
 				if( src ) {
 					remainder = quotient % (INT16)(INT8)src;
 					result = quotient / (INT16)(INT8)src;
-					if( result > 0x7f || result < -0x80 ) {
+					if( result > 0xff ) {
 						/* TODO: Divide error */
 					} else {
 						REG8(AH) = (UINT8)remainder & 0xff;
@@ -2188,7 +2171,7 @@ static void I386OP(groupF6_8)(i386_state *cpustate)         // Opcode 0xf6
 							cpustate->CF = 1;
 					}
 				} else {
-					i386_trap(cpustate, 0, 0);
+					i386_trap(cpustate, 0, 0, 0);
 				}
 			}
 			break;
@@ -2341,7 +2324,7 @@ static void I386OP(int3)(i386_state *cpustate)              // Opcode 0xcc
 {
 	CYCLES(cpustate,CYCLES_INT3);
 	cpustate->ext = 0; // not an external interrupt
-	i386_trap(cpustate, 3, 1);
+	i386_trap(cpustate,3, 1, 0);
 	cpustate->ext = 1;
 }
 
@@ -2353,7 +2336,7 @@ static void I386OP(int)(i386_state *cpustate)               // Opcode 0xcd
 	BIOS_INT(interrupt)
 #endif
 	cpustate->ext = 0; // not an external interrupt
-	i386_trap(cpustate, interrupt, 1);
+	i386_trap(cpustate,interrupt, 1, 0);
 	cpustate->ext = 1;
 }
 
@@ -2361,7 +2344,7 @@ static void I386OP(into)(i386_state *cpustate)              // Opcode 0xce
 {
 	if( cpustate->OF ) {
 		cpustate->ext = 0;
-		i386_trap(cpustate, 4, 1);
+		i386_trap(cpustate,4, 1, 0);
 		cpustate->ext = 1;
 		CYCLES(cpustate,CYCLES_INTO_OF1);
 	}
@@ -2420,71 +2403,18 @@ static void I386OP(decimal_adjust)(i386_state *cpustate, int direction)
 
 static void I386OP(daa)(i386_state *cpustate)               // Opcode 0x27
 {
-#if 0
 	I386OP(decimal_adjust)(cpustate, +1);
-#else
-	// from DOSBox
-	if (((REG8(AL) & 0x0f) > 0x09) || cpustate->AF) {
-		if ((REG8(AL) > 0x99) || cpustate->CF) {
-			REG8(AL) += 0x60;
-			cpustate->CF = 1;
-		} else {
-			cpustate->CF = 0;
-		}
-		REG8(AL) += 0x06;
-		cpustate->AF = 1;
-	} else {
-		if ((REG8(AL) > 0x99) || cpustate->CF) {
-			REG8(AL) += 0x60;
-			cpustate->CF = 1;
-		} else {
-			cpustate->CF = 0;
-		}
-		cpustate->AF = 0;
-	}
-	cpustate->SF = ((REG8(AL) & 0x80) != 0);
-	cpustate->ZF = (REG8(AL) == 0);
-	cpustate->PF = i386_parity_table[REG8(AL)];
-#endif
 	CYCLES(cpustate,CYCLES_DAA);
 }
 
 static void I386OP(das)(i386_state *cpustate)               // Opcode 0x2f
 {
-#if 0
 	I386OP(decimal_adjust)(cpustate, -1);
-#else
-	// from DOSBox
-	UINT8 osigned = REG8(AL) & 0x80;
-	if (((REG8(AL) & 0x0f) > 9) || cpustate->AF) {
-		if ((REG8(AL) > 0x99) || cpustate->CF) {
-			REG8(AL) -= 0x60;
-			cpustate->CF = 1;
-		} else {
-			cpustate->CF = (REG8(AL) <= 0x05);
-		}
-		REG8(AL) -= 6;
-		cpustate->AF = 1;
-	} else {
-		if ((REG8(AL) > 0x99) || cpustate->CF) {
-			REG8(AL) -= 0x60;
-			cpustate->CF = 1;
-		} else {
-			cpustate->CF = 0;
-		}
-		cpustate->AF = 0;
-	}
-	cpustate->OF = ((osigned != 0) && ((REG8(AL) & 0x80) == 0));
-	cpustate->SF = ((REG8(AL) & 0x80) != 0);
-	cpustate->ZF = (REG8(AL) == 0);
-	cpustate->PF = i386_parity_table[REG8(AL)];
-#endif
 	CYCLES(cpustate,CYCLES_DAS);
 }
 
 static void I386OP(aaa)(i386_state *cpustate)               // Opcode 0x37
 {
-#if 0
 	if( ( (REG8(AL) & 0x0f) > 9) || (cpustate->AF != 0) ) {
 		REG16(AX) = REG16(AX) + 6;
 		REG8(AH) = REG8(AH) + 1;
@@ -2494,36 +2424,12 @@ static void I386OP(aaa)(i386_state *cpustate)               // Opcode 0x37
 		cpustate->AF = 0;
 		cpustate->CF = 0;
 	}
-#else
-	// from DOSBox
-	cpustate->SF = ((REG8(AL) >= 0x7a) && (REG8(AL) <= 0xf9));
-	if ((REG8(AL) & 0xf) > 9) {
-		cpustate->OF = ((REG8(AL) & 0xf0) == 0x70);
-		REG16(AX) += 0x106;
-		cpustate->CF = 1;
-		cpustate->ZF = (REG8(AL) == 0);
-		cpustate->AF = 1;
-	} else if (cpustate->AF) {
-		REG16(AX) += 0x106;
-		cpustate->OF = 0;
-		cpustate->CF = 1;
-		cpustate->ZF = 0;
-		cpustate->AF = 1;
-	} else {
-		cpustate->OF = 0;
-		cpustate->CF = 0;
-		cpustate->ZF = (REG8(AL) == 0);
-		cpustate->AF = 0;
-	}
-	cpustate->PF = i386_parity_table[REG8(AL)];
-#endif
-	REG8(AL) &= 0x0f;
+	REG8(AL) = REG8(AL) & 0x0f;
 	CYCLES(cpustate,CYCLES_AAA);
 }
 
 static void I386OP(aas)(i386_state *cpustate)               // Opcode 0x3f
 {
-#if 0
 	if (cpustate->AF || ((REG8(AL) & 0xf) > 9))
 	{
 		REG16(AX) -= 6;
@@ -2536,29 +2442,6 @@ static void I386OP(aas)(i386_state *cpustate)               // Opcode 0x3f
 		cpustate->AF = 0;
 		cpustate->CF = 0;
 	}
-#else
-	// from DOSBox
-	if ((REG8(AL) & 0x0f) > 9) {
-		cpustate->SF = (REG8(AL) > 0x85);
-		REG16(AX) -= 0x106;
-		cpustate->OF = 0;
-		cpustate->CF = 1;
-		cpustate->AF = 1;
-	} else if (cpustate->AF) {
-		cpustate->OF = ((REG8(AL) >= 0x80) && (REG8(AL) <= 0x85));
-		cpustate->SF = (REG8(AL) < 0x06) || (REG8(AL) > 0x85);
-		REG16(AX) -= 0x106;
-		cpustate->CF = 1;
-		cpustate->AF = 1;
-	} else {
-		cpustate->SF = (REG8(AL) >= 0x80);
-		cpustate->OF = 0;
-		cpustate->CF = 0;
-		cpustate->AF = 0;
-	}
-	cpustate->ZF = (REG8(AL) == 0);
-	cpustate->PF = i386_parity_table[REG8(AL)];
-#endif
 	REG8(AL) &= 0x0f;
 	CYCLES(cpustate,CYCLES_AAS);
 }
@@ -2572,8 +2455,6 @@ static void I386OP(aad)(i386_state *cpustate)               // Opcode 0xd5
 	REG8(AL) = (tempAL + (tempAH * i)) & 0xff;
 	REG8(AH) = 0;
 	SetSZPF8( REG8(AL) );
-	// from DOSBox
-	cpustate->CF = cpustate->OF = cpustate->AF = 0;
 	CYCLES(cpustate,CYCLES_AAD);
 }
 
@@ -2584,14 +2465,12 @@ static void I386OP(aam)(i386_state *cpustate)               // Opcode 0xd4
 
 	if(!i)
 	{
-		i386_trap(cpustate, 0, 0);
+		i386_trap(cpustate, 0, 0, 0);
 		return;
 	}
 	REG8(AH) = tempAL / i;
 	REG8(AL) = tempAL % i;
 	SetSZPF8( REG8(AL) );
-	// from DOSBox
-	cpustate->CF = cpustate->OF = cpustate->AF = 0;
 	CYCLES(cpustate,CYCLES_AAM);
 }
 
@@ -2600,17 +2479,12 @@ static void I386OP(clts)(i386_state *cpustate)              // Opcode 0x0f 0x06
 	// Privileged instruction, CPL must be zero.  Can be used in real or v86 mode.
 	if(PROTECTED_MODE && cpustate->CPL != 0)
 		FAULT(FAULT_GP,0)
-	cpustate->cr[0] &= ~CR0_TS;   /* clear TS bit */
+	cpustate->cr[0] &= ~0x08;   /* clear TS bit */
 	CYCLES(cpustate,CYCLES_CLTS);
 }
 
 static void I386OP(wait)(i386_state *cpustate)              // Opcode 0x9B
 {
-	if ((cpustate->cr[0] & (CR0_TS | CR0_MP)) == (CR0_TS | CR0_MP))
-	{
-		i386_trap(cpustate, FAULT_NM, 0);
-		return;
-	}
 	// TODO
 }
 
@@ -2639,7 +2513,6 @@ static void I386OP(loadall)(i386_state *cpustate)       // Opcode 0x0f 0x07 (0x0
 	if(PROTECTED_MODE && (cpustate->CPL != 0))
 		FAULT(FAULT_GP,0)
 	UINT32 ea = i386_translate(cpustate, ES, REG32(EDI), 0, 204);
-	UINT32 old_dr7 = cpustate->dr[7];
 	cpustate->cr[0] = READ32(cpustate, ea) & 0xfffeffff; // wp not supported on 386
 	set_flags(cpustate, READ32(cpustate, ea + 0x04));
 	cpustate->eip = READ32(cpustate, ea + 0x08);
@@ -2696,15 +2569,13 @@ static void I386OP(loadall)(i386_state *cpustate)       // Opcode 0x0f 0x07 (0x0
 		cpustate->sreg[i].valid = (cpustate->sreg[i].flags & 0x80) ? true : false;
 		cpustate->sreg[i].d = (cpustate->sreg[i].flags & 0x4000) ? 1 : 0;
 	}
-
-//	dr7_changed(cpustate, old_dr7, cpustate->dr[7]);
 	CHANGE_PC(cpustate, cpustate->eip);
 }
 
 static void I386OP(invalid)(i386_state *cpustate)
 {
 	report_invalid_opcode(cpustate);
-	i386_trap(cpustate, 6, 0);
+	i386_trap(cpustate, 6, 0, 0);
 }
 
 static void I386OP(xlat)(i386_state *cpustate)          // Opcode 0xd7

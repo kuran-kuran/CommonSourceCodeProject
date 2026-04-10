@@ -64,15 +64,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(fdc->get_context_noise_head_up());
 	
 	fdc->set_context_drq(dma, SIG_MC6844_TX_RQ_0, 1);
-	fdc->set_context_irq(cpu, SIG_CPU_IRQ, 1);
 	dma->set_context_memory(memory);
 	dma->set_context_ch0(fdc);
 	dma->set_context_ch1(display);
-	dma->set_context_irq(cpu, SIG_CPU_IRQ, 1);
 	
 	display->set_context_dma(dma);
 	floppy->set_context_fdc(fdc);
-	keyboard->set_context_cpu(cpu);
 	printer->set_context_ram(ram);
 	
 	// cpu bus
@@ -82,9 +79,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	cpu->set_context_debugger(debugger);
 	
 	debugger->add_symbol(0x015c, _T("VRAM_TOP"));
-	debugger->add_symbol(0x03f8, _T("KEY_IDX"));
-	debugger->add_symbol(0x03fc, _T("KEY_NUM"));
-	debugger->add_symbol(0x03fd, _T("KEY_PREV"));
 	
 	debugger->add_symbol(0xe121, _T("KEY_DOWN"));
 	debugger->add_symbol(0xe122, _T("KEY_UP"));
@@ -131,6 +125,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memset(bios_9000, 0xff, sizeof(bios_9000));
 	memset(bios_f000, 0xff, sizeof(bios_f000));
 	
+	memory->read_bios(_T("CART_5000.ROM"), cart_5000, sizeof(cart_5000));
+	memory->read_bios(_T("CART_6000.ROM"), cart_6000, sizeof(cart_6000));
+	memory->read_bios(_T("CART_7000.ROM"), cart_7000, sizeof(cart_7000));
+	memory->read_bios(_T("CART_8000.ROM"), cart_8000, sizeof(cart_8000));
+	memory->read_bios(_T("BIOS_9000.ROM"), bios_9000, sizeof(bios_9000));
+	memory->read_bios(_T("BIOS_F000.ROM"), bios_f000, sizeof(bios_f000));
+	
 #if defined(_AX1)
 	memory->set_memory_rw(0x0000, 0x07ff, ram + 0x0000);
 #elif defined(_BX1)
@@ -144,31 +145,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_memory_r(0x9000, 0xdfff, bios_9000);
 	memory->set_memory_mapped_io_rw(0xe000, 0xefff, io);
 	memory->set_memory_r(0xf000, 0xffff, bios_f000);
-	
-	// X-7101B cartridge has 3KB ROM + 1KB RAM
-	int size;
-	size = memory->read_bios(_T("CART_5000.ROM"), cart_5000, sizeof(cart_5000));
-	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
-		memory->set_memory_rw(0x5000 + size, 0x5fff, ram + 0x5000 + size);
-	}
-	size = memory->read_bios(_T("CART_6000.ROM"), cart_6000, sizeof(cart_6000));
-	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
-		memory->set_memory_rw(0x6000 + size, 0x6fff, ram + 0x6000 + size);
-	}
-	if(FILEIO::IsFileExisting(create_local_path(_T("X-7101B.ROM")))) {
-		size = memory->read_bios(_T("X-7101B.ROM"), cart_7000, sizeof(cart_7000));
-	} else {
-		size = memory->read_bios(_T("CART_7000.ROM"), cart_7000, sizeof(cart_7000));
-	}
-	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
-		memory->set_memory_rw(0x7000 + size, 0x7fff, ram + 0x7000 + size);
-	}
-	size = memory->read_bios(_T("CART_8000.ROM"), cart_8000, sizeof(cart_8000));
-	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
-		memory->set_memory_rw(0x8000 + size, 0x8fff, ram + 0x8000 + size);
-	}
-	memory->read_bios(_T("BIOS_9000.ROM"), bios_9000, sizeof(bios_9000));
-	memory->read_bios(_T("BIOS_F000.ROM"), bios_f000, sizeof(bios_f000));
 	
 	// io bus
 	io->set_iomap_range_r (0xe121, 0xe122, keyboard);
@@ -219,7 +195,7 @@ void VM::reset()
 void VM::run()
 {
 	event->drive();
-//	cpu->write_signal(SIG_CPU_IRQ, 1, 1);
+	cpu->write_signal(SIG_CPU_IRQ, 1, 1);
 }
 
 // ----------------------------------------------------------------------------
@@ -291,7 +267,6 @@ void VM::key_down(int code, bool repeat)
 			config.dipswitch ^= 1;
 		} else {
 			keyboard->key_down(code);
-			printer->key_down(code);
 		}
 	}
 }
@@ -370,7 +345,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	3
+#define STATE_VERSION	2
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -378,12 +353,7 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
-#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
-#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
-#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

@@ -283,9 +283,6 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdL
 	
 	// initialize emulation core
 	emu = new EMU(hWnd, hInstance);
-	
-	// update window
-	SetWindowText(hWnd, emu->device_name());
 	emu->set_host_window_size(WINDOW_WIDTH, WINDOW_HEIGHT, true);
 	
 	// update top-level menu for emulator settings
@@ -392,14 +389,14 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdL
 			if(update_fps_time <= current_time) {
 				if(update_fps_time != 0) {
 					if(emu->message_count > 0) {
-						SetWindowText(hWnd, create_string(_T("%s - %s"), emu->device_name(), emu->message));
+						SetWindowText(hWnd, create_string(_T("%s - %s"), _T(DEVICE_NAME), emu->message));
 						emu->message_count--;
 					} else if(now_skip) {
 						int ratio = (int)(100.0 * (double)total_frames / emu->get_frame_rate() + 0.5);
-						SetWindowText(hWnd, create_string(_T("%s - Skip Frames (%d %%)"), emu->device_name(), ratio));
+						SetWindowText(hWnd, create_string(_T("%s - Skip Frames (%d %%)"), _T(DEVICE_NAME), ratio));
 					} else {
 						int ratio = (int)(100.0 * (double)draw_frames / (double)total_frames + 0.5);
-						SetWindowText(hWnd, create_string(_T("%s - %d fps (%d %%)"), emu->device_name(), draw_frames, ratio));
+						SetWindowText(hWnd, create_string(_T("%s - %d fps (%d %%)"), _T(DEVICE_NAME), draw_frames, ratio));
 					}
 					update_fps_time += 1000;
 					total_frames = draw_frames = 0;
@@ -781,21 +778,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		case ID_VM_DIPSWITCH24: case ID_VM_DIPSWITCH25: case ID_VM_DIPSWITCH26: case ID_VM_DIPSWITCH27:
 		case ID_VM_DIPSWITCH28: case ID_VM_DIPSWITCH29: case ID_VM_DIPSWITCH30: case ID_VM_DIPSWITCH31:
 			config.dipswitch ^= (1 << (LOWORD(wParam) - ID_VM_DIPSWITCH0));
-			if(emu) {
-				emu->update_config();
-			}
-			break;
-#endif
-#ifdef USE_OPTION_SWITCH
-		case ID_VM_OPTION_SWITCH0:  case ID_VM_OPTION_SWITCH1:  case ID_VM_OPTION_SWITCH2:  case ID_VM_OPTION_SWITCH3: 
-		case ID_VM_OPTION_SWITCH4:  case ID_VM_OPTION_SWITCH5:  case ID_VM_OPTION_SWITCH6:  case ID_VM_OPTION_SWITCH7: 
-		case ID_VM_OPTION_SWITCH8:  case ID_VM_OPTION_SWITCH9:  case ID_VM_OPTION_SWITCH10: case ID_VM_OPTION_SWITCH11:
-		case ID_VM_OPTION_SWITCH12: case ID_VM_OPTION_SWITCH13: case ID_VM_OPTION_SWITCH14: case ID_VM_OPTION_SWITCH15:
-		case ID_VM_OPTION_SWITCH16: case ID_VM_OPTION_SWITCH17: case ID_VM_OPTION_SWITCH18: case ID_VM_OPTION_SWITCH19:
-		case ID_VM_OPTION_SWITCH20: case ID_VM_OPTION_SWITCH21: case ID_VM_OPTION_SWITCH22: case ID_VM_OPTION_SWITCH23:
-		case ID_VM_OPTION_SWITCH24: case ID_VM_OPTION_SWITCH25: case ID_VM_OPTION_SWITCH26: case ID_VM_OPTION_SWITCH27:
-		case ID_VM_OPTION_SWITCH28: case ID_VM_OPTION_SWITCH29: case ID_VM_OPTION_SWITCH30: case ID_VM_OPTION_SWITCH31:
-			config.option_switch ^= (1 << (LOWORD(wParam) - ID_VM_OPTION_SWITCH0));
 			if(emu) {
 				emu->update_config();
 			}
@@ -1886,15 +1868,6 @@ void update_vm_dipswitch_menu(HMENU hMenu)
 }
 #endif
 
-#ifdef USE_OPTION_SWITCH
-void update_vm_option_switch_menu(HMENU hMenu)
-{
-	for(int i = 0; i < 32; i++) {
-		CheckMenuItem(hMenu, ID_VM_OPTION_SWITCH0 + i, (config.option_switch & (1 << i)) ? MF_CHECKED : MF_UNCHECKED);
-	}
-}
-#endif
-
 #ifdef USE_DEVICE_TYPE
 void update_vm_device_menu(HMENU hMenu)
 {
@@ -2224,60 +2197,6 @@ void update_toplevel_menu(HWND hWnd, HMENU hMenu)
 			}
 #endif
 #endif
-#ifdef USE_HARD_DISK
-#if USE_HARD_DISK >= 1
-			else if(id >= ID_HD1_MENU_START && id <= ID_HD1_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(0) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 2
-			else if(id >= ID_HD2_MENU_START && id <= ID_HD2_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(1) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 3
-			else if(id >= ID_HD3_MENU_START && id <= ID_HD3_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(2) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 4
-			else if(id >= ID_HD4_MENU_START && id <= ID_HD4_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(3) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 5
-			else if(id >= ID_HD5_MENU_START && id <= ID_HD5_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(4) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 6
-			else if(id >= ID_HD6_MENU_START && id <= ID_HD6_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(5) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 7
-			else if(id >= ID_HD7_MENU_START && id <= ID_HD7_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(6) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_HARD_DISK >= 8
-			else if(id >= ID_HD8_MENU_START && id <= ID_HD8_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_hard_disk_connected(7) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#endif
-#ifdef USE_COMPACT_DISC
-#if USE_COMPACT_DISC >= 1
-			else if(id >= ID_COMPACT_DISC1_MENU_START && id <= ID_COMPACT_DISC1_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_compact_disc_connected(0) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#if USE_COMPACT_DISC >= 2
-			else if(id >= ID_COMPACT_DISC2_MENU_START && id <= ID_COMPACT_DISC2_MENU_END) {
-				EnableMenuItem(hMenu, pos, (emu->is_compact_disc_connected(1) ? MF_ENABLED : MF_GRAYED) | MF_BYPOSITION);
-			}
-#endif
-#endif
 		}
 	}
 	// redraw menu bar
@@ -2472,6 +2391,84 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 	}
 #endif
 #endif
+#if defined(USE_BOOT_MODE) || defined(USE_DIPSWITCH)
+	else if(id >= ID_VM_BOOT_MENU_START && id <= ID_VM_BOOT_MENU_END) {
+		#ifdef USE_BOOT_MODE
+			update_vm_boot_menu(hMenu);
+		#endif
+		#ifdef USE_DIPSWITCH
+			// dipswitch may be in sound menu
+			update_vm_dipswitch_menu(hMenu);
+		#endif
+	}
+#endif
+#ifdef USE_CPU_TYPE
+	else if(id >= ID_VM_CPU_MENU_START && id <= ID_VM_CPU_MENU_END) {
+		update_vm_cpu_menu(hMenu);
+	}
+#endif
+#ifdef USE_DIPSWITCH
+	else if(id >= ID_VM_DIPSWITCH_MENU_START && id <= ID_VM_DIPSWITCH_MENU_END) {
+		update_vm_dipswitch_menu(hMenu);
+	}
+#endif
+#ifdef USE_DEVICE_TYPE
+	else if(id >= ID_VM_DEVICE_MENU_START && id <= ID_VM_DEVICE_MENU_END) {
+		update_vm_device_menu(hMenu);
+	}
+#endif
+#ifdef USE_DRIVE_TYPE
+	else if(id >= ID_VM_DRIVE_MENU_START && id <= ID_VM_DRIVE_MENU_END) {
+		update_vm_drive_menu(hMenu);
+	}
+#endif
+#ifdef USE_KEYBOARD_TYPE
+	else if(id >= ID_VM_KEYBOARD_MENU_START && id <= ID_VM_KEYBOARD_MENU_END) {
+		update_vm_keyboard_menu(hMenu);
+	}
+#endif
+#ifdef USE_MOUSE_TYPE
+	else if(id >= ID_VM_MOUSE_MENU_START && id <= ID_VM_MOUSE_MENU_END) {
+		update_vm_mouse_menu(hMenu);
+	}
+#endif
+#ifdef USE_JOYSTICK_TYPE
+	else if(id >= ID_VM_JOYSTICK_MENU_START && id <= ID_VM_JOYSTICK_MENU_END) {
+		update_vm_joystick_menu(hMenu);
+	}
+#endif
+#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE) || defined(USE_DIPSWITCH)
+	else if(id >= ID_VM_SOUND_MENU_START && id <= ID_VM_SOUND_MENU_END) {
+		#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE)
+			update_vm_sound_menu(hMenu);
+		#endif
+		#ifdef USE_DIPSWITCH
+			// dipswitch may be in sound menu
+			update_vm_dipswitch_menu(hMenu);
+		#endif
+	}
+#endif
+#if defined(USE_MONITOR_TYPE) || defined(USE_SCANLINE) || defined(USE_DIPSWITCH)
+	else if(id >= ID_VM_MONITOR_MENU_START && id <= ID_VM_MONITOR_MENU_END) {
+		#if defined(USE_MONITOR_TYPE) || defined(USE_SCANLINE)
+			update_vm_monitor_menu(hMenu);
+		#endif
+		#ifdef USE_DIPSWITCH
+			// dipswitch may be in monitor menu
+			update_vm_dipswitch_menu(hMenu);
+		#endif
+	}
+#endif
+#ifdef USE_PRINTER_TYPE
+	else if(id >= ID_VM_PRINTER_MENU_START && id <= ID_VM_PRINTER_MENU_END) {
+		update_vm_printer_menu(hMenu);
+	}
+#endif
+#ifdef USE_SERIAL_TYPE
+	else if(id >= ID_VM_SERIAL_MENU_START && id <= ID_VM_SERIAL_MENU_END) {
+		update_vm_serial_menu(hMenu);
+	}
+#endif
 	else if(id >= ID_HOST_MENU_START && id <= ID_HOST_MENU_END) {
 		update_host_menu(hMenu);
 	}
@@ -2495,46 +2492,6 @@ void update_popup_menu(HWND hWnd, HMENU hMenu)
 	else if(id >= ID_CAPTURE_MENU_START && id <= ID_CAPTURE_MENU_END) {
 		update_host_capture_menu(hMenu);
 	}
-#endif
-	// device menus are chaotically categorized, so better to be always updated
-#if defined(USE_BOOT_MODE)
-	update_vm_boot_menu(hMenu);
-#endif
-#ifdef USE_CPU_TYPE
-	update_vm_cpu_menu(hMenu);
-#endif
-#ifdef USE_DIPSWITCH
-	update_vm_dipswitch_menu(hMenu);
-#endif
-#ifdef USE_OPTION_SWITCH
-	update_vm_option_switch_menu(hMenu);
-#endif
-#ifdef USE_DEVICE_TYPE
-	update_vm_device_menu(hMenu);
-#endif
-#ifdef USE_DRIVE_TYPE
-	update_vm_drive_menu(hMenu);
-#endif
-#ifdef USE_KEYBOARD_TYPE
-	update_vm_keyboard_menu(hMenu);
-#endif
-#ifdef USE_MOUSE_TYPE
-	update_vm_mouse_menu(hMenu);
-#endif
-#ifdef USE_JOYSTICK_TYPE
-	update_vm_joystick_menu(hMenu);
-#endif
-#if defined(USE_SOUND_TYPE) || defined(USE_FLOPPY_DISK) || defined(USE_TAPE)
-	update_vm_sound_menu(hMenu);
-#endif
-#if defined(USE_MONITOR_TYPE) || defined(USE_SCANLINE)
-	update_vm_monitor_menu(hMenu);
-#endif
-#ifdef USE_PRINTER_TYPE
-	update_vm_printer_menu(hMenu);
-#endif
-#ifdef USE_SERIAL_TYPE
-	update_vm_serial_menu(hMenu);
 #endif
 	DrawMenuBar(hWnd);
 }
@@ -2915,7 +2872,7 @@ void open_quick_disk_dialog(HWND hWnd, int drv)
 {
 	_TCHAR* path = get_open_file_name(
 		hWnd,
-		_T("Supported Files (*.mzt;*.mzf;*.q20;*.qdf)\0*.mzt;*.mzf;*.q20;*.qdf\0All Files (*.*)\0*.*\0\0"),
+		_T("Supported Files (*.mzt;*.q20;*.qdf)\0*.mzt;*.q20;*.qdf\0All Files (*.*)\0*.*\0\0"),
 		_T("Quick Disk"),
 		NULL,
 		config.initial_quick_disk_dir, _MAX_PATH

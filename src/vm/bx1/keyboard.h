@@ -19,7 +19,6 @@ class FIFO;
 class KEYBOARD : public DEVICE
 {
 private:
-	DEVICE* d_cpu;
 	FIFO *fifo_down;
 	
 public:
@@ -33,15 +32,10 @@ public:
 	void initialize();
 	void release();
 	void reset();
-	void event_vline(int v, int clock);
 	uint32_t read_io8(uint32_t addr);
 	bool process_state(FILEIO* state_fio, bool loading);
 	
 	// unique functions
-	void set_context_cpu(DEVICE* device)
-	{
-		d_cpu = device;
-	}
 	void key_down(int code);
 	void key_up(int code);
 };

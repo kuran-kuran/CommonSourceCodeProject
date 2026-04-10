@@ -144,18 +144,11 @@ void FLOPPY::write_io8(uint32_t addr, uint32_t data)
 			}
 #if defined(SUPPORT_HIRESO)
 			if((ctrlreg & 0x20) && !(data & 0x20)) {
-				for(int i = 0; i < 2; i++) {
-					// for convenience
-					if(d_fdc->get_media_type(i) == MEDIA_TYPE_144) {
-						d_fdc->set_drive_type(i, DRIVE_TYPE_144);
-					} else {
-						d_fdc->set_drive_type(i, DRIVE_TYPE_2HD);
-					}
-				}
+				d_fdc->set_drive_type(0, DRIVE_TYPE_2HD);
+				d_fdc->set_drive_type(1, DRIVE_TYPE_2HD);
 			} else if(!(ctrlreg & 0x20) && (data & 0x20)) {
-				for(int i = 0; i < 2; i++) {
-					d_fdc->set_drive_type(i, DRIVE_TYPE_2DD);
-				}
+				d_fdc->set_drive_type(0, DRIVE_TYPE_2DD);
+				d_fdc->set_drive_type(1, DRIVE_TYPE_2DD);
 			}
 #endif
 //#if !defined(_PC98XA) && !defined(_PC98XL)
@@ -175,18 +168,11 @@ void FLOPPY::write_io8(uint32_t addr, uint32_t data)
 	case 0x00be:
 #if !defined(SUPPORT_HIRESO)
 		if(!(modereg & 2) && (data & 2)) {
-			for(int i = 0; i < 2; i++) {
-				// for convenience
-				if(d_fdc->get_media_type(i) == MEDIA_TYPE_144) {
-					d_fdc->set_drive_type(i, DRIVE_TYPE_144);
-				} else {
-					d_fdc->set_drive_type(i, DRIVE_TYPE_2HD);
-				}
-			}
+			d_fdc->set_drive_type(0, DRIVE_TYPE_2HD);
+			d_fdc->set_drive_type(1, DRIVE_TYPE_2HD);
 		} else if((modereg & 2) && !(data & 2)) {
-			for(int i = 0; i < 2; i++) {
-				d_fdc->set_drive_type(i, DRIVE_TYPE_2DD);
-			}
+			d_fdc->set_drive_type(0, DRIVE_TYPE_2DD);
+			d_fdc->set_drive_type(1, DRIVE_TYPE_2DD);
 		}
 #endif
 		modereg = data;

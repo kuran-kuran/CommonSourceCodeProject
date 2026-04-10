@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ MZ-1R18 ]
+	[ ram file ]
 */
 
 #ifndef _RAMFILE_H_

@@ -73,8 +73,8 @@ EMU::EMU()
 #ifdef USE_CPU_TYPE
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_OPTION_SWITCH
-	option_switch = config.option_switch;
+#ifdef USE_DIPSWITCH
+	dipswitch = config.dipswitch;
 #endif
 #ifdef USE_SOUND_TYPE
 	sound_type = config.sound_type;
@@ -176,11 +176,6 @@ int EMU::get_host_cpus()
 // ----------------------------------------------------------------------------
 // drive machine
 // ----------------------------------------------------------------------------
-
-const _TCHAR *EMU::device_name()
-{
-	return vm->device_name();
-}
 
 double EMU::get_frame_rate()
 {
@@ -284,9 +279,9 @@ void EMU::reset()
 	reinitialize |= (cpu_type != config.cpu_type);
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_OPTION_SWITCH
-	reinitialize |= (option_switch != config.option_switch);
-	option_switch = config.option_switch;
+#ifdef USE_DIPSWITCH
+	reinitialize |= (dipswitch != config.dipswitch);
+	dipswitch = config.dipswitch;
 #endif
 #ifdef USE_SOUND_TYPE
 	reinitialize |= (sound_type != config.sound_type);
@@ -1920,7 +1915,7 @@ void EMU::out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static size_t size = 0;
+		static int size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
@@ -1947,7 +1942,7 @@ void EMU::force_out_debug_log(const _TCHAR* format, ...)
 #else
 	if(debug_log) {
 		_ftprintf(debug_log, _T("%s"), buffer);
-		static size_t size = 0;
+		static int size = 0;
 		if((size += _tcslen(buffer)) > 0x8000000) { // 128MB
 			fclose(debug_log);
 			debug_log = _tfopen(create_date_file_path(_T("log")), _T("w"));
@@ -2618,15 +2613,6 @@ void EMU::close_hard_disk(int drv)
 	}
 }
 
-bool EMU::is_hard_disk_connected(int drv)
-{
-	if(drv < USE_HARD_DISK) {
-		return vm->is_hard_disk_connected(drv);
-	} else {
-		return false;
-	}
-}
-
 bool EMU::is_hard_disk_inserted(int drv)
 {
 	if(drv < USE_HARD_DISK) {
@@ -2832,15 +2818,6 @@ void EMU::close_compact_disc(int drv)
 	}
 }
 
-bool EMU::is_compact_disc_connected(int drv)
-{
-	if(drv < USE_COMPACT_DISC) {
-		return vm->is_compact_disc_connected(drv);
-	} else {
-		return false;
-	}
-}
-
 bool EMU::is_compact_disc_inserted(int drv)
 {
 	if(drv < USE_COMPACT_DISC) {
@@ -3043,7 +3020,7 @@ void EMU::free_sound_file(int id, int16_t **data)
 // ----------------------------------------------------------------------------
 
 #ifdef USE_STATE
-#define STATE_VERSION	3
+#define STATE_VERSION	2
 
 void EMU::save_state(const _TCHAR* file_path)
 {
@@ -3165,9 +3142,9 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 				reinitialize |= (cpu_type != config.cpu_type);
 				cpu_type = config.cpu_type;
 #endif
-#ifdef USE_OPTION_SWITCH
-				reinitialize |= (option_switch != config.option_switch);
-				option_switch = config.option_switch;
+#ifdef USE_DIPSWITCH
+				reinitialize |= (dipswitch != config.dipswitch);
+				dipswitch = config.dipswitch;
 #endif
 #ifdef USE_SOUND_TYPE
 				reinitialize |= (sound_type != config.sound_type);

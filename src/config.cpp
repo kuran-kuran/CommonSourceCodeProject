@@ -50,9 +50,6 @@ void initialize_config()
 	#if defined(USE_DIPSWITCH) && defined(DIPSWITCH_DEFAULT)
 		config.dipswitch = DIPSWITCH_DEFAULT;
 	#endif
-	#if defined(USE_OPTION_SWITCH) && defined(OPTION_SWITCH_DEFAULT)
-		config.option_switch = OPTION_SWITCH_DEFAULT;
-	#endif
 	#if defined(USE_DEVICE_TYPE) && defined(DEVICE_TYPE_DEFAULT)
 		config.device_type = DEVICE_TYPE_DEFAULT;
 	#endif
@@ -176,9 +173,6 @@ void load_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		config.dipswitch = MyGetPrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
-	#endif
-	#ifdef USE_OPTION_SWITCH
-		config.option_switch = MyGetPrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		config.device_type = MyGetPrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
@@ -382,13 +376,6 @@ void load_config(const _TCHAR* config_path)
 		MyGetPrivateProfileString(_T("Printer"), _T("PrinterDll"), _T("printer.dll"), config.printer_dll_path, _MAX_PATH, config_path);
 	#endif
 	
-	// misc
-	#if defined(USE_GENERAL_PARAM)
-		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
-			config.general_param[i] = MyGetPrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
-		}
-	#endif
-	
 	// win32
 	#ifdef _WIN32
 		config.use_telnet = MyGetPrivateProfileBool(_T("Win32"), _T("UseTelnet"), config.use_telnet, config_path);
@@ -430,9 +417,6 @@ void save_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		MyWritePrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
-	#endif
-	#ifdef USE_OPTION_SWITCH
-		MyWritePrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		MyWritePrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
@@ -612,13 +596,6 @@ void save_config(const _TCHAR* config_path)
 		}
 	#endif
 	
-	// misc
-	#if defined(USE_GENERAL_PARAM)
-		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
-			MyWritePrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
-		}
-	#endif
-	
 	// win32
 	#ifdef _WIN32
 		MyWritePrivateProfileBool(_T("Win32"), _T("UseTelnet"), config.use_telnet, config_path);
@@ -647,7 +624,7 @@ void save_config(const _TCHAR* config_path)
 	#endif
 }
 
-#define STATE_VERSION	8
+#define STATE_VERSION	7
 
 bool process_config_state(void *f, bool loading)
 {
@@ -664,9 +641,6 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#ifdef USE_DIPSWITCH
 		state_fio->StateValue(config.dipswitch);
-	#endif
-	#ifdef USE_OPTION_SWITCH
-		state_fio->StateValue(config.option_switch);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		state_fio->StateValue(config.device_type);

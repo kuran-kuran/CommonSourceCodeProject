@@ -45,11 +45,11 @@ struct i80286_state
 	UINT16  limit[4];
 	UINT8 rights[4];
 	bool valid[4];
-	struct _anon1 {
+	struct {
 		UINT32 base;
 		UINT16 limit;
 	} gdtr, idtr;
-	struct _anon2 {
+	struct {
 		UINT16 sel;
 		UINT32 base;
 		UINT16 limit;
@@ -77,7 +77,7 @@ struct i80286_state
 	INT8    nmi_state;
 	INT8    irq_state;
 	INT8    test_state;
-	UINT8   rep_in_progress;
+	UINT8 rep_in_progress;
 	INT32   extra_cycles;       /* extra cycles for interrupts */
 
 	int halted;         /* Is the CPU halted ? */
@@ -369,7 +369,7 @@ static CPU_EXECUTE( i80286 )
 			} else {
 				now_debugging = false;
 			}
-			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
+			cpustate->debugger->add_cpu_trace(cpustate->pc);
 			int first_icount = cpustate->icount;
 			cpustate->seg_prefix=FALSE;
 			try
@@ -398,7 +398,7 @@ static CPU_EXECUTE( i80286 )
 				cpustate->io = cpustate->io_stored;
 			}
 		} else {
-			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
+			cpustate->debugger->add_cpu_trace(cpustate->pc);
 			int first_icount = cpustate->icount;
 #endif
 			cpustate->seg_prefix=FALSE;

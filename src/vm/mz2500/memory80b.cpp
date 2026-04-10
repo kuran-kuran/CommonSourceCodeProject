@@ -261,8 +261,7 @@ void MEMORY::update_vram_map()
 			SET_BANK(0xc000, 0xffff, ram + 0xc000, ram + 0xc000, false);
 		}
 		if(vram_sel == 0xc0) {
-			SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
-			SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
+			SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
 		}
 	}
 #else
@@ -274,12 +273,10 @@ void MEMORY::update_vram_map()
 		SET_BANK(0xd000, 0xffff, ram + 0xd000, ram + 0xd000, false);
 	}
 	if(vram_sel == 0x80) {
-		SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
-		SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
+		SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
 		SET_BANK(0xe000, 0xffff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	} else if(vram_sel == 0xc0) {
-		SET_BANK(0x5000, 0x57ff, tvram, tvram, true);
-		SET_BANK(0x5800, 0x5fff, tvram, tvram, true);
+		SET_BANK(0x5000, 0x5fff, tvram, tvram, true);
 		SET_BANK(0x6000, 0x7fff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	}
 #endif
@@ -625,7 +622,7 @@ void MEMORY::draw_screen()
 #endif
 }
 
-#define STATE_VERSION	4
+#define STATE_VERSION	3
 
 bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 {

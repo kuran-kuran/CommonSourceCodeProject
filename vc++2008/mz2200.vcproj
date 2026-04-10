@@ -405,26 +405,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\src\win32\osd_midi.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="..\src\win32\osd_screen.cpp"
 					>
 					<FileConfiguration
@@ -489,26 +469,6 @@
 				Name="VM Common Source Files"
 				Filter="cpp"
 				>
-				<File
-					RelativePath="..\src\vm\cmu800.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-				</File>
 				<File
 					RelativePath="..\src\vm\datarec.cpp"
 					>
@@ -710,26 +670,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\src\vm\midi.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="..\src\vm\mz1p17.cpp"
 					>
 					<FileConfiguration
@@ -791,6 +731,26 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\prnfile.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\v30_dasm.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -1035,26 +995,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\src\vm\mz2500\pio3034.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="..\src\vm\mz2500\printer.cpp"
 					>
 					<FileConfiguration
@@ -1159,10 +1099,6 @@
 				Filter="h"
 				>
 				<File
-					RelativePath="..\src\vm\cmu800.h"
-					>
-				</File>
-				<File
 					RelativePath="..\src\vm\datarec.h"
 					>
 				</File>
@@ -1215,10 +1151,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\src\vm\midi.h"
-					>
-				</File>
-				<File
 					RelativePath="..\src\vm\mz1p17.h"
 					>
 				</File>
@@ -1232,6 +1164,10 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\prnfile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\src\vm\v30_dasm.h"
 					>
 				</File>
 				<File
@@ -1289,10 +1225,6 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\mz2500\mz80b.h"
-					>
-				</File>
-				<File
-					RelativePath="..\src\vm\mz2500\pio3034.h"
 					>
 				</File>
 				<File

@@ -234,58 +234,19 @@ static void FPU_FST_F80(UINT32 addr) {
 
 static void FPU_FST_I16(UINT32 addr) {
 	float_exception_flags = (FPU_STATUSWORD & 0x3f);
-#if 0
-	// from mame i386 core
-	floatx80 fx80 = floatx80_round_to_int(FPU_STAT.reg[FPU_STAT_TOP].d);
-	floatx80 lowerLim = int32_to_floatx80(-32768);
-	floatx80 upperLim = int32_to_floatx80(32767);
-	if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim)) {
-		fpu_memorywrite_w(addr, (UINT16)((SINT16)floatx80_to_int32(fx80)));
-	} else {
-		fpu_memorywrite_w(addr, (UINT16)((SINT16)-32768));
-		float_exception_flags = float_flag_invalid;
-	}
-#else
-	fpu_memorywrite_w(addr, (UINT16)floatx80_to_int16_np2(FPU_STAT.reg[FPU_STAT_TOP].d));
-#endif
+	fpu_memorywrite_w(addr, (UINT16)((SINT16)floatx80_to_int32(FPU_STAT.reg[FPU_STAT_TOP].d)));
 	FPU_STATUSWORD |= float_exception_flags;
 }
 
 static void FPU_FST_I32(UINT32 addr) {
 	float_exception_flags = (FPU_STATUSWORD & 0x3f);
-#if 0
-	// from mame i386 core
-	floatx80 fx80 = floatx80_round_to_int(FPU_STAT.reg[FPU_STAT_TOP].d);
-	floatx80 lowerLim = int32_to_floatx80(0x80000000);
-	floatx80 upperLim = int32_to_floatx80(0x7fffffff);
-	if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim)) {
-		fpu_memorywrite_d(addr, (UINT32)floatx80_to_int32(fx80));
-	} else {
-		fpu_memorywrite_d(addr, (UINT32)0x80000000);
-		float_exception_flags = float_flag_invalid;
-	}
-#else
-	fpu_memorywrite_d(addr, (UINT32)floatx80_to_int32_np2(FPU_STAT.reg[FPU_STAT_TOP].d));
-#endif
+	fpu_memorywrite_d(addr, (UINT32)floatx80_to_int32(FPU_STAT.reg[FPU_STAT_TOP].d));
 	FPU_STATUSWORD |= float_exception_flags;
 }
 
 static void FPU_FST_I64(UINT32 addr) {
 	float_exception_flags = (FPU_STATUSWORD & 0x3f);
-#if 0
-	// from mame i386 core
-	floatx80 fx80 = floatx80_round_to_int(FPU_STAT.reg[FPU_STAT_TOP].d);
-	floatx80 lowerLim = int64_to_floatx80((UINT64)0x8000000000000000);
-	floatx80 upperLim = int64_to_floatx80((UINT64)0x7fffffffffffffff);
-	if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim)) {
-		fpu_memorywrite_q(addr, (UINT64)floatx80_to_int64(fx80));
-	} else {
-		fpu_memorywrite_q(addr, (UINT64)0x8000000000000000);
-		float_exception_flags = float_flag_invalid;
-	}
-#else
-	fpu_memorywrite_q(addr, (UINT64)floatx80_to_int64_np2(FPU_STAT.reg[FPU_STAT_TOP].d));
-#endif
+	fpu_memorywrite_q(addr, (UINT64)floatx80_to_int64(FPU_STAT.reg[FPU_STAT_TOP].d));
 	FPU_STATUSWORD |= float_exception_flags;
 }
 
@@ -396,12 +357,12 @@ static INLINE void FPU_SetTag8(UINT8 tag)
 }
 
 static void FPU_prepush(void) {
-	FPU_STAT_TOP = (FPU_STAT_TOP - 1) & 7;
-	if(FPU_STAT.tag[FPU_STAT_TOP] == TAG_Valid){
-		FPU_STATUSWORD |= FP_C1_FLAG | FP_SF_FLAG | FP_IE_FLAG;
+	if(FPU_STAT_TOP == 0){
+		FPU_STATUSWORD |= FP_C1_FLAG;
 	}else{
 		FPU_STATUSWORD &= ~FP_C1_FLAG;
 	}
+	FPU_STAT_TOP = (FPU_STAT_TOP - 1) & 7;
 	FPU_STAT.tag[FPU_STAT_TOP] = TAG_Valid;
 }
 static void FPU_push(floatx80 in) {
@@ -410,10 +371,6 @@ static void FPU_push(floatx80 in) {
 }
 
 static void FPU_pop(void) {
-	if(FPU_STAT.tag[FPU_STAT_TOP] == TAG_Empty){
-		FPU_STATUSWORD |= FP_SF_FLAG | FP_IE_FLAG;
-	}
-	FPU_STATUSWORD &= ~FP_C1_FLAG;
 	FPU_STAT.tag[FPU_STAT_TOP] = TAG_Empty;
 	FPU_STAT.mmxenable = 0;
 	FPU_STAT_TOP = ((FPU_STAT_TOP + 1) & 7);
@@ -486,7 +443,6 @@ static void FPU_FMUL(UINT st, UINT other) {
 static void FPU_FSUB(UINT st, UINT other) {
 	float_exception_flags = (FPU_STATUSWORD & 0x3f);
 	FPU_STAT.reg[st].d = floatx80_sub(FPU_STAT.reg[st].d, FPU_STAT.reg[other].d);
-	FPU_STATUSWORD |= float_exception_flags;
 	return;
 }
 static void FPU_FSUBR(UINT st, UINT other) {
@@ -894,18 +850,17 @@ void SF_FPU_FXSAVERSTOR(void) {
 	UINT32 maddr;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE((op));
+	GET_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 
+	fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 	switch (idx) {
 	case 0: // FXSAVE
-		fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 		maddr = calc_ea_dst(op);
 		FPU_FXSAVE(maddr);
 		break;
 	case 1: // FXRSTOR
-		fpu_check_NM_EXCEPTION2(); // XXX: 根拠無し
 		maddr = calc_ea_dst(op);
 		FPU_FXRSTOR(maddr);
 		break;
@@ -946,17 +901,14 @@ static void EA_TREE(UINT op)
 		switch (idx) {
 		case 0:	/* FADD (単精度実数) */
 			TRACEOUT(("FADD EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FADD_EA(FPU_STAT_TOP); 
 			break;
 		case 1:	/* FMUL (単精度実数) */
 			TRACEOUT(("FMUL EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FMUL_EA(FPU_STAT_TOP);
 			break;
 		case 2:	/* FCOM (単精度実数) */
 			TRACEOUT(("FCOM EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCOM_EA(FPU_STAT_TOP);
 			break;
 		case 3:	/* FCOMP (単精度実数) */
@@ -966,22 +918,18 @@ static void EA_TREE(UINT op)
 			break;
 		case 4:	/* FSUB (単精度実数) */
 			TRACEOUT(("FSUB EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUB_EA(FPU_STAT_TOP);
 			break;
 		case 5:	/* FSUBR (単精度実数) */
 			TRACEOUT(("FSUBR EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUBR_EA(FPU_STAT_TOP);
 			break;
 		case 6:	/* FDIV (単精度実数) */
 			TRACEOUT(("FDIV EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIV_EA(FPU_STAT_TOP);
 			break;
 		case 7:	/* FDIVR (単精度実数) */
 			TRACEOUT(("FDIVR EA"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIVR_EA(FPU_STAT_TOP);
 			break;
 		default:
@@ -997,7 +945,7 @@ SF_ESC0(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU d8 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1009,43 +957,35 @@ SF_ESC0(void)
 		switch (idx) {
 		case 0:	/* FADD */
 			TRACEOUT(("FADD"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FADD(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 1:	/* FMUL */
 			TRACEOUT(("FMUL"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FMUL(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 2:	/* FCOM */
 			TRACEOUT(("FCOM"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCOM(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 3:	/* FCOMP */
 			TRACEOUT(("FCOMP"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCOM(FPU_STAT_TOP,FPU_ST(sub));
 			FPU_pop();
 			break;
 		case 4:	/* FSUB */
 			TRACEOUT(("FSUB"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUB(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 5:	/* FSUBR */
 			TRACEOUT(("FSUBR"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUBR(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 6:	/* FDIV */
 			TRACEOUT(("FDIV"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIV(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 7:	/* FDIVR */
 			TRACEOUT(("FDIVR"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIVR(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		}
@@ -1064,7 +1004,7 @@ SF_ESC1(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU d9 %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1106,13 +1046,11 @@ SF_ESC1(void)
 			switch (sub) {
 			case 0x0:	/* FCHS */
 				TRACEOUT(("FCHS"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FCHS();
 				break;
 
 			case 0x1:	/* FABS */
 				TRACEOUT(("FABS"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FABS();
 				break;
 
@@ -1122,7 +1060,6 @@ SF_ESC1(void)
 
 			case 0x4:	/* FTST */
 				TRACEOUT(("FTST"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FTST();
 				break;
 
@@ -1183,31 +1120,26 @@ SF_ESC1(void)
 			switch (sub) {
 			case 0x0:	/* F2XM1 */
 				TRACEOUT(("F2XM1"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_F2XM1();
 				break;
 				
 			case 0x1:	/* FYL2X */
 				TRACEOUT(("FYL2X"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FYL2X();
 				break;
 				
 			case 0x2:	/* FPTAN */
 				TRACEOUT(("FPTAN"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FPTAN();
 				break;
 				
 			case 0x3:	/* FPATAN */
 				TRACEOUT(("FPATAN"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FPATAN();
 				break;
 				
 			case 0x4:	/* FXTRACT */
 				TRACEOUT(("FXTRACT"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FXTRACT();
 				break;
 				
@@ -1244,37 +1176,31 @@ SF_ESC1(void)
 				
 			case 0x2:	/* FSQRT */
 				TRACEOUT(("FSQRT"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FSQRT();
 				break;
 				
 			case 0x3:	/* FSINCOS */
 				TRACEOUT(("FSINCOS"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FSINCOS();
 				break;
 				
 			case 0x4:	/* FRNDINT */
 				TRACEOUT(("FRNDINT"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FRNDINT();
 				break;
 				
 			case 0x5:	/* FSCALE */
 				TRACEOUT(("FSCALE"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FSCALE();
 				break;
 				
 			case 0x6:	/* FSIN */
 				TRACEOUT(("FSIN"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FSIN();				
 				break;
 				
 			case 0x7:	/* FCOS */
 				TRACEOUT(("FCOS"));
-				FPU_STATUSWORD &= ~FP_C1_FLAG;
 				FPU_FCOS();	
 				break;
 			}
@@ -1298,8 +1224,7 @@ SF_ESC1(void)
 
 		case 2:	/* FST (単精度実数) */
 			TRACEOUT(("FST float"));
-			FPU_FST_F32(madr);
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
+			FPU_FST_F32(madr);			
 			break;
 
 		case 3:	/* FSTP (単精度実数) */
@@ -1342,7 +1267,7 @@ SF_ESC2(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU da %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1354,22 +1279,18 @@ SF_ESC2(void)
 		switch (idx) {
 		case 0: /* FCMOVB */
 			TRACEOUT(("ESC2: FCMOVB"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVB(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 1: /* FCMOVE */
 			TRACEOUT(("ESC2: FCMOVE"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVE(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 2: /* FCMOVBE */
 			TRACEOUT(("ESC2: FCMOVBE"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVBE(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 3: /* FCMOVU */
 			TRACEOUT(("ESC2: FCMOVU"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVU(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 5:
@@ -1404,7 +1325,7 @@ SF_ESC3(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU db %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1419,22 +1340,18 @@ SF_ESC3(void)
 		switch (idx) {
 		case 0: /* FCMOVNB */
 			TRACEOUT(("ESC3: FCMOVNB"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVNB(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 1: /* FCMOVNE */
 			TRACEOUT(("ESC3: FCMOVNE"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVNE(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 2: /* FCMOVNBE */
 			TRACEOUT(("ESC3: FCMOVNBE"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVNBE(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 3: /* FCMOVNU */
 			TRACEOUT(("ESC3: FCMOVNU"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCMOVNU(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 4:
@@ -1464,12 +1381,10 @@ SF_ESC3(void)
 			break;
 		case 5: /* FUCOMI */
 			TRACEOUT(("ESC3: FUCOMI"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FUCOMI(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 6: /* FCOMI */
 			TRACEOUT(("ESC3: FCOMI"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCOMI(FPU_STAT_TOP,FPU_ST(sub));	
 			break;
 		default:
@@ -1497,7 +1412,6 @@ SF_ESC3(void)
 		case 2:	/* FIST (DWORD) */
 			TRACEOUT(("FIST"));
 			FPU_FST_I32(madr);
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			break;
 			
 		case 3:	/* FISTP (DWORD) */
@@ -1532,7 +1446,7 @@ SF_ESC4(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU dc %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1544,17 +1458,14 @@ SF_ESC4(void)
 		switch (idx) {
 		case 0:	/* FADD */
 			TRACEOUT(("ESC4: FADD"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FADD(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		case 1:	/* FMUL */
 			TRACEOUT(("ESC4: FMUL"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FMUL(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		case 2: /* FCOM */
 			TRACEOUT(("ESC4: FCOM"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FCOM(FPU_STAT_TOP,FPU_ST(sub));			
 			break;
 		case 3: /* FCOMP */
@@ -1564,22 +1475,18 @@ SF_ESC4(void)
 			break;
 		case 4:	/* FSUBR */
 			TRACEOUT(("ESC4: FSUBR"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUBR(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		case 5:	/* FSUB */
 			TRACEOUT(("ESC4: FSUB"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FSUB(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		case 6:	/* FDIVR */
 			TRACEOUT(("ESC4: FDIVR"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIVR(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		case 7:	/* FDIV */
 			TRACEOUT(("ESC4: FDIV"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FDIV(FPU_ST(sub),FPU_STAT_TOP);
 			break;
 		default:
@@ -1600,7 +1507,7 @@ SF_ESC5(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU dd %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1624,7 +1531,6 @@ SF_ESC5(void)
 		case 2:	/* FST */
 			TRACEOUT(("FST"));
 			FPU_FST(FPU_STAT_TOP,FPU_ST(sub));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			break;
 		case 3:	/* FSTP */
 			TRACEOUT(("FSTP"));
@@ -1633,7 +1539,6 @@ SF_ESC5(void)
 			break;
 		case 4:	/* FUCOM */
 			TRACEOUT(("FUCOM"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FUCOM(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		case 5:	/* FUCOMP */
@@ -1665,7 +1570,6 @@ SF_ESC5(void)
 		case 2:	/* FST (倍精度実数) */
 			TRACEOUT(("FST double real"));
 			FPU_FST_F64(madr);
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			break;
 		case 3:	/* FSTP (倍精度実数) */
 			TRACEOUT(("FSTP double real"));
@@ -1700,7 +1604,7 @@ SF_ESC6(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU de %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1728,7 +1632,7 @@ SF_ESC6(void)
 				return;
 			}
 			FPU_FCOM(FPU_STAT_TOP,FPU_ST(1));
-			FPU_pop(); // 下コードと合わせて2回pop
+			FPU_pop(); /* extra pop at the bottom*/
 			break;			
 		case 4:	/* FSUBRP */
 			TRACEOUT(("FSUBRP"));
@@ -1772,7 +1676,7 @@ SF_ESC7(void)
 	UINT idx, sub;
 
 	CPU_WORKCLOCK(FPU_WORKCLOCK);
-	GET_MODRM_PCBYTE(op);
+	GET_PCBYTE(op);
 	TRACEOUT(("use FPU df %.2x", op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
@@ -1792,7 +1696,6 @@ SF_ESC7(void)
 			break;
 		case 1: /* FXCH */
 			TRACEOUT(("FXCH"));
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			FPU_FXCH(FPU_STAT_TOP,FPU_ST(sub));
 			break;
 		
@@ -1849,7 +1752,6 @@ SF_ESC7(void)
 		case 2:	/* FIST (WORD) */
 			TRACEOUT(("FIST SINT16"));
 			FPU_FST_I16(madr);
-			FPU_STATUSWORD &= ~FP_C1_FLAG;
 			break;
 		case 3:	/* FISTP (WORD) */
 			TRACEOUT(("FISTP SINT16"));

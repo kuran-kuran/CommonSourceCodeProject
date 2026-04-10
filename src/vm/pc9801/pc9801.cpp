@@ -239,7 +239,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	rtc = new UPD1990A(this, emu);
 #if defined(SUPPORT_2HD_FDD_IF)
 #if /*defined(_PC9801) ||*/ defined(_PC9801E)
-	if((config.option_switch & OPTION_SWITCH_2HD) && FILEIO::IsFileExisting(create_local_path(_T("2HDIF.ROM")))) {
+	if((config.dipswitch & DIPSWITCH_2HD) && FILEIO::IsFileExisting(create_local_path(_T("2HDIF.ROM")))) {
 #endif
 		fdc_2hd = new UPD765A(this, emu);
 		fdc_2hd->set_device_name(_T("uPD765A FDC (2HD I/F)"));
@@ -251,7 +251,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 #if defined(SUPPORT_2DD_FDD_IF)
 #if defined(_PC9801) || defined(_PC9801E)
-	if((config.option_switch & OPTION_SWITCH_2DD) && FILEIO::IsFileExisting(create_local_path(_T("2DDIF.ROM")))) {
+	if((config.dipswitch & DIPSWITCH_2DD) && FILEIO::IsFileExisting(create_local_path(_T("2DDIF.ROM")))) {
 #endif
 		fdc_2dd = new UPD765A(this, emu);
 		fdc_2dd->set_device_name(_T("uPD765A FDC (2DD I/F)"));
@@ -353,7 +353,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 #if defined(SUPPORT_320KB_FDD_IF)
 	// 320kb fdd drives
-	if((config.option_switch & OPTION_SWITCH_2D) && (FILEIO::IsFileExisting(create_local_path(_T("DISK.ROM"))) || FILEIO::IsFileExisting(create_local_path(_T("PC88.ROM"))))) {
+	if((config.dipswitch & DIPSWITCH_2D) && (FILEIO::IsFileExisting(create_local_path(_T("DISK.ROM"))) || FILEIO::IsFileExisting(create_local_path(_T("PC88.ROM"))))) {
 		pio_sub = new I8255(this, emu);
 		pio_sub->set_device_name(_T("8255 PIO (320KB FDD)"));
 		pc80s31k = new PC80S31K(this, emu);
@@ -528,9 +528,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	cpureg->set_context_v30(v30);
 	cpureg->set_context_pio(pio_prn);
 	cpureg->cpu_mode = (config.cpu_type == 2 || config.cpu_type == 3);
-#endif
-#if defined(SUPPORT_32BIT_ADDRESS)
-	cpureg->set_context_memory(memory);
 #endif
 #endif
 	display->set_context_pic(pic);
@@ -906,12 +903,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0x043d, memory);
 #endif
 #if !defined(SUPPORT_HIRESO)
-	io->set_iomap_single_w (0x043f, memory);
-	io->set_iomap_single_w (0x08e1, memory);
-	io->set_iomap_single_w (0x08e3, memory);
-	io->set_iomap_single_w (0x08e5, memory);
-	io->set_iomap_single_w (0x08e7, memory);
-	io->set_iomap_single_rw(0x08e9, memory);
+	io->set_iomap_single_w(0x043f, memory);
 #endif
 #if defined(SUPPORT_24BIT_ADDRESS) || defined(SUPPORT_32BIT_ADDRESS)
 #if !defined(_PC98XA)
@@ -1024,7 +1016,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pc88cpu_sub->set_context_event_manager(pc88event);
 	
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
+	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
 		pc88diskio = new DiskIO(this, emu);
 		pc88diskio->set_context_event_manager(pc88event);
 	} else {
@@ -1065,7 +1057,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
+	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
 		pc88->set_context_diskio(pc88diskio);
 	}
 #endif
@@ -1750,17 +1742,6 @@ void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 	
 	if(controller != NULL) {
 		controller->open_disk(drv & 1, file_path, bank);
-		
-		// for convenience
-		if(controller->get_media_type(drv) == MEDIA_TYPE_144) {
-			if(controller->get_drive_type(drv) == DRIVE_TYPE_2HD) {
-				controller->set_drive_type(drv, DRIVE_TYPE_144);
-			}
-		} else if(controller->get_media_type(drv) == MEDIA_TYPE_2HD) {
-			if(controller->get_drive_type(drv) == DRIVE_TYPE_144) {
-				controller->set_drive_type(drv, DRIVE_TYPE_2HD);
-			}
-		}
 	}
 }
 
@@ -2014,12 +1995,7 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
-#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
-#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
-#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

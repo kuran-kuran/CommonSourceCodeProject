@@ -122,18 +122,14 @@ uint32_t IOCTRL::read_io8(uint32_t addr)
 void IOCTRL::event_callback(int event_id, int err)
 {
 	if(event_id == EVENT_KEY) {
-		register_id = -1;
 		if(!key_buf->empty()) {
-			if(key_done) {
-				key_val = key_buf->read();
-				key_mouse = (key_val & 0x100) ? 0x10 : 0;
-				key_val &= 0xff;
-				key_done = false;
-				d_pic->write_signal(SIG_I8259_IR3, 1, 1);
-			} else {
-				register_event(this, EVENT_KEY, 1000, false, &register_id);
-			}
+			key_val = key_buf->read();
+			key_mouse = (key_val & 0x100) ? 0x10 : 0;
+			key_val &= 0xff;
+			key_done = false;
+			d_pic->write_signal(SIG_I8259_IR3, 1, 1);
 		}
+		register_id = -1;
 	} else if(event_id == EVENT_600HZ) {
 		if(ts == 0) {
 			d_pic->write_signal(SIG_I8259_IR2, 1, 1);
@@ -197,7 +193,7 @@ void IOCTRL::key_down(int code)
 	} else if(code == 0x15) {
 		kana = !kana;
 	} else if((code = key_table[code & 0xff]) != -1) {
-		// Make: MSB=0
+		code |= 0x80;
 		key_buf->write(code | 0x100);
 		update_key();
 	}
@@ -206,8 +202,8 @@ void IOCTRL::key_down(int code)
 void IOCTRL::key_up(int code)
 {
 	if((code = key_table[code & 0xff]) != -1) {
-		// Break: MSB=1
-		key_buf->write(code | 0x180);
+		code &= ~0x80;
+		key_buf->write(code | 0x100);
 		update_key();
 	}
 }

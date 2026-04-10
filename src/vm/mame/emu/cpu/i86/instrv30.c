@@ -561,7 +561,7 @@ static void PREFIXV30(_0fpre)(i8086_state *cpustate)	/* Opcode 0x0f */
          * else
          * {
          *     int old=ICOUNT;
-         *     (*GetEA[ModRM])(cpustate);
+         *     (*GetEA[ModRM])();
          *     tmp=ReadWord(cpustate->ea);
          *     ICOUNT=old-33;
          * }
@@ -607,7 +607,7 @@ static void PREFIXV30(_0fpre)(i8086_state *cpustate)	/* Opcode 0x0f */
          * }
          * else {
          *     int old=ICOUNT;
-         *     (*GetEA[ModRM])(cpustate);
+         *     (*GetEA[ModRM])();
          *     tmp=ReadWord(cpustate->ea);
          *     ICOUNT=old-33;
          * }
@@ -700,7 +700,7 @@ static void PREFIXV30(_0fpre)(i8086_state *cpustate)	/* Opcode 0x0f */
 
 			(void)(*GetEA[ModRM])(cpustate);
 			tmp = ReadByte(cpustate->ea);
-			logerror("ModRM=%04x  Byte=%04x\n", cpustate->ea, tmp);
+			logerror("ModRM=%04x  Byte=%04x\n", EA, tmp);
 			ICOUNT = old - 33;
 		}
 
@@ -756,7 +756,7 @@ static void PREFIXV30(_0fpre)(i8086_state *cpustate)	/* Opcode 0x0f */
 
 			(void)(*GetEA[ModRM])(cpustate);
 			tmp = ReadByte(cpustate->ea);
-			logerror("ModRM=%04x  Byte=%04x\n", cpustate->ea, tmp);
+			logerror("ModRM=%04x  Byte=%04x\n", EA, tmp);
 			ICOUNT = old - 33;
 		}
 		/* 2do: the rest is silence....yet
@@ -1351,11 +1351,12 @@ PS	CS
 SS	SS
 DS0	DS
 */
+#define I8080_AF	cpustate->regs.w[AX]
 #define I8080_HL	cpustate->regs.w[BX]
 #define I8080_BC	cpustate->regs.w[CX]
 #define I8080_DE	cpustate->regs.w[DX]
 
-#define I8080_F		cpustate->i80flags
+#define I8080_F		cpustate->regs.b[AH]
 #define I8080_A		cpustate->regs.b[AL]
 
 #define I8080_H		cpustate->regs.b[BH]
@@ -1993,9 +1994,8 @@ static void PREFIX80(_27h)(i8086_state *cpustate)
 	if(I8080_F & I8080_CF) tmp16 |= 0x100;
 	if(I8080_F & I8080_HF) tmp16 |= 0x200;
 	if(I8080_F & I8080_NF) tmp16 |= 0x400;
-	tmp16 = I8080_DAA[tmp16];
-	I8080_A = tmp16 >> 8;
-	I8080_F = tmp16 & 0xd5;
+	I8080_AF = I8080_DAA[tmp16];
+	I8080_F &= 0xd5;
 	ICOUNT -= I8080_CLK[0x27];
 }
 
@@ -3435,9 +3435,7 @@ static void PREFIX80(_f0h)(i8086_state *cpustate)
 static void PREFIX80(_f1h)(i8086_state *cpustate)
 {
 	// POP A
-	UINT16 tmp16 = I8080_POP(cpustate);
-	I8080_A = tmp16 >> 8;
-	I8080_F = tmp16 & 0xff;
+	I8080_AF = I8080_POP(cpustate);
 	ICOUNT -= I8080_CLK[0xf1];
 }
 
@@ -3464,8 +3462,7 @@ static void PREFIX80(_f4h)(i8086_state *cpustate)
 static void PREFIX80(_f5h)(i8086_state *cpustate)
 {
 	// PUSH A
-	UINT16 tmp16 = (I8080_A << 8) | (I8080_F & 0xd5) | 0x02;
-	I8080_PUSH(cpustate, tmp16);
+	I8080_PUSH(cpustate, I8080_AF);
 	ICOUNT -= I8080_CLK[0xf5];
 }
 

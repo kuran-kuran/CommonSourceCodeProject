@@ -275,16 +275,7 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 
 void VM::key_down(int code, bool repeat)
 {
-	if(code == 0x14 || code == 0x15) {
-		if(!repeat) {
-			ioctrl->key_down(code);
-		}
-	} else {
-		if(repeat) {
-//			ioctrl->key_up(code);
-		}
-		ioctrl->key_down(code);
-	}
+	ioctrl->key_down(code);
 }
 
 void VM::key_up(int code)
@@ -356,12 +347,7 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
-#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
-#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
-#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

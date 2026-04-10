@@ -69,12 +69,9 @@ UINT32 MEMCALL cpu_vmemory_RMW_d(int idx, UINT32 offset, UINT32 (CPUCALL *func)(
 /*
  * code fetch
  */
-PF_UINT8 MEMCALL cpu_codefetch(UINT32 offset);
-PF_UINT16 MEMCALL cpu_codefetch_w(UINT32 offset);
-PF_UINT32 MEMCALL cpu_codefetch_d(UINT32 offset);
-#if defined(USE_CPU_MODRMPREFETCH)
-PF_UINT8 MEMCALL cpu_opcodefetch(UINT32 offset);
-#endif
+UINT8 MEMCALL cpu_codefetch(UINT32 offset);
+UINT16 MEMCALL cpu_codefetch_w(UINT32 offset);
+UINT32 MEMCALL cpu_codefetch_d(UINT32 offset);
 
 /*
  * additional physical address function

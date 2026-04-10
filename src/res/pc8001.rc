@@ -165,21 +165,12 @@ BEGIN
     BEGIN
         POPUP "Floppy Drive"
         BEGIN
-            MENUITEM "5inch FD",                    ID_VM_OPTION_SWITCH6
+            MENUITEM "5inch FD",                    ID_VM_DIPSWITCH6
         END
         POPUP "Sound"
         BEGIN
-            MENUITEM "CMU-800",                     ID_VM_OPTION_SWITCH12
-            MENUITEM "CMU-800 Tempo +10",           ID_VM_OPTION_SWITCH13
-            MENUITEM "CMU-800 Tempo -10",           ID_VM_OPTION_SWITCH14
-            MENUITEM "CMU-800 Tempo +5",            ID_VM_OPTION_SWITCH15
-            MENUITEM "CMU-800 Tempo -5",            ID_VM_OPTION_SWITCH16
-            MENUITEM "CMU-800 Tempo +1",            ID_VM_OPTION_SWITCH17
-            MENUITEM "CMU-800 Tempo -1",            ID_VM_OPTION_SWITCH18
-            MENUITEM "CMU-800 Tempo 160",           ID_VM_OPTION_SWITCH19
-            MENUITEM SEPARATOR
-            MENUITEM "GSX-8800",                    ID_VM_OPTION_SWITCH2
-            MENUITEM "PCG-8100",                    ID_VM_OPTION_SWITCH3
+            MENUITEM "GSX-8800",                    ID_VM_DIPSWITCH2
+            MENUITEM "PCG-8100",                    ID_VM_DIPSWITCH3
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",              ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",              ID_VM_SOUND_NOISE_CMT, GRAYED

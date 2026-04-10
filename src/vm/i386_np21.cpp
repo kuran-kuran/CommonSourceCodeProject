@@ -236,9 +236,9 @@ void I386::reset()
 		break;
 	}
 	i386cpuid.allow_movCS = 0;
-	i386cpuid.fpu_type = FPU_TYPE_SOFTFLOAT;
+//	i386cpuid.fpu_type = FPU_TYPE_SOFTFLOAT;
 //	i386cpuid.fpu_type = FPU_TYPE_DOSBOX;
-//	i386cpuid.fpu_type = FPU_TYPE_DOSBOX2;
+	i386cpuid.fpu_type = FPU_TYPE_DOSBOX2;
 	fpu_initialize();
 	
 	UINT32 PREV_CPU_ADRSMASK = CPU_ADRSMASK;
@@ -278,28 +278,10 @@ int I386::run_one_opecode()
 		CPU_REMCLOCK = CPU_BASECLOCK = 1;
 		CPU_EXEC();
 		if(nmi_pending) {
-			try {
-				CPU_INTERRUPT(2, 0);
-			} catch (int e) {
-				switch(e) {
-				case 0:  break;
-				case 1:  break; // ia32: return from exception
-				case 2:  break; // ia32: return from panic
-				default: break; // ia32: return from unknown caus
-				}
-			}
+			CPU_INTERRUPT(2, 0);
 			nmi_pending = false;
 		} else if(irq_pending && CPU_isEI) {
-			try {
-				CPU_INTERRUPT(device_pic->get_intr_ack() & 0xff, 0);
-			} catch (int e) {
-				switch(e) {
-				case 0:  break;
-				case 1:  break; // ia32: return from exception
-				case 2:  break; // ia32: return from panic
-				default: break; // ia32: return from unknown caus
-				}
-			}
+			CPU_INTERRUPT(device_pic->get_intr_ack(), 0);
 			irq_pending = false;
 			device_pic->update_intr();
 		}
@@ -317,28 +299,10 @@ int I386::run_one_opecode()
 		CPU_REMCLOCK = CPU_BASECLOCK = 1;
 		CPU_EXEC();
 		if(nmi_pending) {
-			try {
-				CPU_INTERRUPT(2, 0);
-			} catch (int e) {
-				switch(e) {
-				case 0:  break;
-				case 1:  break; // ia32: return from exception
-				case 2:  break; // ia32: return from panic
-				default: break; // ia32: return from unknown caus
-				}
-			}
+			CPU_INTERRUPT(2, 0);
 			nmi_pending = false;
 		} else if(irq_pending && CPU_isEI) {
-			try {
-				CPU_INTERRUPT(device_pic->get_intr_ack() & 0xff, 0);
-			} catch (int e) {
-				switch(e) {
-				case 0:  break;
-				case 1:  break; // ia32: return from exception
-				case 2:  break; // ia32: return from panic
-				default: break; // ia32: return from unknown caus
-				}
-			}
+			CPU_INTERRUPT(device_pic->get_intr_ack(), 0);
 			irq_pending = false;
 			device_pic->update_intr();
 		}
@@ -575,60 +539,6 @@ bool I386::write_debug_reg(const _TCHAR *reg, uint32_t data)
 		CPU_DL = data;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		CPU_DH = data;
-	} else if(_tcsicmp(reg, _T("CF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  C_FLAG;
-		} else {
-			CPU_FLAG &= ~C_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("PF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  P_FLAG;
-		} else {
-			CPU_FLAG &= ~P_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("AF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  A_FLAG;
-		} else {
-			CPU_FLAG &= ~A_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  Z_FLAG;
-		} else {
-			CPU_FLAG &= ~Z_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("SF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  S_FLAG;
-		} else {
-			CPU_FLAG &= ~S_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("TF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  T_FLAG;
-		} else {
-			CPU_FLAG &= ~T_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("IF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  I_FLAG;
-		} else {
-			CPU_FLAG &= ~I_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("DF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  D_FLAG;
-		} else {
-			CPU_FLAG &= ~D_FLAG;
-		}
-	} else if(_tcsicmp(reg, _T("OF")) == 0) {
-		if(data) {
-			CPU_FLAG |=  O_FLAG;
-		} else {
-			CPU_FLAG &= ~O_FLAG;
-		}
 	} else {
 		return false;
 	}
@@ -689,24 +599,6 @@ uint32_t I386::read_debug_reg(const _TCHAR *reg)
 		return CPU_DL;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		return CPU_DH;
-	} else if(_tcsicmp(reg, _T("CF")) == 0) {
-		return ((CPU_FLAG & C_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("PF")) == 0) {
-		return ((CPU_FLAG & P_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("AF")) == 0) {
-		return ((CPU_FLAG & A_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
-		return ((CPU_FLAG & Z_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("SF")) == 0) {
-		return ((CPU_FLAG & S_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("TF")) == 0) {
-		return ((CPU_FLAG & T_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("IF")) == 0) {
-		return ((CPU_FLAG & I_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("DF")) == 0) {
-		return ((CPU_FLAG & D_FLAG) != 0);
-	} else if(_tcsicmp(reg, _T("OF")) == 0) {
-		return ((CPU_FLAG & O_FLAG) != 0);
 	}
 	return 0;
 }
@@ -741,20 +633,20 @@ bool I386::get_debug_regs_info(_TCHAR *buffer, size_t buffer_len)
 	return true;
 }
 
-int I386::debug_dasm(uint32_t pc, uint32_t eip, bool mode, _TCHAR *buffer, size_t buffer_len)
+int I386::debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len)
 {
+	uint32_t eip = pc - (CPU_CS << 4);
 	uint8_t oprom[16];
 	
 	for(int i = 0; i < 16; i++) {
 		int wait;
 		oprom[i] = device_mem->read_data8w((pc + i) & CPU_ADRSMASK, &wait);
 	}
-	return i386_dasm(oprom, eip, mode, buffer, buffer_len);
-}
-
-int I386::debug_dasm(uint32_t pc, uint32_t eip, _TCHAR *buffer, size_t buffer_len)
-{
-	return debug_dasm(pc, eip, (CPU_INST_OP32 != 0), buffer, buffer_len);
+	if(CPU_INST_OP32) {
+		return i386_dasm(oprom, eip, true,  buffer, buffer_len);
+	} else {
+		return i386_dasm(oprom, eip, false, buffer, buffer_len);
+	}
 }
 #endif
 
@@ -816,7 +708,7 @@ void *I386::get_debugger()
 }
 #endif
 
-#define STATE_VERSION	3
+#define STATE_VERSION	2
 
 bool I386::process_state(FILEIO* state_fio, bool loading)
 {
