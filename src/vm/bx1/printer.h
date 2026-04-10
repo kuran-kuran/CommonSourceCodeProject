@@ -23,6 +23,8 @@ private:
 	FILEIO *fio;
 	uint8_t column, func;
 	uint8_t strobe, outdata;
+	uint8_t buffer[16];
+	int buffer_ptr;
 	
 	void output_char(uint8_t value);
 	void output_file(uint8_t vale);

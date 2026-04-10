@@ -1,3 +1,10 @@
+11/30/2025
+
+[BX1/PRINTER] add hack code for printing FORMAT instruction
+[MZ2800/CRTC] fix to render screen correctly after screen mode is changed
+[PC100/IOCTRL] fix keyboard
+
+
 11/24/2025
 
 [VM/SY6522] reimplement based on MAME 0.279

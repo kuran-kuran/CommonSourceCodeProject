@@ -275,7 +275,16 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 
 void VM::key_down(int code, bool repeat)
 {
-	ioctrl->key_down(code);
+	if(code == 0x14 || code == 0x15) {
+		if(!repeat) {
+			ioctrl->key_down(code);
+		}
+	} else {
+		if(repeat) {
+//			ioctrl->key_up(code);
+		}
+		ioctrl->key_down(code);
+	}
 }
 
 void VM::key_up(int code)
