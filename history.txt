@@ -1,3 +1,8 @@
+11/24/2025
+
+[VM/SY6522] reimplement based on MAME 0.279
+
+
 11/23/2025
 
 [VM/I386_NP21] don't break executing rep movs/stos instructions (thanks Mr. sava)
@@ -8,7 +13,6 @@
 
 [BX1] improve irq line connections
 [BX1/PRINTER] support paper feed key
-[BX1/PRINTER] improve for htab/feed and drawing symbols
 [MZ700/MEMORY] improve mapping of ext rom (thanks Mr.Koucha-Youkan)
 [MZ2500/CRTC] improve horizontal scroll (thanks Mr.Koucha-Youkan)
 [MZ2500/ME1E32] support MZ-1E32 (thanks Mr.Koucha-Youkan)
