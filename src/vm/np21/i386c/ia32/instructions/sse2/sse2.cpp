@@ -60,7 +60,7 @@ static void trace_fmt_ex(const char *fmt, ...)
 
 #if defined(USE_SSE2) && defined(USE_SSE) && defined(USE_FPU)
 
-#define CPU_SSE2WORKCLOCK	CPU_WORKCLOCK(8)
+#define CPU_SSE2WORKCLOCK	CPU_WORKCLOCK(2)
 
 static INLINE void
 SSE2_check_NM_EXCEPTION(){
@@ -3252,6 +3252,18 @@ void SSE2_PSHUFHW(void)
 	EXCEPTION(UD_EXCEPTION, 0);
 }
 void SSE2_PSHUFD(void)
+{
+	EXCEPTION(UD_EXCEPTION, 0);
+}
+void SSE2_PSxxWimm(void)
+{
+	EXCEPTION(UD_EXCEPTION, 0);
+}
+void SSE2_PSxxDimm(void)
+{
+	EXCEPTION(UD_EXCEPTION, 0);
+}
+void SSE2_PSxxQimm(void)
 {
 	EXCEPTION(UD_EXCEPTION, 0);
 }

@@ -20,8 +20,6 @@
 #define MMXOP(XX)       mmx_##XX
 #define SSEOP(XX)       sse_##XX
 
-extern int i386_dasm_one(_TCHAR *buffer, UINT32 pc, const UINT8 *oprom, int mode);
-
 enum SREGS { ES, CS, SS, DS, FS, GS };
 
 enum BREGS
@@ -442,7 +440,9 @@ struct i386_state
 	UINT16 x87_cw;
 	UINT16 x87_sw;
 	UINT16 x87_tw;
+	UINT16 x87_ds;
 	UINT64 x87_data_ptr;
+	UINT16 x87_cs;
 	UINT64 x87_inst_ptr;
 	UINT16 x87_opcode;
 
@@ -510,6 +510,8 @@ struct i386_state
 
 extern int i386_parity_table[256];
 static int i386_limit_check(i386_state *cpustate, int seg, UINT32 offset, UINT32 size);
+
+extern int x87_mf_fault(i386_state *cpustate);
 
 #define FAULT_THROW(fault,error) { throw (UINT64)(fault | (UINT64)error << 32); }
 #define PF_THROW(error) { cpustate->cr[2] = address; FAULT_THROW(FAULT_PF,error); }
@@ -756,15 +758,9 @@ INLINE void NEAR_BRANCH(i386_state *cpustate, INT32 offs)
 	cpustate->pc += offs;
 }
 
-INLINE UINT8 FETCH(i386_state *cpustate)
+INLINE UINT8 FETCH_FIRST_OP(i386_state *cpustate, UINT32 address)
 {
-	UINT8 value;
-	UINT32 address = cpustate->pc, error;
-
-	if(!translate_address(cpustate,cpustate->CPL,TRANSLATE_FETCH,&address,&error))
-		PF_THROW(error);
-
-	value = cpustate->program->read_data8(address & cpustate->a20_mask);
+	UINT8 value = cpustate->program->read_data8(address & cpustate->a20_mask);
 #ifdef DEBUG_MISSING_OPCODE
 	cpustate->opcode_bytes[cpustate->opcode_bytes_length] = value;
 	cpustate->opcode_bytes_length = (cpustate->opcode_bytes_length + 1) & 15;
@@ -772,6 +768,15 @@ INLINE UINT8 FETCH(i386_state *cpustate)
 	cpustate->eip++;
 	cpustate->pc++;
 	return value;
+}
+INLINE UINT8 FETCH(i386_state *cpustate)
+{
+	UINT32 address = cpustate->pc, error;
+
+	if(!translate_address(cpustate,cpustate->CPL,TRANSLATE_FETCH,&address,&error))
+		PF_THROW(error);
+
+	return FETCH_FIRST_OP(cpustate, address);
 }
 INLINE UINT16 FETCH16(i386_state *cpustate)
 {

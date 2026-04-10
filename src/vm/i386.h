@@ -17,6 +17,19 @@
 
 #define SIG_I386_A20	1
 
+enum {
+	DEFAULT = -1,
+	INTEL_80386 = 0,
+	INTEL_I486DX,
+	INTEL_PENTIUM,
+	INTEL_MMX_PENTIUM,
+	INTEL_PENTIUM_PRO,
+	INTEL_PENTIUM_II,
+	INTEL_PENTIUM_III,
+	INTEL_PENTIUM_4,
+	CYRIX_MEDIA_GX,
+};
+
 #ifdef USE_DEBUGGER
 class DEBUGGER;
 #endif
@@ -45,25 +58,7 @@ public:
 #ifdef SINGLE_MODE_DMA
 		d_dma = NULL;
 #endif
-#if defined(HAS_I386)
-		set_device_name(_T("80386 CPU"));
-#elif defined(HAS_I486)
-		set_device_name(_T("80486 CPU"));
-#elif defined(HAS_PENTIUM)
-		set_device_name(_T("Pentium CPU"));
-#elif defined(HAS_MEDIAGX)
-		set_device_name(_T("Media GX CPU"));
-#elif defined(HAS_PENTIUM_PRO)
-		set_device_name(_T("Pentium Pro CPU"));
-#elif defined(HAS_PENTIUM_MMX)
-		set_device_name(_T("Pentium MMX CPU"));
-#elif defined(HAS_PENTIUM2)
-		set_device_name(_T("Pentium2 CPU"));
-#elif defined(HAS_PENTIUM3)
-		set_device_name(_T("Pentium3 CPU"));
-#elif defined(HAS_PENTIUM4)
-		set_device_name(_T("Pentium4 CPU"));
-#endif
+		device_model = DEFAULT;
 	}
 	~I386() {}
 	
@@ -114,7 +109,10 @@ public:
 	bool write_debug_reg(const _TCHAR *reg, uint32_t data);
 	uint32_t read_debug_reg(const _TCHAR *reg);
 	bool get_debug_regs_info(_TCHAR *buffer, size_t buffer_len);
-	int debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len);
+	int debug_dasm(uint32_t pc, uint32_t eip, bool mode, _TCHAR *buffer, size_t buffer_len);
+	int debug_dasm(uint32_t pc, uint32_t eip, _TCHAR *buffer, size_t buffer_len);
+	uint32_t get_eip();
+	uint32_t get_next_eip();
 #endif
 	bool process_state(FILEIO* state_fio, bool loading);
 	
@@ -153,6 +151,7 @@ public:
 	uint32_t get_address_mask();
 	void set_shutdown_flag(int shutdown);
 	int get_shutdown_flag();
+	int device_model;
 };
 
 #endif

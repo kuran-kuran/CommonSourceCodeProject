@@ -158,7 +158,8 @@ static void i386_load_segment_descriptor(i386_state *cpustate, int segment )
 		{
 			cpustate->sreg[segment].base = cpustate->sreg[segment].selector << 4;
 			cpustate->sreg[segment].limit = 0xffff;
-			cpustate->sreg[segment].flags = (segment == CS) ? 0x00fb : 0x00f3;
+//			cpustate->sreg[segment].flags = (segment == CS) ? 0x00fb : 0x00f3;
+			cpustate->sreg[segment].flags = 0x00f3;
 			cpustate->sreg[segment].d = 0;
 			cpustate->sreg[segment].valid = true;
 		}
@@ -2115,9 +2116,9 @@ static void i386_protected_mode_retf(i386_state* cpustate, UINT8 count, UINT8 op
 			}
 		}
 		if(STACK_32BIT)
-			REG16(SP) += (4+count);
+			REG32(ESP) += (operand32 ? 8 : 4) + count;
 		else
-			REG32(ESP) += (8+count);
+			REG16(SP) += (operand32 ? 8 : 4) + count;
 	}
 	else if(RPL > CPL)
 	{
@@ -2805,6 +2806,7 @@ static void report_invalid_modrm(i386_state *cpustate, const char* opcode, UINT8
 }
 
 /* Forward declarations */
+static void I386OP(decode_first_opcode)(i386_state *cpustate, UINT32 address);
 static void I386OP(decode_opcode)(i386_state *cpustate);
 static void I386OP(decode_two_byte)(i386_state *cpustate);
 static void I386OP(decode_three_byte38)(i386_state *cpustate);
@@ -2828,12 +2830,29 @@ static void I386OP(decode_four_byte38f3)(i386_state *cpustate);
 #include "x87ops.c"
 #include "i386ops.h"
 
+static void I386OP(decode_first_opcode)(i386_state *cpustate, UINT32 address)
+{
+	cpustate->opcode = FETCH_FIRST_OP(cpustate, address);
+
+	if(cpustate->lock && !cpustate->lock_table[0][cpustate->opcode]) {
+		I386OP(invalid)(cpustate);
+		return;
+	}
+
+	if( cpustate->operand_size )
+		cpustate->opcode_table1_32[cpustate->opcode](cpustate);
+	else
+		cpustate->opcode_table1_16[cpustate->opcode](cpustate);
+}
+
 static void I386OP(decode_opcode)(i386_state *cpustate)
 {
 	cpustate->opcode = FETCH(cpustate);
 
-	if(cpustate->lock && !cpustate->lock_table[0][cpustate->opcode])
-		return I386OP(invalid)(cpustate);
+	if(cpustate->lock && !cpustate->lock_table[0][cpustate->opcode]) {
+		I386OP(invalid)(cpustate);
+		return;
+	}
 
 	if( cpustate->operand_size )
 		cpustate->opcode_table1_32[cpustate->opcode](cpustate);
@@ -2846,8 +2865,10 @@ static void I386OP(decode_two_byte)(i386_state *cpustate)
 {
 	cpustate->opcode = FETCH(cpustate);
 
-	if(cpustate->lock && !cpustate->lock_table[1][cpustate->opcode])
-		return I386OP(invalid)(cpustate);
+	if(cpustate->lock && !cpustate->lock_table[1][cpustate->opcode]) {
+		I386OP(invalid)(cpustate);
+		return;
+	}
 
 	if( cpustate->operand_size )
 		cpustate->opcode_table2_32[cpustate->opcode](cpustate);
@@ -3124,6 +3145,7 @@ static void zero_state(i386_state *cpustate)
 	cpustate->eip = 0;
 	cpustate->pc = 0;
 	cpustate->prev_eip = 0;
+	cpustate->prev_pc = 0;
 	cpustate->eflags = 0;
 	cpustate->eflags_mask = 0;
 	cpustate->CF = 0;
@@ -3236,6 +3258,7 @@ static CPU_RESET( i386 )
 	// Family 3 (386), Model 0 (DX), Stepping 8 (D1)
 	REG32(EAX) = 0;
 	REG32(EDX) = (3 << 8) | (0 << 4) | (8);
+	cpustate->cpu_version = REG32(EDX);
 
 	cpustate->CPL = 0;
 
@@ -3432,100 +3455,48 @@ static CPU_EXECUTE( i386 )
 	{
 #ifdef USE_DEBUGGER
 		bool now_debugging = cpustate->debugger->now_debugging;
-		if(now_debugging) {
-			cpustate->debugger->check_break_points(cpustate->pc);
-			if(cpustate->debugger->now_suspended) {
-				cpustate->debugger->now_waiting = true;
-				cpustate->emu->start_waiting_in_debugger();
-				while(cpustate->debugger->now_debugging && cpustate->debugger->now_suspended) {
-					cpustate->emu->process_waiting_in_debugger();
-				}
-				cpustate->emu->finish_waiting_in_debugger();
-				cpustate->debugger->now_waiting = false;
-			}
-			if(cpustate->debugger->now_debugging) {
-				cpustate->program = cpustate->io = cpustate->debugger;
-			} else {
-				now_debugging = false;
-			}
-			int first_cycles = cpustate->cycles;
-			i386_check_irq_line(cpustate);
-			cpustate->operand_size = cpustate->sreg[CS].d;
-			cpustate->xmm_operand_size = 0;
-			cpustate->address_size = cpustate->sreg[CS].d;
-			cpustate->operand_prefix = 0;
-			cpustate->address_prefix = 0;
-
-			cpustate->ext = 1;
-			int old_tf = cpustate->TF;
-
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
-			cpustate->segment_prefix = 0;
-			cpustate->prev_eip = cpustate->eip;
-			cpustate->prev_pc = cpustate->pc;
-
-			if(cpustate->delayed_interrupt_enable != 0)
-			{
-				cpustate->IF = 1;
-				cpustate->delayed_interrupt_enable = 0;
-			}
-#ifdef DEBUG_MISSING_OPCODE
-			cpustate->opcode_bytes_length = 0;
-			cpustate->opcode_pc = cpustate->pc;
+		int first_cycles = cpustate->cycles;
 #endif
-			try
-			{
-				I386OP(decode_opcode)(cpustate);
-				if(cpustate->TF && old_tf)
-				{
-					cpustate->prev_eip = cpustate->eip;
-					cpustate->ext = 1;
-					i386_trap(cpustate,1,0,0);
-				}
-				if(cpustate->lock && (cpustate->opcode != 0xf0))
-					cpustate->lock = false;
-			}
-			catch(UINT64 e)
-			{
-				cpustate->ext = 1;
-				i386_trap_with_error(cpustate,e&0xffffffff,0,0,e>>32);
-			}
-#ifdef SINGLE_MODE_DMA
-			if(cpustate->dma != NULL) {
-				cpustate->dma->do_dma();
-			}
-#endif
-			/* adjust for any interrupts that came in */
-			cpustate->cycles -= cpustate->extra_cycles;
-			cpustate->extra_cycles = 0;
-			cpustate->total_cycles += first_cycles - cpustate->cycles;
-			
+		i386_check_irq_line(cpustate);
+		cpustate->operand_size = cpustate->sreg[CS].d;
+		cpustate->xmm_operand_size = 0;
+		cpustate->address_size = cpustate->sreg[CS].d;
+		cpustate->operand_prefix = 0;
+		cpustate->address_prefix = 0;
+
+		cpustate->ext = 1;
+		int old_tf = cpustate->TF;
+
+		cpustate->segment_prefix = 0;
+
+		try
+		{
+			UINT32 address = cpustate->pc, error;
+
+			if(!translate_address(cpustate,cpustate->CPL,TRANSLATE_FETCH,&address,&error))
+				PF_THROW(error);
+#ifdef USE_DEBUGGER
 			if(now_debugging) {
-				if(!cpustate->debugger->now_going) {
-					cpustate->debugger->now_suspended = true;
+				cpustate->debugger->check_break_points(address);
+				if(cpustate->debugger->now_suspended) {
+					cpustate->debugger->now_waiting = true;
+					cpustate->emu->start_waiting_in_debugger();
+					while(cpustate->debugger->now_debugging && cpustate->debugger->now_suspended) {
+						cpustate->emu->process_waiting_in_debugger();
+					}
+					cpustate->emu->finish_waiting_in_debugger();
+					cpustate->debugger->now_waiting = false;
 				}
-				cpustate->program = cpustate->program_stored;
-				cpustate->io = cpustate->io_stored;
+				if(cpustate->debugger->now_debugging) {
+					cpustate->program = cpustate->io = cpustate->debugger;
+				} else {
+					now_debugging = false;
+				}
 			}
-		} else {
-			int first_cycles = cpustate->cycles;
+			cpustate->debugger->add_cpu_trace(address, cpustate->eip, (cpustate->operand_size != 0));
 #endif
-			i386_check_irq_line(cpustate);
-			cpustate->operand_size = cpustate->sreg[CS].d;
-			cpustate->xmm_operand_size = 0;
-			cpustate->address_size = cpustate->sreg[CS].d;
-			cpustate->operand_prefix = 0;
-			cpustate->address_prefix = 0;
-
-			cpustate->ext = 1;
-			int old_tf = cpustate->TF;
-
-#ifdef USE_DEBUGGER
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
-#endif
-			cpustate->segment_prefix = 0;
 			cpustate->prev_eip = cpustate->eip;
-			cpustate->prev_pc = cpustate->pc;
+			cpustate->prev_pc = address;
 
 			if(cpustate->delayed_interrupt_enable != 0)
 			{
@@ -3536,33 +3507,38 @@ static CPU_EXECUTE( i386 )
 			cpustate->opcode_bytes_length = 0;
 			cpustate->opcode_pc = cpustate->pc;
 #endif
-			try
+			I386OP(decode_first_opcode)(cpustate, address);
+			if(cpustate->TF && old_tf)
 			{
-				I386OP(decode_opcode)(cpustate);
-				if(cpustate->TF && old_tf)
-				{
-					cpustate->prev_eip = cpustate->eip;
-					cpustate->ext = 1;
-					i386_trap(cpustate,1,0,0);
-				}
-				if(cpustate->lock && (cpustate->opcode != 0xf0))
-					cpustate->lock = false;
-			}
-			catch(UINT64 e)
-			{
+				cpustate->prev_eip = cpustate->eip;
 				cpustate->ext = 1;
-				i386_trap_with_error(cpustate,e&0xffffffff,0,0,e>>32);
+				i386_trap(cpustate,1,0,0);
 			}
+			if(cpustate->lock && (cpustate->opcode != 0xf0))
+				cpustate->lock = false;
+		}
+		catch(UINT64 e)
+		{
+			cpustate->ext = 1;
+			i386_trap_with_error(cpustate,e&0xffffffff,0,0,e>>32);
+		}
 #ifdef SINGLE_MODE_DMA
-			if(cpustate->dma != NULL) {
-				cpustate->dma->do_dma();
-			}
+		if(cpustate->dma != NULL) {
+			cpustate->dma->do_dma();
+		}
 #endif
-			/* adjust for any interrupts that came in */
-			cpustate->cycles -= cpustate->extra_cycles;
-			cpustate->extra_cycles = 0;
+		/* adjust for any interrupts that came in */
+		cpustate->cycles -= cpustate->extra_cycles;
+		cpustate->extra_cycles = 0;
 #ifdef USE_DEBUGGER
-			cpustate->total_cycles += first_cycles - cpustate->cycles;
+		cpustate->total_cycles += first_cycles - cpustate->cycles;
+
+		if(now_debugging) {
+			if(!cpustate->debugger->now_going) {
+				cpustate->debugger->now_suspended = true;
+			}
+			cpustate->program = cpustate->program_stored;
+			cpustate->io = cpustate->io_stored;
 		}
 #endif
 	}
@@ -3641,6 +3617,7 @@ static CPU_RESET( i486 )
 	// Family 4 (486), Model 0/1 (DX), Stepping 3
 	REG32(EAX) = 0;
 	REG32(EDX) = (4 << 8) | (0 << 4) | (3);
+	cpustate->cpu_version = REG32(EDX);
 
 	CHANGE_PC(cpustate,cpustate->eip);
 }

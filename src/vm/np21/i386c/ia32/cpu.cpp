@@ -133,7 +133,9 @@ exec_1step(void)
 	for (prefix = 0; prefix < MAX_PREFIX; prefix++) {
 		GET_PCBYTE(op);
 #ifdef USE_DEBUGGER
-		if (prefix == 0) device_debugger->add_cpu_trace(codefetch_address);
+		if (prefix == 0) {
+			device_debugger->add_cpu_trace(codefetch_address, CPU_PREV_EIP, (CPU_INST_OP32 != 0));
+		}
 #endif
 #if defined(IA32_INSTRUCTION_TRACE)
 		ctx[ctx_index].op[prefix] = op;

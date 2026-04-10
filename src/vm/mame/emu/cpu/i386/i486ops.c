@@ -522,3 +522,13 @@ static void I486OP(mov_cr_r32)(i386_state *cpustate)        // Opcode 0x0f 22
 	}
 	cpustate->cr[cr] = data;
 }
+
+void I486OP(wait)(i386_state *cpustate)
+{
+	if ((cpustate->cr[0] & 0xa) == 0xa)
+	{
+		i386_trap(cpustate, FAULT_NM, 0, 0);
+		return;
+	}
+	x87_mf_fault(cpustate);
+}

@@ -1,5 +1,5 @@
 retro pc emulator common source code
-								12/31/2023
+								4/28/2024
 
 --- What's this ?
 
@@ -192,7 +192,7 @@ They are usually defined automatically when you install the SDKs.
 --- License
 
 The copyright belongs to the author, but you can use the source codes
-under the GNU GENERAL PUBLIC LICENSE Version 2.
+under the GNU GENERAL PUBLIC LICENSE Version 2 or Later.
 
 See also COPYING.txt for more details about the license.
 

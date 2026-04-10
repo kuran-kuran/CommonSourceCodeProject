@@ -1030,10 +1030,20 @@ static void I386OP(enter32)(i386_state *cpustate)           // Opcode 0xc8
 
 	if(level > 0)
 	{
-		for(x=1;x<level-1;x++)
+		for(x=1;x<=level-1;x++)
 		{
-			REG32(EBP) -= 4;
-			PUSH32(cpustate,READ32(cpustate,REG32(EBP)));
+			UINT32 addr;
+			if(!STACK_32BIT)
+			{
+				REG16(BP) -= 4;
+				addr = REG16(BP);
+			}
+			else
+			{
+				REG32(EBP) -= 4;
+				addr = REG32(EBP);
+			}
+			PUSH32(cpustate,READ32(cpustate,i386_translate(cpustate, SS, addr, 0, 4)));
 		}
 		PUSH32(cpustate,frameptr);
 	}

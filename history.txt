@@ -1,3 +1,15 @@
+4/28/2025
+
+IMPORTANT: The license is changed from "GPL v2" to "GPL v2 or Later"
+
+[EMU/DEBUGGER] improve debugger to record/check cpu mode in trace log
+
+[VM/I386] improve debugger to allow modifying flags by r command
+[VM/I386] improve debugger for calculating code page in protected mode
+[VM/I386_DASM] improve V30 disassembler
+[VM/I386_NP21] update to Neko Project 21/W ver0.86 rev92
+
+
 1/1/2024
 
 [VM/DISK] fix imagedisk importer

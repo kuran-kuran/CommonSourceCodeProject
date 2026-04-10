@@ -750,26 +750,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\src\vm\v30_dasm.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							PreprocessorDefinitions=""
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="..\src\vm\z80.cpp"
 					>
 					<FileConfiguration
@@ -1164,10 +1144,6 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\prnfile.h"
-					>
-				</File>
-				<File
-					RelativePath="..\src\vm\v30_dasm.h"
 					>
 				</File>
 				<File

@@ -1194,8 +1194,8 @@ static void I386OP(enter16)(i386_state *cpustate)           // Opcode 0xc8
 		{
 			UINT32 addr;
 			if(!STACK_32BIT)
-		{
-			REG16(BP) -= 2;
+			{
+				REG16(BP) -= 2;
 				addr = REG16(BP);
 			}
 			else
@@ -3802,30 +3802,35 @@ static bool I386OP(load_far_pointer16)(i386_state *cpustate, int s)
 
 static void I386OP(lds16)(i386_state *cpustate)             // Opcode 0xc5
 {
-	if(I386OP(load_far_pointer16)(cpustate, DS))
+	if(I386OP(load_far_pointer16)(cpustate, DS)) {
 		CYCLES(cpustate,CYCLES_LDS);
+	}
 }
 
 static void I386OP(lss16)(i386_state *cpustate)             // Opcode 0x0f 0xb2
 {
-	if(I386OP(load_far_pointer16)(cpustate, SS))
+	if(I386OP(load_far_pointer16)(cpustate, SS)) {
 		CYCLES(cpustate,CYCLES_LSS);
+	}
 }
 
 static void I386OP(les16)(i386_state *cpustate)             // Opcode 0xc4
 {
-	if(I386OP(load_far_pointer16)(cpustate, ES))
+	if(I386OP(load_far_pointer16)(cpustate, ES)) {
 		CYCLES(cpustate,CYCLES_LES);
+	}
 }
 
 static void I386OP(lfs16)(i386_state *cpustate)             // Opcode 0x0f 0xb4
 {
-	if(I386OP(load_far_pointer16)(cpustate, FS))
+	if(I386OP(load_far_pointer16)(cpustate, FS)) {
 		CYCLES(cpustate,CYCLES_LFS);
+	}
 }
 
 static void I386OP(lgs16)(i386_state *cpustate)             // Opcode 0x0f 0xb5
 {
-	if(I386OP(load_far_pointer16)(cpustate, GS))
+	if(I386OP(load_far_pointer16)(cpustate, GS)) {
 		CYCLES(cpustate,CYCLES_LGS);
+	}
 }

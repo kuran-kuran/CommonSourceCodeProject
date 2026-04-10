@@ -375,7 +375,11 @@
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\shift_rotate.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse2\sse2.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse3\sse3.cpp" />
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4a\sse4a.cpp" />
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_1.cpp" />
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_2.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\sse\sse.cpp" />
+    <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\ssse3\ssse3.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\string_inst.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\instructions\system_inst.cpp" />
     <ClCompile Include="..\src\vm\np21\i386c\ia32\inst_table.cpp" />
@@ -439,7 +443,11 @@
     <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\mmx\mmx.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse2\sse2.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse3\sse3.h" />
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4a\sse4a.h" />
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_1.h" />
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse4\sse4_2.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\sse\sse.h" />
+    <ClInclude Include="..\src\vm\np21\i386c\ia32\instructions\ssse3\ssse3.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\inst_table.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\interface.h" />
     <ClInclude Include="..\src\vm\np21\i386c\ia32\paging.h" />
@@ -466,6 +474,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -369,7 +369,7 @@ static CPU_EXECUTE( i80286 )
 			} else {
 				now_debugging = false;
 			}
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 			cpustate->seg_prefix=FALSE;
 			try
@@ -398,7 +398,7 @@ static CPU_EXECUTE( i80286 )
 				cpustate->io = cpustate->io_stored;
 			}
 		} else {
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 #endif
 			cpustate->seg_prefix=FALSE;

@@ -31,6 +31,12 @@ typedef struct {
 	uint32_t hit_addr;
 } break_point_t;
 
+typedef struct {
+	uint32_t pc;
+	uint32_t eip;
+	bool mode;	// 32bit protected mode in i386, or 8080 mode in NEC V30
+} cpu_trace_t;
+
 class DEBUGGER : public DEVICE
 {
 private:
@@ -488,12 +494,18 @@ public:
 		}
 		first_symbol = last_symbol = NULL;
 	}
-	void add_cpu_trace(uint32_t pc)
+	void add_cpu_trace(uint32_t pc, uint32_t eip, bool mode)
 	{
 		if(prev_cpu_trace != pc) {
-			cpu_trace[cpu_trace_ptr++] = prev_cpu_trace = pc;
-			cpu_trace_ptr &= (MAX_CPU_TRACE - 1);
+			cpu_trace[cpu_trace_ptr].pc = prev_cpu_trace = pc;
+			cpu_trace[cpu_trace_ptr].eip = eip;
+			cpu_trace[cpu_trace_ptr].mode = mode;
+			cpu_trace_ptr = (cpu_trace_ptr + 1) & (MAX_CPU_TRACE - 1);
 		}
+	}
+	void add_cpu_trace(uint32_t pc)
+	{
+		add_cpu_trace(pc, 0, false);
 	}
 	break_point_t bp, rbp, wbp, ibp, obp;
 	symbol_t *first_symbol, *last_symbol;
@@ -502,8 +514,9 @@ public:
 	bool now_device_debugging; // for non-cpu devices
 	_TCHAR history[MAX_COMMAND_HISTORY][MAX_COMMAND_LENGTH + 1];
 	int history_ptr;
-	uint32_t cpu_trace[MAX_CPU_TRACE], prev_cpu_trace;
+	cpu_trace_t cpu_trace[MAX_CPU_TRACE];
 	int cpu_trace_ptr;
+	uint32_t prev_cpu_trace;
 };
 
 #endif

@@ -134,9 +134,6 @@
     <ClCompile Include="..\src\vm\sn76489an.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\v30_dasm.cpp">
-      <Filter>Source Files\VM Common Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\vm\fmr50\bios.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
@@ -247,9 +244,6 @@
     <ClInclude Include="..\src\vm\sn76489an.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\v30_dasm.h">
-      <Filter>Header Files\VM Common Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vm\vm.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
@@ -311,5 +305,8 @@
     <ResourceCompile Include="..\src\res\fmr30.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

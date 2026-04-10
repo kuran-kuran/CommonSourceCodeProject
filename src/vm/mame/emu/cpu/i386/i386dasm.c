@@ -13,6 +13,8 @@ enum
 	PARAM_REG = 1,      /* 16 or 32-bit register */
 	PARAM_REG8,         /* 8-bit register */
 	PARAM_REG16,        /* 16-bit register */
+	PARAM_REG2_8,       /* 8-bit register */
+	PARAM_REG2_16,      /* 16-bit register */
 	PARAM_REG32,        /* 32-bit register */
 	PARAM_REG3264,      /* 32-bit or 64-bit register */
 	PARAM_REG2_32,      /* 32-bit register */
@@ -33,6 +35,7 @@ enum
 	PARAM_M64PTR,       /* 64-bit memory */
 	PARAM_MMXM,         /* 64-bit memory or MMX register */
 	PARAM_XMMM,         /* 128-bit memory or XMM register */
+	PARAM_I3,           /* 3-bit immediate */
 	PARAM_I4,           /* 4-bit signed immediate */
 	PARAM_I8,           /* 8-bit signed immediate */
 	PARAM_I16,          /* 16-bit signed immediate */
@@ -46,6 +49,7 @@ enum
 	PARAM_MEM_OFFS,     /* 16 or 32-bit mem offset */
 	PARAM_PREIMP,       /* prefix with implicit register */
 	PARAM_SREG,         /* segment register */
+	PARAM_SFREG,        /* V25/V35 special function register */
 	PARAM_CREG,         /* control register */
 	PARAM_DREG,         /* debug register */
 	PARAM_TREG,         /* test register */
@@ -273,7 +277,7 @@ static const I386_OPCODE i386_opcode_table1[256] =
 	{_T("mov"),             MODRM,          PARAM_SREG,         PARAM_RM,           0               },
 	{_T("pop"),             MODRM,          PARAM_RM,           0,                  0               },
 	// 0x90
-	{_T("nop\0???\0???\0pause"),    VAR_NAME4,          0,                  0,                  0               },
+	{_T("nop\0???\0???\0pause"), VAR_NAME4, 0,                  0,                  0               },
 	{_T("xchg"),            0,              PARAM_EAX,          PARAM_ECX,          0               },
 	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EDX,          0               },
 	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EBX,          0               },
@@ -414,47 +418,44 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("ud2"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
-	{_T("group0F0D"),           GROUP,              0,                  0,                  0               }, //AMD only
+	{_T("group0F0D"),       GROUP,          0,                  0,                  0               }, //AMD only
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x10
 	{_T("movups\0")
-		_T("movupd\0")
-		_T("movsd\0")
-		_T("movss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movupd\0")
+	 _T("movsd\0")
+	 _T("movss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movups\0")
-		_T("movupd\0")
-		_T("movsd\0")
-		_T("movss"),            MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	 _T("movupd\0")
+	 _T("movsd\0")
+	 _T("movss"),           MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	{_T("group0F12"),       GROUP|GROUP_MOD,0,                  0,                  0               },
 	{_T("movlps\0")
-		_T("movlpd\0")
-		_T("movddup\0")
-		_T("movsldup"),     MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("movlps\0")
-		_T("movlpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	 _T("movlpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
 	{_T("unpcklps\0")
-		_T("unpcklpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("unpcklpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("unpckhps\0")
-		_T("unpckhpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("group0F16"),     GROUP|GROUP_MOD, 0,                  0,                  0                   },
+	 _T("unpckhpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("group0F16"),       GROUP|GROUP_MOD,0,                  0,                  0               },
 	{_T("movhps\0")
-		_T("movhpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMMM,          PARAM_XMM,         0               },
+	 _T("movhpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
 	{_T("group0F18"),       GROUP,          0,                  0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
-	{_T("nop_hint"),        0,              PARAM_RMPTR8,               0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
+	{_T("nop_hint"),        0,              PARAM_RMPTR8,       0,                  0               },
 	// 0x20
 	{_T("mov"),             MODRM,          PARAM_REG2_32,      PARAM_CREG,         0               },
 	{_T("mov"),             MODRM,          PARAM_REG2_32,      PARAM_DREG,         0               },
@@ -465,37 +466,37 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("mov"),             MODRM,          PARAM_TREG,         PARAM_REG2_32,      0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("movaps\0")
-		_T("movapd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movapd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movaps\0")
-		_T("movapd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	 _T("movapd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
 	{_T("cvtpi2ps\0")
-		_T("cvtpi2pd\0")
-		_T("cvtsi2sd\0")
-		_T("cvtsi2ss"),     MODRM|VAR_NAME4,PARAM_XMM,          PARAM_RMXMM,        0               },
+	 _T("cvtpi2pd\0")
+	 _T("cvtsi2sd\0")
+	 _T("cvtsi2ss"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_RMXMM,        0               },
 	{_T("movntps\0")
-		_T("movntpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	 _T("movntpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
 	{_T("cvttps2pi\0")
-		_T("cvttpd2pi\0")
-		_T("cvttsd2si\0")
-		_T("cvttss2si"),        MODRM|VAR_NAME4,PARAM_REGORXMM,     PARAM_XMMM,         0               },
+	 _T("cvttpd2pi\0")
+	 _T("cvttsd2si\0")
+	 _T("cvttss2si"),       MODRM|VAR_NAME4,PARAM_REGORXMM,     PARAM_XMMM,         0               },
 	{_T("cvtps2pi\0")
-		_T("cvtpd2pi\0")
-		_T("cvtsd2si\0")
-		_T("cvtss2si"),     MODRM|VAR_NAME4,PARAM_REGORXMM,     PARAM_XMMM,         0               },
+	 _T("cvtpd2pi\0")
+	 _T("cvtsd2si\0")
+	 _T("cvtss2si"),        MODRM|VAR_NAME4,PARAM_REGORXMM,     PARAM_XMMM,         0               },
 	{_T("ucomiss\0")
-		_T("ucomisd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("ucomisd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("comiss\0")
-		_T("comisd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("comisd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	// 0x30
 	{_T("wrmsr"),           0,              0,                  0,                  0               },
 	{_T("rdtsc"),           0,              0,                  0,                  0               },
@@ -505,9 +506,9 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("sysexit"),         0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
-	{_T("three_byte"),          THREE_BYTE,         0,                  0,                  0               },
+	{_T("three_byte"),      THREE_BYTE,     0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
-	{_T("three_byte"),          THREE_BYTE,         0,                  0,                  0               },
+	{_T("three_byte"),      THREE_BYTE,     0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
@@ -532,69 +533,69 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("cmovg"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
 	// 0x50
 	{_T("movmskps\0")
-		_T("movmskpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_REG3264,      PARAM_XMMM,         0               },
+	 _T("movmskpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG3264,      PARAM_XMMM,         0               },
 	{_T("sqrtps\0")
-		_T("sqrtpd\0")
-		_T("sqrtsd\0")
-		_T("sqrtss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("sqrtpd\0")
+	 _T("sqrtsd\0")
+	 _T("sqrtss"),          MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("rsqrtps\0")
-		_T("???\0")
-		_T("???\0")
-		_T("rsqrtss"),          MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("???\0")
+	 _T("???\0")
+	 _T("rsqrtss"),         MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("rcpps\0")
-		_T("???\0")
-		_T("???\0")
-		_T("rcpss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("???\0")
+	 _T("???\0")
+	 _T("rcpss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("andps\0")
-		_T("andpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("andpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("andnps\0")
-		_T("andnpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("andnpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("orps\0")
-		_T("orpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("orpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("xorps\0")
-		_T("xorpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("xorpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("addps\0")
-		_T("addpd\0")
-		_T("addsd\0")
-		_T("addss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("addpd\0")
+	 _T("addsd\0")
+	 _T("addss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("mulps\0")
-		_T("mulpd\0")
-		_T("mulsd\0")
-		_T("mulss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("mulpd\0")
+	 _T("mulsd\0")
+	 _T("mulss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("cvtps2pd\0")
-		_T("cvtpd2ps\0")
-		_T("cvtsd2ss\0")
-		_T("cvtss2sd"),     MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("cvtpd2ps\0")
+	 _T("cvtsd2ss\0")
+	 _T("cvtss2sd"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("cvtdq2ps\0")
-		_T("cvtps2dq\0")
-		_T("???\0")
-		_T("cvttps2dq"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("cvtps2dq\0")
+	 _T("???\0")
+	 _T("cvttps2dq"),       MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("subps\0")
-		_T("subpd\0")
-		_T("subsd\0")
-		_T("subss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("subpd\0")
+	 _T("subsd\0")
+	 _T("subss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("minps\0")
-		_T("minpd\0")
-		_T("minsd\0")
-		_T("minss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("minpd\0")
+	 _T("minsd\0")
+	 _T("minss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("divps\0")
-		_T("divpd\0")
-		_T("divsd\0")
-		_T("divss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("divpd\0")
+	 _T("divsd\0")
+	 _T("divss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("maxps\0")
-		_T("maxpd\0")
-		_T("maxsd\0")
-		_T("maxss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("maxpd\0")
+	 _T("maxsd\0")
+	 _T("maxss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	// 0x60
 	{_T("punpcklbw"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("punpcklwd"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
@@ -609,23 +610,23 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("punpckhdq"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("packssdw"),        MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("???\0")
-		_T("punpcklqdq\0")
-		_T("???\0")
-		_T("???\0"),        MODRM|VAR_NAME4,            PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("punpcklqdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("punpckhqdq\0")
-		_T("???\0")
-		_T("???\0"),        MODRM|VAR_NAME4,            PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("punpckhqdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movd"),            MODRM,          PARAM_MMX,          PARAM_RM,           0               },
 	{_T("movq\0")
-		_T("movdqa\0")
-		_T("???\0")
-		_T("movdqu"),           MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	 _T("movdqa\0")
+	 _T("???\0")
+	 _T("movdqu"),          MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
 	// 0x70
 	{_T("pshufw\0")
-		_T("pshufd\0")
-		_T("pshuflw\0")
-		_T("pshufhw"),          MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         PARAM_UI8       },
+	 _T("pshufd\0")
+	 _T("pshuflw\0")
+	 _T("pshufhw"),         MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         PARAM_UI8       },
 	{_T("group0F71"),       GROUP,          0,                  0,                  0               },
 	{_T("group0F72"),       GROUP,          0,                  0,                  0               },
 	{_T("group0F73"),       GROUP,          0,                  0,                  0               },
@@ -633,26 +634,26 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("pcmpeqw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pcmpeqd"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("emms"),            0,              0,                  0,                  0               },
-	{_T("vmread"),          MODRM,              PARAM_RM,               PARAM_REG,              0               },
-	{_T("vmwrite"),         MODRM,              PARAM_RM,               PARAM_REG,              0               },
+	{_T("vmread"),          MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("vmwrite"),         MODRM,          PARAM_RM,           PARAM_REG,          0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("haddpd\0")
-		_T("haddps\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	 _T("haddpd\0")
+	 _T("haddps\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("???\0")
-		_T("hsubpd\0")
-		_T("hsubps\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	 _T("hsubpd\0")
+	 _T("hsubps\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("movd\0")
-		_T("movd\0")
-		_T("???\0")
-		_T("movq"),         MODRM|VAR_NAME4,PARAM_RM,           PARAM_MMX,          0               },
+	 _T("movd\0")
+	 _T("???\0")
+	 _T("movq"),            MODRM|VAR_NAME4,PARAM_RM,           PARAM_MMX,          0               },
 	{_T("movq\0")
-		_T("movdqa\0")
-		_T("???\0")
-		_T("movdqu"),           MODRM|VAR_NAME4,PARAM_MMXM,         PARAM_MMX,          0               },
+	 _T("movdqa\0")
+	 _T("???\0")
+	 _T("movdqu"),          MODRM|VAR_NAME4,PARAM_MMXM,         PARAM_MMX,          0               },
 	// 0x80
 	{_T("jo"),              0,              PARAM_REL,          0,                  0               },
 	{_T("jno"),             0,              PARAM_REL,          0,                  0               },
@@ -714,37 +715,37 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("movzx"),           MODRM,          PARAM_REG,          PARAM_RMPTR8,       0               },
 	{_T("movzx"),           MODRM,          PARAM_REG,          PARAM_RMPTR16,      0               },
 	{_T("???\0")
-		_T("???\0")
-		_T("???\0")
-		_T("popcnt"),           MODRM|VAR_NAME4,        PARAM_REG,              PARAM_RM16,             0               },
+	 _T("???\0")
+	 _T("???\0")
+	 _T("popcnt"),          MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM16,         0               },
 	{_T("ud2"),             0,              0,                  0,                  0               },
 	{_T("group0FBA"),       GROUP,          0,                  0,                  0               },
 	{_T("btc"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
 	{_T("bsf\0")
-		_T("???\0")
-		_T("???\0")
-		_T("tzcnt"),            MODRM|VAR_NAME4,    PARAM_REG,          PARAM_RM,           0               },
+	 _T("???\0")
+	 _T("???\0")
+	 _T("tzcnt"),           MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM,           0               },
 	{_T("bsr\0")
-		_T("???\0")
-		_T("???\0")
-		_T("lzcnt"),            MODRM|VAR_NAME4,    PARAM_REG,          PARAM_RM,           0,              DASMFLAG_STEP_OVER},
+	 _T("???\0")
+	 _T("???\0")
+	 _T("lzcnt"),           MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM,           0,              DASMFLAG_STEP_OVER},
 	{_T("movsx"),           MODRM,          PARAM_REG,          PARAM_RMPTR8,       0               },
 	{_T("movsx"),           MODRM,          PARAM_REG,          PARAM_RMPTR16,      0               },
 	// 0xc0
 	{_T("xadd"),            MODRM,          PARAM_RM8,          PARAM_REG,          0               },
 	{_T("xadd"),            MODRM,          PARAM_RM,           PARAM_REG,          0               },
 	{_T("cmpps\0")
-		_T("cmppd\0")
-		_T("cmpsd\0")
-		_T("cmpss"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("cmppd\0")
+	 _T("cmpsd\0")
+	 _T("cmpss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movnti"),          MODRM,          PARAM_RM,           PARAM_REG,          0               },
 	{_T("pinsrw"),          MODRM,          PARAM_MMX,          PARAM_RM,           PARAM_UI8       },
 	{_T("pextrw"),          MODRM,          PARAM_MMX,          PARAM_RM,           PARAM_UI8       },
 	{_T("shufps\0")
-		_T("shufpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
-	{_T("group0FC7"),           GROUP,          0,          0,                  0               },
+	 _T("shufpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
+	{_T("group0FC7"),       GROUP,          0,                  0,                  0               },
 	{_T("bswap"),           0,              PARAM_EAX,          0,                  0               },
 	{_T("bswap"),           0,              PARAM_ECX,          0,                  0               },
 	{_T("bswap"),           0,              PARAM_EDX,          0,                  0               },
@@ -755,18 +756,18 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("bswap"),           0,              PARAM_EDI,          0,                  0               },
 	// 0xd0
 	{_T("???\0")
-		_T("addsubpd\0")
-		_T("addsubps\0")
-		_T("???\0"),            MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("addsubpd\0")
+	 _T("addsubps\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("psrlw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psrld"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psrlq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("paddq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pmullw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("???\0")
-		_T("movq\0")
-		_T("movdq2q\0")
-		_T("movq2dq"),          MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	 _T("movq\0")
+	 _T("movdq2q\0")
+	 _T("movq2dq"),         MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pmovmskb"),        MODRM,          PARAM_REG3264,      PARAM_MMXM,         0               },
 	{_T("psubusb"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psubusw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
@@ -784,13 +785,13 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("pmulhuw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pmulhw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("???\0")
-		_T("cvttpd2dq\0")
-		_T("cvtpd2dq\0")
-		_T("cvtdq2pd"),     MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("cvttpd2dq\0")
+	 _T("cvtpd2dq\0")
+	 _T("cvtdq2pd"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movntq\0")
-		_T("movntdq\0")
-		_T("???\0")
-		_T("???\0"),            MODRM|VAR_NAME4,    PARAM_M64,          PARAM_MMX,          0               },
+	 _T("movntdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_M64,          PARAM_MMX,          0               },
 	{_T("psubsb"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psubsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pminsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
@@ -801,9 +802,9 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("pxor"),            MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	// 0xf0
 	{_T("???\0")
-		_T("???\0")
-		_T("lddqu\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("???\0")
+	 _T("lddqu\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("psllw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("pslld"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psllq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
@@ -811,9 +812,9 @@ static const I386_OPCODE i386_opcode_table2[256] =
 	{_T("pmaddwd"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psadbw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("maskmovq\0")
-		_T("maskmovdqu\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	 _T("maskmovdqu\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psubb"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psubw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
 	{_T("psubd"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
@@ -828,792 +829,792 @@ static const I386_OPCODE i386_opcode_table0F38[256] =
 {
 	// 0x00
 	{_T("pshufb\0")
-		_T("pshufb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pshufb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phaddw\0")
-		_T("phaddw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phaddw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phaddd\0")
-		_T("phadd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phadd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phaddsw\0")
-		_T("phaddsw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phaddsw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("pmaddubsw\0")
-		_T("pmaddubsw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmaddubsw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phsubw\0")
-		_T("phsubw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phsubw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phsubd\0")
-		_T("phsubd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phsubd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("phsubsw\0")
-		_T("phsubsw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("phsubsw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("psignb\0")
-		_T("psignb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("psignb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("psignw\0")
-		_T("psignw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("psignw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("psignd\0")
-		_T("psignd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("psignd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("pmulhrsw\0")
-		_T("pmulhrsw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pmulhrsw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x10
 	{_T("???\0")
-		_T("pblendvb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0          },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pblendvb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0      },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("blendvps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0          },
+	 _T("blendvps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0      },
 	{_T("???\0")
-		_T("blendvpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0          },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("blendvpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_XMM0      },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("ptest\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("ptest\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("pabsb\0")
-		_T("pabsb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pabsb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("pabsw\0")
-		_T("pabsw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pabsw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("pabsd\0")
-		_T("pabsd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pabsd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x20
 	{_T("???\0")
-		_T("pmovsxbw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
+	 _T("pmovsxbw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
 	{_T("???\0")
-		_T("pmovsxbd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM32,            0               },
+	 _T("pmovsxbd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM32,        0               },
 	{_T("???\0")
-		_T("pmovsxbq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM16,            0               },
+	 _T("pmovsxbq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM16,        0               },
 	{_T("???\0")
-		_T("pmovsxwd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
+	 _T("pmovsxwd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
 	{_T("???\0")
-		_T("pmovsxwq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM32,            0               },
+	 _T("pmovsxwq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM32,        0               },
 	{_T("???\0")
-		_T("pmovsxdq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pmovsxdq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("pmuldq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmuldq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pcmpeqq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pcmpeqq\0")
+	 _T("???\0")
+	 _T("???"),              MODRM|VAR_NAME4,PARAM_XMM,         PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("movntdqa\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movntdqa\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("packusdw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("packusdw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x30
 	{_T("???\0")
-		_T("pmovzxbw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
+	 _T("pmovzxbw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
 	{_T("???\0")
-		_T("pmovzxbd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM32,            0               },
+	 _T("pmovzxbd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM32,        0               },
 	{_T("???\0")
-		_T("pmovzxbq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM16,            0               },
+	 _T("pmovzxbq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM16,        0               },
 	{_T("???\0")
-		_T("pmovzxwd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
+	 _T("pmovzxwd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
 	{_T("???\0")
-		_T("pmovzxwq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM32,            0               },
+	 _T("pmovzxwq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM32,        0               },
 	{_T("???\0")
-		_T("pmovzxdq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMM64,            0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pmovzxdq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMM64,        0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("pcmpgtq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pcmpgtq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pminsb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pminsb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pminsd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pminsd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pminuw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pminuw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pminud\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pminud\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pmaxsb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmaxsb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pmaxsd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmaxsd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pmaxuw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmaxuw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("pmaxud\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmaxud\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	// 0x40
 	{_T("???\0")
-		_T("pmulld\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("pmulld\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("phminposuw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("phminposuw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x50
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x60
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x70
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x80
 	{_T("???\0")
-		_T("invept\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_REG32,            PARAM_XMMM,         0               },
+	 _T("invept\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG32,        PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("invvpid\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_REG32,            PARAM_XMMM,         0               },
+	 _T("invvpid\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG32,        PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("invpcid\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_REG32,            PARAM_XMMM,         0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("invpcid\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG32,        PARAM_XMMM,         0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x90
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xa0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xb0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xc0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xd0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("aesimc\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("aesimc\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("aesenc\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("aesenc\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("aesenclast\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("aesenclast\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("aesdec\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("aesdec\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("???\0")
-		_T("aesdeclast\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("aesdeclast\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
 	// 0xe0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xf0
 	{_T("movbe\0")
-		_T("???\0")
-		_T("crc32\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_REG32,            PARAM_RMPTR,            0               }, // not quite correct
+	 _T("???\0")
+	 _T("crc32\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG32,        PARAM_RMPTR,        0               }, // not quite correct
 	{_T("movbe\0")
-		_T("???\0")
-		_T("crc32\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_RMPTR,            PARAM_REG32,            0               }, // not quite correct
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("???\0")
+	 _T("crc32\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_RMPTR,        PARAM_REG32,        0               }, // not quite correct
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 };
 
 static const I386_OPCODE i386_opcode_table0F3A[256] =
 {
 	// 0x00
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("roundps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("roundps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("roundpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("roundpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("roundss\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("roundss\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("roundsd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("roundsd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("blendps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("blendps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("blendpd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("blendpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("pblendw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("pblendw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("palignr\0")
-		_T("palignr\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("palignr\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	// 0x10
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("pextrb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_RM8,          PARAM_XMM,          PARAM_UI8           },
+	 _T("pextrb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_RM8,          PARAM_XMM,          PARAM_UI8       },
 	{_T("???\0")
-		_T("pextrw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_RM16,         PARAM_XMM,          PARAM_UI8           },
+	 _T("pextrw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_RM16,         PARAM_XMM,          PARAM_UI8       },
 	{_T("???\0")
-		_T("pextrd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_RM8,          PARAM_XMM,          PARAM_UI8           },
+	 _T("pextrd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_RM8,          PARAM_XMM,          PARAM_UI8       },
 	{_T("???\0")
-		_T("extractps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_RM32,         PARAM_XMM,          PARAM_UI8           },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("extractps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_RM32,         PARAM_XMM,          PARAM_UI8       },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x20
 	{_T("???\0")
-		_T("pinsrb\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_RM8,          PARAM_UI8           },
+	 _T("pinsrb\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_RM8,          PARAM_UI8       },
 	{_T("???\0")
-		_T("insertps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_RM8,          PARAM_UI8           },
+	 _T("insertps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_RM8,          PARAM_UI8       },
 	{_T("???\0")
-		_T("pinsrd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_RM32,         PARAM_UI8           },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pinsrd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_RM32,         PARAM_UI8       },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x30
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x40
 	{_T("???\0")
-		_T("dpps\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("dpps\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("dppd\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("dppd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("mpsadbw\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("mpsadbw\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("pclmulqdq\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pclmulqdq\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x50
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x60
 	{_T("???\0")
-		_T("pcmestrm\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("pcmestrm\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("pcmestri\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("pcmestri\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("pcmistrm\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("pcmistrm\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	{_T("???\0")
-		_T("pcmistri\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	 _T("pcmistri\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x70
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x80
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0x90
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xa0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xb0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xc0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xd0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???\0")
-		_T("aeskeygenassist\0")
-		_T("???\0")
-		_T("???"),              MODRM|VAR_NAME4,    PARAM_XMM,          PARAM_XMMM,         PARAM_UI8           },
+	 _T("aeskeygenassist\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
 	// 0xe0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 	// 0xf0
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
-	{_T("???"),             0,              0,          0,              0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
 };
 
 static const I386_OPCODE group80_table[8] =
@@ -1811,41 +1812,41 @@ static const I386_OPCODE group0F0D_table[8] =
 static const I386_OPCODE group0F12_table[4] =
 {
 	{_T("movlps\0")
-		_T("movlpd\0")
-		_T("movddup\0")
-		_T("movsldup"),     VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movlpd\0")
+	 _T("movddup\0")
+	 _T("movsldup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movlps\0")
-		_T("movlpd\0")
-		_T("movddup\0")
-		_T("movsldup"),     VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movlpd\0")
+	 _T("movddup\0")
+	 _T("movsldup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movlps\0")
-		_T("movlpd\0")
-		_T("movddup\0")
-		_T("movsldup"),     VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	 _T("movlpd\0")
+	 _T("movddup\0")
+	 _T("movsldup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movhlps\0")
-		_T("???\0")
-		_T("movddup\0")
-		_T("movsldup"),     VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               }
+	 _T("???\0")
+	 _T("movddup\0")
+	 _T("movsldup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               }
 };
 
 static const I386_OPCODE group0F16_table[4] =
 {
 	{_T("movhps\0")
-		_T("movhpd\0")
-		_T("???\0")
-		_T("movshdup"),     VAR_NAME4,PARAM_XMM,         PARAM_XMMM,          0               },
+	 _T("movhpd\0")
+	 _T("???\0")
+	 _T("movshdup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movhps\0")
-		_T("movhpd\0")
-		_T("???\0")
-		_T("movshdup"),     VAR_NAME4,PARAM_XMM,         PARAM_XMMM,          0               },
+	 _T("movhpd\0")
+	 _T("???\0")
+	 _T("movshdup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movhps\0")
-		_T("movhpd\0")
-		_T("???\0")
-		_T("movshdup"),     VAR_NAME4,PARAM_XMM,         PARAM_XMMM,          0               },
+	 _T("movhpd\0")
+	 _T("???\0")
+	 _T("movshdup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               },
 	{_T("movlhps\0")
-		_T("movhpd\0")
-		_T("???\0")
-		_T("movshdup"),     VAR_NAME4,PARAM_XMM,         PARAM_XMMM,          0               }
+	 _T("movhpd\0")
+	 _T("???\0")
+	 _T("movshdup"),        VAR_NAME4,      PARAM_XMM,          PARAM_XMMM,         0               }
 };
 
 static const I386_OPCODE group0F18_table[8] =
@@ -1908,7 +1909,6 @@ static const I386_OPCODE group0FAE_table[8] =
 	{_T("sfence"),          0,              0,                  0,                  0               }
 };
 
-
 static const I386_OPCODE group0FBA_table[8] =
 {
 	{_T("???"),             0,              0,                  0,                  0               },
@@ -1924,16 +1924,685 @@ static const I386_OPCODE group0FBA_table[8] =
 static const I386_OPCODE group0FC7_table[8] =
 {
 	{_T("???"),             0,              0,                  0,                  0               },
-	{_T("cmpxchg8b"),           MODRM,              PARAM_M64PTR,               0,                  0               },
+	{_T("cmpxchg8b"),       MODRM,          PARAM_M64PTR,       0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("???"),             0,              0,                  0,                  0               },
 	{_T("vmptrld\0")
-		_T("vmclear\0")
-		_T("???\0")
-		_T("vmxon"),            MODRM|VAR_NAME4,        PARAM_M64PTR,               0,                  0               },
-	{_T("vmptrtst"),            MODRM,              PARAM_M64PTR,               0,                  0               }
+	 _T("vmclear\0")
+	 _T("???\0")
+	 _T("vmxon"),           MODRM|VAR_NAME4,PARAM_M64PTR,       0,                  0               },
+	{_T("vmptrtst"),        MODRM,          PARAM_M64PTR,       0,                  0               }
+};
+
+static const I386_OPCODE necv_opcode_table1[256] =
+{
+	// 0x00
+	{_T("add"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("add"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("add"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("add"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("add"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("add"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("push    es"),      0,              0,                  0,                  0               },
+	{_T("pop     es"),      0,              0,                  0,                  0               },
+	{_T("or"),              MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("or"),              MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("or"),              MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("or"),              MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("or"),              0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("or"),              0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("push    cs"),      0,              0,                  0,                  0               },
+	{_T("two_byte"),        TWO_BYTE,       0,                  0,                  0               },
+	// 0x10
+	{_T("adc"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("adc"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("adc"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("adc"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("adc"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("adc"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("push    ss"),      0,              0,                  0,                  0               },
+	{_T("pop     ss"),      0,              0,                  0,                  0               },
+	{_T("sbb"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("sbb"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("sbb"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("sbb"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("sbb"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("sbb"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("push    ds"),      0,              0,                  0,                  0               },
+	{_T("pop     ds"),      0,              0,                  0,                  0               },
+	// 0x20
+	{_T("and"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("and"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("and"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("and"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("and"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("and"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("seg_es"),          SEG_ES,         0,                  0,                  0               },
+	{_T("daa"),             0,              0,                  0,                  0               },
+	{_T("sub"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("sub"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("sub"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("sub"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("sub"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("sub"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("seg_cs"),          SEG_CS,         0,                  0,                  0               },
+	{_T("das"),             0,              0,                  0,                  0               },
+	// 0x30
+	{_T("xor"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("xor"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("xor"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("xor"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("xor"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("xor"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("seg_ss"),          SEG_SS,         0,                  0,                  0               },
+	{_T("aaa"),             0,              0,                  0,                  0               },
+	{_T("cmp"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("cmp"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("cmp"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("cmp"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmp"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("cmp"),             0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("seg_ds"),          SEG_DS,         0,                  0,                  0               },
+	{_T("aas"),             0,              0,                  0,                  0               },
+	// 0x40
+	{_T("inc"),             ISREX,          PARAM_EAX,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_ECX,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_EDX,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_EBX,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_ESP,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_EBP,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_ESI,          0,                  0               },
+	{_T("inc"),             ISREX,          PARAM_EDI,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_EAX,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_ECX,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_EDX,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_EBX,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_ESP,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_EBP,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_ESI,          0,                  0               },
+	{_T("dec"),             ISREX,          PARAM_EDI,          0,                  0               },
+	// 0x50
+	{_T("push"),            ALWAYS64,       PARAM_EAX,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_ECX,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_EDX,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_EBX,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_ESP,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_EBP,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_ESI,          0,                  0               },
+	{_T("push"),            ALWAYS64,       PARAM_EDI,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_EAX,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_ECX,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_EDX,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_EBX,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_ESP,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_EBP,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_ESI,          0,                  0               },
+	{_T("pop"),             ALWAYS64,       PARAM_EDI,          0,                  0               },
+	// 0x60
+	{_T("pusha\0pushad\0<invalid>"),VAR_NAME,0,                 0,                  0               },
+	{_T("popa\0popad\0<invalid>"),  VAR_NAME,0,                 0,                  0               },
+	{_T("bound"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("brkn"),            0,              PARAM_UI8,          0,                  0,              DASMFLAG_STEP_OVER}, /* V25S/V35S only */
+	{_T("repnc"),           PREFIX,         0,                  0,                  0               }, /* V20/V30 */
+	{_T("repc"),            PREFIX,         0,                  0,                  0               }, /* V20/V30 */
+	{_T("fpo2 0"),          0,              PARAM_UI8,          0,                  0               }, /* V20/V30 */
+	{_T("fpo2 1"),          0,              PARAM_UI8,          0,                  0               }, /* V20/V30 */
+	{_T("push"),            0,              PARAM_IMM,          0,                  0               },
+	{_T("imul"),            MODRM,          PARAM_REG,          PARAM_RM,           PARAM_IMM       },
+	{_T("push"),            0,              PARAM_I8,           0,                  0               },
+	{_T("imul"),            MODRM,          PARAM_REG,          PARAM_RM,           PARAM_I8        },
+	{_T("insb"),            0,              0,                  0,                  0               },
+	{_T("insw\0insd\0insd"),VAR_NAME,       0,                  0,                  0               },
+	{_T("outsb"),           0,              PARAM_PREIMP,       0,                  0               },
+	{_T("outsw\0outsd\0outsd"),VAR_NAME,    PARAM_PREIMP,       0,                  0               },
+	// 0x70
+	{_T("jo"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jno"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jb"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jae"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("je"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jne"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jbe"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("ja"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("js"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jns"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jp"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jnp"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jl"),              0,              PARAM_REL8,         0,                  0               },
+	{_T("jge"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jle"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("jg"),              0,              PARAM_REL8,         0,                  0               },
+	// 0x80
+	{_T("group80"),         GROUP,          0,                  0,                  0               },
+	{_T("group81"),         GROUP,          0,                  0,                  0               },
+	{_T("group80"),         GROUP,          0,                  0,                  0               },
+	{_T("group83"),         GROUP,          0,                  0,                  0               },
+	{_T("test"),            MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("test"),            MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("xchg"),            MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("xchg"),            MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("mov"),             MODRM,          PARAM_RM8,          PARAM_REG8,         0               },
+	{_T("mov"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("mov"),             MODRM,          PARAM_REG8,         PARAM_RM8,          0               },
+	{_T("mov"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("mov"),             MODRM,          PARAM_RM,           PARAM_SREG,         0               },
+	{_T("lea"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("mov"),             MODRM,          PARAM_SREG,         PARAM_RM,           0               },
+	{_T("pop"),             MODRM,          PARAM_RM,           0,                  0               },
+	// 0x90
+	{_T("nop\0???\0???\0pause"), VAR_NAME4, 0,                  0,                  0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_ECX,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EDX,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EBX,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_ESP,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EBP,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_ESI,          0               },
+	{_T("xchg"),            0,              PARAM_EAX,          PARAM_EDI,          0               },
+	{_T("cbw\0cwde\0cdqe"), VAR_NAME,       0,                  0,                  0               },
+	{_T("cwd\0cdq\0cqo"),   VAR_NAME,       0,                  0,                  0               },
+	{_T("call"),            ALWAYS64,       PARAM_ADDR,         0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("wait"),            0,              0,                  0,                  0               },
+	{_T("pushf\0pushfd\0pushfq"),VAR_NAME,  0,                  0,                  0               },
+	{_T("popf\0popfd\0popfq"),VAR_NAME,     0,                  0,                  0               },
+	{_T("sahf"),            0,              0,                  0,                  0               },
+	{_T("lahf"),            0,              0,                  0,                  0               },
+	// 0xa0
+	{_T("mov"),             0,              PARAM_AL,           PARAM_MEM_OFFS,     0               },
+	{_T("mov"),             0,              PARAM_EAX,          PARAM_MEM_OFFS,     0               },
+	{_T("mov"),             0,              PARAM_MEM_OFFS,     PARAM_AL,           0               },
+	{_T("mov"),             0,              PARAM_MEM_OFFS,     PARAM_EAX,          0               },
+	{_T("movsb"),           0,              PARAM_PREIMP,       0,                  0               },
+	{_T("movsw\0movsd\0movsq"),VAR_NAME,    PARAM_PREIMP,       0,                  0               },
+	{_T("cmpsb"),           0,              PARAM_PREIMP,       0,                  0               },
+	{_T("cmpsw\0cmpsd\0cmpsq"),VAR_NAME,    PARAM_PREIMP,       0,                  0               },
+	{_T("test"),            0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("test"),            0,              PARAM_EAX,          PARAM_IMM,          0               },
+	{_T("stosb"),           0,              0,                  0,                  0               },
+	{_T("stosw\0stosd\0stosq"),VAR_NAME,    0,                  0,                  0               },
+	{_T("lodsb"),           0,              PARAM_PREIMP,       0,                  0               },
+	{_T("lodsw\0lodsd\0lodsq"),VAR_NAME,    PARAM_PREIMP,       0,                  0               },
+	{_T("scasb"),           0,              0,                  0,                  0               },
+	{_T("scasw\0scasd\0scasq"),VAR_NAME,    0,                  0,                  0               },
+	// 0xb0
+	{_T("mov"),             0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_CL,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_DL,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_BL,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_AH,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_CH,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_DH,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_BH,           PARAM_UI8,          0               },
+	{_T("mov"),             0,              PARAM_EAX,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_ECX,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_EDX,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_EBX,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_ESP,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_EBP,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_ESI,          PARAM_IMM64,        0               },
+	{_T("mov"),             0,              PARAM_EDI,          PARAM_IMM64,        0               },
+	// 0xc0
+	{_T("groupC0"),         GROUP,          0,                  0,                  0               },
+	{_T("groupC1"),         GROUP,          0,                  0,                  0               },
+	{_T("ret"),             0,              PARAM_UI16,         0,                  0,              DASMFLAG_STEP_OUT},
+	{_T("ret"),             0,              0,                  0,                  0,              DASMFLAG_STEP_OUT},
+	{_T("les"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("lds"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("mov"),             MODRM,          PARAM_RMPTR8,       PARAM_UI8,          0               },
+	{_T("mov"),             MODRM,          PARAM_RMPTR,        PARAM_IMM,          0               },
+	{_T("enter"),           0,              PARAM_UI16,         PARAM_UI8,          0               },
+	{_T("leave"),           0,              0,                  0,                  0               },
+	{_T("retf"),            0,              PARAM_UI16,         0,                  0,              DASMFLAG_STEP_OUT},
+	{_T("retf"),            0,              0,                  0,                  0,              DASMFLAG_STEP_OUT},
+	{_T("int 3"),           0,              0,                  0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("int"),             0,              PARAM_UI8,          0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("into"),            0,              0,                  0,                  0               },
+	{_T("iret"),            0,              0,                  0,                  0,              DASMFLAG_STEP_OUT},
+	// 0xd0
+	{_T("groupD0"),         GROUP,          0,                  0,                  0               },
+	{_T("groupD1"),         GROUP,          0,                  0,                  0               },
+	{_T("groupD2"),         GROUP,          0,                  0,                  0               },
+	{_T("groupD3"),         GROUP,          0,                  0,                  0               },
+	{_T("aam"),             0,              PARAM_UI8,          0,                  0               },
+	{_T("aad"),             0,              PARAM_UI8,          0,                  0               },
+	{_T("salc"),            0,              0,                  0,                  0               }, //AMD docs name it
+	{_T("xlat"),            0,              0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	{_T("fpo1"),            FPU,            0,                  0,                  0               },
+	// 0xe0
+	{_T("loopne"),          0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("loopz"),           0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("loop"),            0,              PARAM_REL8,         0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("jcxz\0jecxz\0jrcxz"),VAR_NAME,     PARAM_REL8,         0,                  0               },
+	{_T("in"),              0,              PARAM_AL,           PARAM_UI8,          0               },
+	{_T("in"),              0,              PARAM_EAX,          PARAM_UI8,          0               },
+	{_T("out"),             0,              PARAM_UI8,          PARAM_AL,           0               },
+	{_T("out"),             0,              PARAM_UI8,          PARAM_EAX,          0               },
+	{_T("call"),            0,              PARAM_REL,          0,                  0,              DASMFLAG_STEP_OVER},
+	{_T("jmp"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jmp"),             0,              PARAM_ADDR,         0,                  0               },
+	{_T("jmp"),             0,              PARAM_REL8,         0,                  0               },
+	{_T("in"),              0,              PARAM_AL,           PARAM_DX,           0               },
+	{_T("in"),              0,              PARAM_EAX,          PARAM_DX,           0               },
+	{_T("out"),             0,              PARAM_DX,           PARAM_AL,           0               },
+	{_T("out"),             0,              PARAM_DX,           PARAM_EAX,          0               },
+	// 0xf0
+	{_T("lock"),            0,              0,                  0,                  0               },
+	{_T("brks"),            0,              PARAM_UI8,          0,                  0,              DASMFLAG_STEP_OVER}, /* V25S/V35S only */
+	{_T("repne"),           PREFIX,         0,                  0,                  0               },
+	{_T("rep"),             PREFIX,         0,                  0,                  0               },
+	{_T("hlt"),             0,              0,                  0,                  0               },
+	{_T("cmc"),             0,              0,                  0,                  0               },
+	{_T("groupF6"),         GROUP,          0,                  0,                  0               },
+	{_T("groupF7"),         GROUP,          0,                  0,                  0               },
+	{_T("clc"),             0,              0,                  0,                  0               },
+	{_T("stc"),             0,              0,                  0,                  0               },
+	{_T("cli"),             0,              0,                  0,                  0               },
+	{_T("sti"),             0,              0,                  0,                  0               },
+	{_T("cld"),             0,              0,                  0,                  0               },
+	{_T("std"),             0,              0,                  0,                  0               },
+	{_T("groupFE"),         GROUP,          0,                  0,                  0               },
+	{_T("groupFF"),         GROUP,          0,                  0,                  0               }
+};
+
+static const I386_OPCODE necv_opcode_table2[256] =
+{
+	// 0x00
+	{_T("group0F00"),       GROUP,          0,                  0,                  0               },
+	{_T("group0F01"),       GROUP,          0,                  0,                  0               },
+	{_T("lar"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("lsl"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("syscall"),         0,              0,                  0,                  0               },
+	{_T("clts"),            0,              0,                  0,                  0               },
+	{_T("sysret"),          0,              0,                  0,                  0               },
+	{_T("invd"),            0,              0,                  0,                  0               },
+	{_T("wbinvd"),          0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("ud2"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("group0F0D"),       GROUP,          0,                  0,                  0               }, //AMD only
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	// 0x10
+	{_T("test1"),           MODRM,          PARAM_RMPTR8,       PARAM_CL,           0               }, /* V20/V30 */
+	{_T("test1"),           MODRM,          PARAM_RMPTR16,      PARAM_CL,           0               }, /* V20/V30 */
+	{_T("clr1"),            MODRM,          PARAM_RMPTR8,       PARAM_CL,           0               }, /* V20/V30 */
+	{_T("clr1"),            MODRM,          PARAM_RMPTR16,      PARAM_CL,           0               }, /* V20/V30 */
+	{_T("set1"),            MODRM,          PARAM_RMPTR8,       PARAM_CL,           0               }, /* V20/V30 */
+	{_T("set1"),            MODRM,          PARAM_RMPTR16,      PARAM_CL,           0               }, /* V20/V30 */
+	{_T("not1"),            MODRM,          PARAM_RMPTR8,       PARAM_CL,           0               }, /* V20/V30 */
+	{_T("not1"),            MODRM,          PARAM_RMPTR16,      PARAM_CL,           0               }, /* V20/V30 */
+	{_T("test1"),           MODRM,          PARAM_RMPTR8,       PARAM_I3,           0               }, /* V20/V30 */
+	{_T("test1"),           MODRM,          PARAM_RMPTR16,      PARAM_I4,           0               }, /* V20/V30 */
+	{_T("clr1"),            MODRM,          PARAM_RMPTR8,       PARAM_I3,           0               }, /* V20/V30 */
+	{_T("clr1"),            MODRM,          PARAM_RMPTR16,      PARAM_I4,           0               }, /* V20/V30 */
+	{_T("set1"),            MODRM,          PARAM_RMPTR8,       PARAM_I3,           0               }, /* V20/V30 */
+	{_T("set1"),            MODRM,          PARAM_RMPTR16,      PARAM_I4,           0               }, /* V20/V30 */
+	{_T("not1"),            MODRM,          PARAM_RMPTR8,       PARAM_I3,           0               }, /* V20/V30 */
+	{_T("not1"),            MODRM,          PARAM_RMPTR16,      PARAM_I4,           0               }, /* V20/V30 */
+	// 0x20
+	{_T("add4s"),           0,              0,                  0,                  0               }, /* V20/V30 */
+	{_T("mov"),             MODRM,          PARAM_REG2_32,      PARAM_DREG,         0               },
+	{_T("sub4s"),           0,              0,                  0,                  0               }, /* V20/V30 */
+	{_T("mov"),             MODRM,          PARAM_DREG,         PARAM_REG2_32,      0               },
+	{_T("mov"),             MODRM,          PARAM_REG2_32,      PARAM_TREG,         0               },
+	{_T("movspa"),          0,              0,                  0,                  0               }, /* V25/V35 only */
+	{_T("cmp4s"),           0,              0,                  0,                  0               }, /* V20/V30 */
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("rol4"),            MODRM,          PARAM_RMPTR8,       0,                  0               }, /* V20/V30 */
+	{_T("movaps\0")
+	 _T("movapd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	{_T("ror4"),            MODRM,          PARAM_RMPTR8,       0,                  0               }, /* V20/V30 */
+	{_T("movntps\0")
+	 _T("movntpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMMM,         PARAM_XMM,          0               },
+	{_T("cvttps2pi\0")
+	 _T("cvttpd2pi\0")
+	 _T("cvttsd2si\0")
+	 _T("cvttss2si"),       MODRM|VAR_NAME4,PARAM_REGORXMM,     PARAM_XMMM,         0               },
+	{_T("brkcs"),           MODRM,          PARAM_REG2_16,      0,                  0,              DASMFLAG_STEP_OVER}, /* V25/V35 only */
+	{_T("ucomiss\0")
+	 _T("ucomisd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("comiss\0")
+	 _T("comisd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	// 0x30
+	{_T("wrmsr"),           0,              0,                  0,                  0               },
+	{_T("ins"),             MODRM,          PARAM_REG2_8,       PARAM_REG8,         0               }, /* V20/V30 */
+	{_T("rdmsr"),           0,              0,                  0,                  0               },
+	{_T("ext"),             MODRM,          PARAM_REG2_8,       PARAM_REG8,         0               }, /* V20/V30 */
+	{_T("sysenter"),        0,              0,                  0,                  0               },
+	{_T("sysexit"),         0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("three_byte"),      THREE_BYTE,     0,                  0,                  0               },
+	{_T("ins"),             MODRM,          PARAM_REG2_8,       PARAM_I4,           0               }, /* V20/V30 */
+	{_T("three_byte"),      THREE_BYTE,     0,                  0,                  0               },
+	{_T("ext"),             MODRM,          PARAM_REG2_8,       PARAM_I4,           0               }, /* V20/V30 */
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	// 0x40
+	{_T("cmovo"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovno"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovb"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovae"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmove"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovne"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovbe"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmova"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovs"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovns"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovpe"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovpo"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovl"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovge"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovle"),          MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("cmovg"),           MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	// 0x50
+	{_T("movmskps\0")
+	 _T("movmskpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_REG3264,      PARAM_XMMM,         0               },
+	{_T("sqrtps\0")
+	 _T("sqrtpd\0")
+	 _T("sqrtsd\0")
+	 _T("sqrtss"),          MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("rsqrtps\0")
+	 _T("???\0")
+	 _T("???\0")
+	 _T("rsqrtss"),         MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("rcpps\0")
+	 _T("???\0")
+	 _T("???\0")
+	 _T("rcpss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("andps\0")
+	 _T("andpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("andnps\0")
+	 _T("andnpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("orps\0")
+	 _T("orpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("xorps\0")
+	 _T("xorpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("addps\0")
+	 _T("addpd\0")
+	 _T("addsd\0")
+	 _T("addss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("mulps\0")
+	 _T("mulpd\0")
+	 _T("mulsd\0")
+	 _T("mulss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("cvtps2pd\0")
+	 _T("cvtpd2ps\0")
+	 _T("cvtsd2ss\0")
+	 _T("cvtss2sd"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("cvtdq2ps\0")
+	 _T("cvtps2dq\0")
+	 _T("???\0")
+	 _T("cvttps2dq"),       MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("subps\0")
+	 _T("subpd\0")
+	 _T("subsd\0")
+	 _T("subss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("minps\0")
+	 _T("minpd\0")
+	 _T("minsd\0")
+	 _T("minss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("divps\0")
+	 _T("divpd\0")
+	 _T("divsd\0")
+	 _T("divss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("maxps\0")
+	 _T("maxpd\0")
+	 _T("maxsd\0")
+	 _T("maxss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	// 0x60
+	{_T("punpcklbw"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("punpcklwd"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("punpckldq"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("packsswb"),        MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pcmpgtb"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pcmpgtw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pcmpgtd"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("packuswb"),        MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("punpckhbw"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("punpckhwd"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("punpckhdq"),       MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("packssdw"),        MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("???\0")
+	 _T("punpcklqdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("???\0")
+	 _T("punpckhqdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("movd"),            MODRM,          PARAM_MMX,          PARAM_RM,           0               },
+	{_T("movq\0")
+	 _T("movdqa\0")
+	 _T("???\0")
+	 _T("movdqu"),          MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	// 0x70
+	{_T("pshufw\0")
+	 _T("pshufd\0")
+	 _T("pshuflw\0")
+	 _T("pshufhw"),         MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         PARAM_UI8       },
+	{_T("group0F71"),       GROUP,          0,                  0,                  0               },
+	{_T("group0F72"),       GROUP,          0,                  0,                  0               },
+	{_T("group0F73"),       GROUP,          0,                  0,                  0               },
+	{_T("pcmpeqb"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pcmpeqw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pcmpeqd"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("emms"),            0,              0,                  0,                  0               },
+	{_T("vmread"),          MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("vmwrite"),         MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???\0")
+	 _T("haddpd\0")
+	 _T("haddps\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("???\0")
+	 _T("hsubpd\0")
+	 _T("hsubps\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("movd\0")
+	 _T("movd\0")
+	 _T("???\0")
+	 _T("movq"),            MODRM|VAR_NAME4,PARAM_RM,           PARAM_MMX,          0               },
+	{_T("movq\0")
+	 _T("movdqa\0")
+	 _T("???\0")
+	 _T("movdqu"),          MODRM|VAR_NAME4,PARAM_MMXM,         PARAM_MMX,          0               },
+	// 0x80
+	{_T("jo"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jno"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jb"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jae"),             0,              PARAM_REL,          0,                  0               },
+	{_T("je"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jne"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jbe"),             0,              PARAM_REL,          0,                  0               },
+	{_T("ja"),              0,              PARAM_REL,          0,                  0               },
+	{_T("js"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jns"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jp"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jnp"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jl"),              0,              PARAM_REL,          0,                  0               },
+	{_T("jge"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jle"),             0,              PARAM_REL,          0,                  0               },
+	{_T("jg"),              0,              PARAM_REL,          0,                  0               },
+	// 0x90
+	{_T("seto"),            MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("retrbi"),          0,              0,                  0,                  0               }, /* V25/V35 only */
+	{_T("fint"),            0,              0,                  0,                  0               }, /* V25/V35 only */
+	{_T("setae"),           MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("tsksw"),           MODRM,          PARAM_REG2_16,      0,                  0               }, /* V25/V35 only */
+	{_T("movspb"),          MODRM,          PARAM_REG2_16,      0,                  0               }, /* V25/V35 only */
+	{_T("setbe"),           MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("seta"),            MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("sets"),            MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("setns"),           MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("setp"),            MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("setnp"),           MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("btclr"),           0,              PARAM_SFREG,        PARAM_I3,           PARAM_REL8      }, /* V25/V35 only */
+	{_T("setge"),           MODRM,          PARAM_RMPTR8,       0,                  0               },
+	{_T("stop"),            0,              0,                  0,                  0               }, /* V25/V35 only */
+	{_T("setg"),            MODRM,          PARAM_RMPTR8,       0,                  0               },
+	// 0xa0
+	{_T("push    fs"),      0,              0,                  0,                  0               },
+	{_T("pop     fs"),      0,              0,                  0,                  0               },
+	{_T("cpuid"),           0,              0,                  0,                  0               },
+	{_T("bt"),              MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("shld"),            MODRM,          PARAM_RM,           PARAM_REG,          PARAM_UI8       },
+	{_T("shld"),            MODRM,          PARAM_RM,           PARAM_REG,          PARAM_CL        },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("???"),             0,              0,                  0,                  0               },
+	{_T("push    gs"),      0,              0,                  0,                  0               },
+	{_T("pop     gs"),      0,              0,                  0,                  0               },
+	{_T("rsm"),             0,              0,                  0,                  0               },
+	{_T("bts"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("shrd"),            MODRM,          PARAM_RM,           PARAM_REG,          PARAM_UI8       },
+	{_T("shrd"),            MODRM,          PARAM_RM,           PARAM_REG,          PARAM_CL        },
+	{_T("group0FAE"),       GROUP,          0,                  0,                  0               },
+	{_T("imul"),            MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	// 0xb0
+	{_T("cmpxchg"),         MODRM,          PARAM_RM8,          PARAM_REG,          0               },
+	{_T("cmpxchg"),         MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("lss"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("btr"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("lfs"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("lgs"),             MODRM,          PARAM_REG,          PARAM_RM,           0               },
+	{_T("movzx"),           MODRM,          PARAM_REG,          PARAM_RMPTR8,       0               },
+	{_T("movzx"),           MODRM,          PARAM_REG,          PARAM_RMPTR16,      0               },
+	{_T("???\0")
+	 _T("???\0")
+	 _T("???\0")
+	 _T("popcnt"),          MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM16,         0               },
+	{_T("ud2"),             0,              0,                  0,                  0               },
+	{_T("group0FBA"),       GROUP,          0,                  0,                  0               },
+	{_T("btc"),             MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("bsf\0")
+	 _T("???\0")
+	 _T("???\0")
+	 _T("tzcnt"),           MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM,           0               },
+	{_T("bsr\0")
+	 _T("???\0")
+	 _T("???\0")
+	 _T("lzcnt"),           MODRM|VAR_NAME4,PARAM_REG,          PARAM_RM,           0,              DASMFLAG_STEP_OVER},
+	{_T("movsx"),           MODRM,          PARAM_REG,          PARAM_RMPTR8,       0               },
+	{_T("movsx"),           MODRM,          PARAM_REG,          PARAM_RMPTR16,      0               },
+	// 0xc0
+	{_T("xadd"),            MODRM,          PARAM_RM8,          PARAM_REG,          0               },
+	{_T("xadd"),            MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("cmpps\0")
+	 _T("cmppd\0")
+	 _T("cmpsd\0")
+	 _T("cmpss"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("movnti"),          MODRM,          PARAM_RM,           PARAM_REG,          0               },
+	{_T("pinsrw"),          MODRM,          PARAM_MMX,          PARAM_RM,           PARAM_UI8       },
+	{_T("pextrw"),          MODRM,          PARAM_MMX,          PARAM_RM,           PARAM_UI8       },
+	{_T("shufps\0")
+	 _T("shufpd\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         PARAM_UI8       },
+	{_T("group0FC7"),       GROUP,          0,                  0,                  0               },
+	{_T("bswap"),           0,              PARAM_EAX,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_ECX,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_EDX,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_EBX,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_ESP,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_EBP,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_ESI,          0,                  0               },
+	{_T("bswap"),           0,              PARAM_EDI,          0,                  0               },
+	// 0xd0
+	{_T("???\0")
+	 _T("addsubpd\0")
+	 _T("addsubps\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("psrlw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psrld"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psrlq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmullw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("???\0")
+	 _T("movq\0")
+	 _T("movdq2q\0")
+	 _T("movq2dq"),         MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmovmskb"),        MODRM,          PARAM_REG3264,      PARAM_MMXM,         0               },
+	{_T("psubusb"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubusw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pminub"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pand"),            MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddusb"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddusw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmaxub"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pandn"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	// 0xe0
+	{_T("brkxa"),           0,              PARAM_UI8,          0,                  0               }, /* V33,53 only */
+	{_T("psraw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psrad"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pavgw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmulhuw"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmulhw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("???\0")
+	 _T("cvttpd2dq\0")
+	 _T("cvtpd2dq\0")
+	 _T("cvtdq2pd"),        MODRM|VAR_NAME4,PARAM_XMM,          PARAM_XMMM,         0               },
+	{_T("movntq\0")
+	 _T("movntdq\0")
+	 _T("???\0")
+	 _T("???\0"),           MODRM|VAR_NAME4,PARAM_M64,          PARAM_MMX,          0               },
+	{_T("psubsb"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pminsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("por"),             MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddsb"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmaxsw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pxor"),            MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	// 0xf0
+	{_T("retxa"),           0,              PARAM_UI8,          0,                  0               }, /* V33,53 only */
+	{_T("psllw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pslld"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psllq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmuludq"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("pmaddwd"),         MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psadbw"),          MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("maskmovq\0")
+	 _T("maskmovdqu\0")
+	 _T("???\0")
+	 _T("???"),             MODRM|VAR_NAME4,PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubb"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubd"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("psubq"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddb"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddw"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("paddd"),           MODRM,          PARAM_MMX,          PARAM_MMXM,         0               },
+	{_T("brkem"),           0,              PARAM_UI8,          0,                  0               } /* V20,30,40,50 only */
 };
 
 static const GROUP_OP group_op_table[] =
@@ -1974,9 +2643,69 @@ static const _TCHAR *const i386_reg[3][16] =
 	{_T("rax"), _T("rcx"), _T("rdx"), _T("rbx"), _T("rsp"), _T("rbp"), _T("rsi"), _T("rdi"), _T("r8"),  _T("r9"),  _T("r10"), _T("r11"), _T("r12"), _T("r13"), _T("r14"), _T("r15")}
 };
 
-static const _TCHAR *const i386_reg8[8] = {_T("al"), _T("cl"), _T("dl"), _T("bl"), _T("ah"), _T("ch"), _T("dh"), _T("bh")};
-static const _TCHAR *const i386_reg8rex[16] = {_T("al"), _T("cl"), _T("dl"), _T("bl"), _T("spl"), _T("bpl"), _T("sil"), _T("dil"), _T("r8l"), _T("r9l"), _T("r10l"), _T("r11l"), _T("r12l"), _T("r13l"), _T("r14l"), _T("r15l")};
-static const _TCHAR *const i386_sreg[8] = {_T("es"), _T("cs"), _T("ss"), _T("ds"), _T("fs"), _T("gs"), _T("???"), _T("???")};
+static const _TCHAR *const i386_reg8[8] =
+{
+	_T("al"), _T("cl"), _T("dl"), _T("bl"), _T("ah"), _T("ch"), _T("dh"), _T("bh")
+};
+static const _TCHAR *const i386_reg8rex[16] =
+{
+	_T("al"), _T("cl"), _T("dl"), _T("bl"), _T("spl"), _T("bpl"), _T("sil"), _T("dil"), _T("r8l"), _T("r9l"), _T("r10l"), _T("r11l"), _T("r12l"), _T("r13l"), _T("r14l"), _T("r15l")
+};
+static const _TCHAR *const i386_sreg[8] =
+{
+	_T("es"), _T("cs"), _T("ss"), _T("ds"), _T("fs"), _T("gs"), _T("???"), _T("???")
+};
+static const char *const nec_sfreg[256] =
+{
+	/* 0x00 */
+	_T("p0"),	_T("pm0"),	_T("pmc0"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("p1"),	_T("pm1"),	_T("pmc1"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x10 */
+	_T("p2"),	_T("pm2"),	_T("pmc2"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x20 */
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x30 */
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("pt"),	_T("???"),	_T("???"),	_T("pmt"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x40 */
+	_T("intm"),	_T("???"),	_T("???"),	_T("???"),	_T("ems0"),	_T("ems1"),	_T("ems2"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("exic0"),	_T("exic1"),	_T("exic2"),	_T("???"),
+	/* 0x50 */
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x60 */
+	_T("rxb0"),	_T("???"),	_T("txb0"),	_T("???"),	_T("???"),	_T("srms0"),	_T("stms0"),	_T("???"),
+	_T("scm0"),	_T("scc0"),	_T("brg0"),	_T("scs0"),	_T("seic0"),	_T("sric0"),	_T("stic0"),	_T("???"),
+	/* 0x70 */
+	_T("rxb1"),	_T("???"),	_T("txb1"),	_T("???"),	_T("???"),	_T("srms1"),	_T("stms1"),	_T("???"),
+	_T("scm1"),	_T("scc1"),	_T("brg1"),	_T("scs1"),	_T("seic1"),	_T("sric1"),	_T("stic1"),	_T("???"),
+	/* 0x80 */
+	_T("tm0"),	_T("???"),	_T("md0"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("tm1"),	_T("???"),	_T("md1"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0x90 */
+	_T("tmc0"),	_T("tmc1"),	_T("???"),	_T("???"),	_T("tmms0"),	_T("tmms1"),	_T("tmms2"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("tmic0"),	_T("tmic1"),	_T("tmic2"),	_T("???"),
+	/* 0xa0 */
+	_T("dmac0"),	_T("dmam0"),	_T("dmac1"),	_T("dmam1"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("dic0"),	_T("dic1"),	_T("???"),	_T("???"),
+	/* 0xb0 */
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0xc0 */
+	_T("sar0l"),	_T("sar0m"),	_T("sar0h"),	_T("???"),	_T("dar0l"),	_T("dar0m"),	_T("dar0h"),	_T("???"),
+	_T("tc0l"),	_T("tc0h"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0xd0 */
+	_T("sar1l"),	_T("sar1m"),	_T("sar1h"),	_T("???"),	_T("dar1l"),	_T("dar1m"),	_T("dar1h"),	_T("???"),
+	_T("tc1l"),	_T("tc1h"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	/* 0xe0 */
+	_T("stbc"),	_T("rfm"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("wtc"),	_T("???"),	_T("flag"),	_T("prc"),	_T("tbic"),	_T("???"),	_T("???"),	_T("irqs"),
+	/* 0xf0 */
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("???"),
+	_T("???"),	_T("???"),	_T("???"),	_T("???"),	_T("ispr"),	_T("???"),	_T("???"),	_T("idb")
+};
 
 static int address_size;
 static int operand_size;
@@ -1991,6 +2720,7 @@ static _TCHAR modrm_string[256];
 static UINT8 rex, regex, sibex, rmex;
 static UINT8 pre0f;
 static UINT8 curmode;
+static UINT8 v30mode;
 
 #define MODRM_REG1  ((modrm >> 3) & 0x7)
 #define MODRM_REG2  (modrm & 0x7)
@@ -2243,6 +2973,14 @@ static _TCHAR* handle_param(_TCHAR* s, UINT32 param)
 			s += _stprintf( s, _T("%s"), i386_reg[0][MODRM_REG1 | regex] );
 			break;
 
+		case PARAM_REG2_8:
+			s += _stprintf( s, _T("%s"), i386_reg8[MODRM_REG2] );
+			break;
+
+		case PARAM_REG2_16:
+			s += _stprintf( s, _T("%s"), i386_reg[0][MODRM_REG2] );
+			break;
+
 		case PARAM_REG32:
 			s += _stprintf( s, _T("%s"), i386_reg[1][MODRM_REG1 | regex] );
 			break;
@@ -2374,6 +3112,11 @@ static _TCHAR* handle_param(_TCHAR* s, UINT32 param)
 			}
 			break;
 
+		case PARAM_I3:
+			i8 = _FETCHD();
+			s += _stprintf( s, _T("%d"), i8 & 0x07 );
+			break;
+
 		case PARAM_I4:
 			i8 = _FETCHD();
 			s += _stprintf( s, _T("%d"), i8 & 0x0f );
@@ -2487,6 +3230,11 @@ static _TCHAR* handle_param(_TCHAR* s, UINT32 param)
 
 		case PARAM_SREG:
 			s += _stprintf( s, _T("%s"), i386_sreg[MODRM_REG1] );
+			break;
+
+		case PARAM_SFREG:
+			i8 = _FETCHD();
+			s += _stprintf( s, _T("%s"), nec_sfreg[i8] );
 			break;
 
 		case PARAM_CREG:
@@ -2943,7 +3691,10 @@ static void decode_opcode(_TCHAR *s, const I386_OPCODE *op, UINT8 op1)
 				operand_prefix = 1;
 			}
 			op2 = _FETCH();
-			decode_opcode( s, &i386_opcode_table1[op2], op2 );
+			if (v30mode)
+				decode_opcode( s, &necv_opcode_table1[op2], op2 );
+			else
+				decode_opcode( s, &i386_opcode_table1[op2], op2 );
 			return;
 
 		case ADDR_SIZE:
@@ -2957,14 +3708,20 @@ static void decode_opcode(_TCHAR *s, const I386_OPCODE *op, UINT8 op1)
 				address_prefix = 1;
 			}
 			op2 = _FETCH();
-			decode_opcode( s, &i386_opcode_table1[op2], op2 );
+			if (v30mode)
+				decode_opcode( s, &necv_opcode_table1[op2], op2 );
+			else
+				decode_opcode( s, &i386_opcode_table1[op2], op2 );
 			return;
 
 		case TWO_BYTE:
 			if (&opcode_ptr[-2] >= opcode_ptr_base)
 				pre0f = opcode_ptr[-2];
 			op2 = _FETCHD();
-			decode_opcode( s, &i386_opcode_table2[op2], op1 );
+			if (v30mode)
+				decode_opcode( s, &necv_opcode_table2[op2], op1 );
+			else
+				decode_opcode( s, &i386_opcode_table2[op2], op1 );
 			return;
 
 		case THREE_BYTE:
@@ -2984,7 +3741,10 @@ static void decode_opcode(_TCHAR *s, const I386_OPCODE *op, UINT8 op1)
 			rex = regex = sibex = rmex = 0;
 			segment = op->flags;
 			op2 = _FETCH();
-			decode_opcode( s, &i386_opcode_table1[op2], op2 );
+			if (v30mode)
+				decode_opcode( s, &necv_opcode_table1[op2], op2 );
+			else
+				decode_opcode( s, &i386_opcode_table1[op2], op2 );
 			return;
 
 		case PREFIX:
@@ -2993,7 +3753,10 @@ static void decode_opcode(_TCHAR *s, const I386_OPCODE *op, UINT8 op1)
 				s += _stprintf( s, _T("%-7s "), op->mnemonic );
 			if ((op2 == 0x90) && !pre0f)
 				pre0f = op1;
-			decode_opcode( s, &i386_opcode_table1[op2], op2 );
+			if (v30mode)
+				decode_opcode( s, &necv_opcode_table1[op2], op2 );
+			else
+				decode_opcode( s, &i386_opcode_table1[op2], op2 );
 			return;
 
 		case GROUP:
@@ -3071,26 +3834,36 @@ int i386_dasm_one_ex(_TCHAR *buffer, UINT64 eip, const UINT8 *oprom, int mode)
 			address_size = 0;
 			operand_size = 0;
 			max_length = 8; /* maximum without redundant prefixes - not enforced by chip */
+			v30mode = 0;
 			break;
 		case 2: /* 80286 */
 			address_size = 0;
 			operand_size = 0;
 			max_length = 10;
 			break;
+		case 3: /* V30 */
+			address_size = 0;
+			operand_size = 0;
+			max_length = 8; /* maximum without redundant prefixes - not enforced by chip */
+			v30mode = 1;
+			break;
 		case 16: /* 80386+ 16-bit code segment */
 			address_size = 0;
 			operand_size = 0;
 			max_length = 15;
+			v30mode = 0;
 			break;
 		case 32: /* 80386+ 32-bit code segment */
 			address_size = 1;
 			operand_size = 1;
 			max_length = 15;
+			v30mode = 0;
 			break;
 		case 64: /* x86_64 */
 			address_size = 2;
 			operand_size = 1;
 			max_length = 15;
+			v30mode = 0;
 			break;
 	}
 	pc = eip;
@@ -3104,13 +3877,21 @@ int i386_dasm_one_ex(_TCHAR *buffer, UINT64 eip, const UINT8 *oprom, int mode)
 
 	op = _FETCH();
 
-	decode_opcode( buffer, &i386_opcode_table1[op], op );
+	if (v30mode)
+		decode_opcode( buffer, &necv_opcode_table1[op], op );
+	else
+		decode_opcode( buffer, &i386_opcode_table1[op], op );
 	return (pc-eip) | dasm_flags | DASMFLAG_SUPPORTED;
 }
 
 int i386_dasm_one(_TCHAR *buffer, offs_t eip, const UINT8 *oprom, int mode)
 {
 	return i386_dasm_one_ex(buffer, eip, oprom, mode);
+}
+
+CPU_DISASSEMBLE( nec_generic )
+{
+	return i386_dasm_one_ex(buffer, eip, oprom, 3);
 }
 
 CPU_DISASSEMBLE( x86_16 )

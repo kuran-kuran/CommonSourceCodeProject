@@ -387,7 +387,7 @@ static CPU_EXECUTE( i8086 )
 			} else {
 				now_debugging = false;
 			}
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 			cpustate->seg_prefix = FALSE;
 			cpustate->prevpc = cpustate->pc;
@@ -407,7 +407,7 @@ static CPU_EXECUTE( i8086 )
 				cpustate->io = cpustate->io_stored;
 			}
 		} else {
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 #endif
 			cpustate->seg_prefix = FALSE;
@@ -537,7 +537,7 @@ static CPU_EXECUTE( i80186 )
 			} else {
 				now_debugging = false;
 			}
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 			cpustate->seg_prefix = FALSE;
 			cpustate->prevpc = cpustate->pc;
@@ -557,7 +557,7 @@ static CPU_EXECUTE( i80186 )
 				cpustate->io = cpustate->io_stored;
 			}
 		} else {
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], false);
 			int first_icount = cpustate->icount;
 #endif
 			cpustate->seg_prefix = FALSE;
@@ -683,7 +683,7 @@ static CPU_EXECUTE( v30 )
 			} else {
 				now_debugging = false;
 			}
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], (cpustate->MF == 0));
 			int first_icount = cpustate->icount;
 			cpustate->seg_prefix = FALSE;
 			cpustate->prevpc = cpustate->pc;
@@ -714,7 +714,7 @@ static CPU_EXECUTE( v30 )
 				cpustate->io = cpustate->io_stored;
 			}
 		} else {
-			cpustate->debugger->add_cpu_trace(cpustate->pc);
+			cpustate->debugger->add_cpu_trace(cpustate->pc, cpustate->pc - cpustate->base[CS], (cpustate->MF == 0));
 			int first_icount = cpustate->icount;
 #endif
 			cpustate->seg_prefix = FALSE;

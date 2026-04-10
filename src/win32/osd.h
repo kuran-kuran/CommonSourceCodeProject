@@ -283,7 +283,7 @@ private:
 	void send_telnet(const char* buffer);
 	
 	bool use_telnet, telnet_closed;
-	int svr_socket, cli_socket;
+	UINT_PTR svr_socket, cli_socket;
 	
 	// input
 	void initialize_input();

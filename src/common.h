@@ -39,6 +39,8 @@
 		#if _MSC_VER >= 1400
 			// Microsoft Visual C++ 8.0 (2005) or later
 			#define SUPPORT_SECURE_FUNCTIONS
+			#pragma warning( disable : 4244 )
+			#pragma warning( disable : 4309 )
 			#pragma warning( disable : 4819 )
 			//#pragma warning( disable : 4995 )
 			#pragma warning( disable : 4996 )

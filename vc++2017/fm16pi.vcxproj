@@ -344,7 +344,6 @@
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\not.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
-    <ClCompile Include="..\src\vm\v30_dasm.cpp" />
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
@@ -378,7 +377,6 @@
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\not.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />
-    <ClInclude Include="..\src\vm\v30_dasm.h" />
     <ClInclude Include="..\src\vm\vm.h" />
     <ClInclude Include="..\src\vm\vm_template.h" />
     <ClInclude Include="..\src\win32\osd.h" />
@@ -396,6 +394,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
