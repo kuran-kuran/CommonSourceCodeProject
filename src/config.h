@@ -47,6 +47,7 @@
 	#define USE_BINARY_FILE_TMP	8
 	#define USE_BUBBLE_TMP		16
 	#define MAX_VOLUME_TMP		32
+	#define USE_GENERAL_PARAM_TMP	1
 #else
 	#define USE_CART_TMP		USE_CART
 	#define USE_FLOPPY_DISK_TMP	USE_FLOPPY_DISK
@@ -60,6 +61,7 @@
 	#ifdef USE_SOUND_VOLUME
 		#define MAX_VOLUME_TMP	USE_SOUND_VOLUME
 	#endif
+	#define USE_GENERAL_PARAM_TMP	USE_GENERAL_PARAM
 #endif
 
 void DLL_PREFIX initialize_config();
@@ -213,6 +215,11 @@ typedef struct {
 	// printer
 	#if defined(USE_SHARED_DLL) || defined(USE_PRINTER)
 		_TCHAR printer_dll_path[_MAX_PATH];
+	#endif
+	
+	// misc
+	#if defined(USE_SHARED_DLL) || defined(USE_GENERAL_PARAM)
+		int general_param[USE_GENERAL_PARAM_TMP];
 	#endif
 	
 	// debug

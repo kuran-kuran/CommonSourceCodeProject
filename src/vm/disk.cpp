@@ -1579,7 +1579,7 @@ int DISK::get_rpm()
 {
 	if(drive_rpm > 0) {
 		return drive_rpm;
-	} else if(inserted) {
+	} else if(inserted && check_media_type()) {
 		return (media_type == MEDIA_TYPE_2HD) ? 360 : 300;
 	} else {
 		return (drive_type == DRIVE_TYPE_2HD) ? 360 : 300;

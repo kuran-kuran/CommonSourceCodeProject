@@ -459,7 +459,7 @@ void MEMORY::draw_line(int v)
 #else
 	int ptr = (v >> 3) * 40;
 #endif
-	bool pcg_active = ((config.dipswitch & 1) && !(pcg_ctrl & 8));
+	bool pcg_active = ((config.dipswitch & DIPSWITCH_PCG700) && !(pcg_ctrl & 8));
 #if defined(_MZ1200)
 	uint8_t *pcg_ptr = pcg + ((pcg_ctrl & 4) ? 0x800 : 0);
 #else

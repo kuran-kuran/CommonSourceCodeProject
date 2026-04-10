@@ -32,6 +32,7 @@
 #include "../ym2151.h"
 //#include "../ym2203.h"
 #include "../ay_3_891x.h"
+#include "../midi.h"
 #include "../z80.h"
 #include "../z80ctc.h"
 #include "../z80sio.h"
@@ -225,6 +226,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	ctc->set_constant_clock(1, CPU_CLOCKS >> 1);
 	ctc->set_constant_clock(2, CPU_CLOCKS >> 1);
 	sio->set_context_rts(1, mouse, SIG_MOUSE_RTS, 1);
+    if(config.serial_type == 2) {
+        MIDI *midi = new MIDI(this, emu);
+        sio->set_context_send(0, midi, SIG_MIDI_OUT);
+		midi->set_context_in(sio, SIG_Z80SIO_RECV_CH0, 0xff);
+    }
 //	sio->set_tx_clock(0, 9600 * 16);	// 9600 baud for RS-232C
 //	sio->set_rx_clock(0, 9600 * 16);	// clock is from Z-80CTC ch1 (2MHz/13)
 //	sio->set_tx_clock(1, 4800 * 16);	// 4800 baud for mouse
@@ -765,6 +771,19 @@ void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 	fdc->open_disk(drv, file_path, bank);
 	
 #ifdef _X1TURBO_FEATURE
+	// for convenience
+	if(fdc->get_media_type(drv) == MEDIA_TYPE_144) {
+		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2HD) {
+			fdc->set_drive_type(drv, DRIVE_TYPE_144);
+			fdc->set_drive_rpm(drv, 300);
+		}
+	} else if(fdc->get_media_type(drv) == MEDIA_TYPE_2HD) {
+		if(fdc->get_drive_type(drv) == DRIVE_TYPE_144) {
+			fdc->set_drive_type(drv, DRIVE_TYPE_2HD);
+			fdc->set_drive_rpm(drv, 360);
+		}
+	} else
+#endif
 	if(fdc->get_media_type(drv) == MEDIA_TYPE_2DD) {
 		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2D) {
 			fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
@@ -774,7 +793,6 @@ void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
 		}
 	}
-#endif
 }
 
 void VM::close_floppy_disk(int drv)
@@ -1030,7 +1048,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

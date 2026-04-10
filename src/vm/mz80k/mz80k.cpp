@@ -20,10 +20,12 @@
 #if defined(_MZ1200) || defined(_MZ80A)
 #include "../and.h"
 #endif
+#include "../cmu800.h"
 #include "../datarec.h"
 #include "../i8253.h"
 #include "../i8255.h"
 #include "../ls393.h"
+#include "../midi.h"
 #include "../mz1p17.h"
 #include "../noise.h"
 #include "../pcm1bit.h"
@@ -64,6 +66,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #if defined(_MZ1200) || defined(_MZ80A)
 	and_int = new AND(this, emu);
 #endif
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	}
 	drec = new DATAREC(this, emu);
 	drec->set_context_noise_play(new NOISE(this, emu));
 	drec->set_context_noise_stop(new NOISE(this, emu));
@@ -168,6 +174,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// i/o bus
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	}
 #if defined(SUPPORT_MZ80AIF)
 	io->set_iomap_range_rw(0xd8, 0xdb, fdc);
 	io->set_iomap_range_w(0xdc, 0xdd, mz80aif);
@@ -471,7 +480,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	7
+#define STATE_VERSION	8
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -479,7 +488,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

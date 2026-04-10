@@ -12,6 +12,7 @@
 #include "../device.h"
 #include "../event.h"
 
+#include "../cmu800.h"
 #include "../datarec.h"
 #include "../disk.h"
 #include "../harddisk.h"
@@ -19,6 +20,7 @@
 #include "../i8255.h"
 #include "../io.h"
 #include "../mb8877.h"
+#include "../midi.h"
 #include "../mz1p17.h"
 #include "../noise.h"
 #include "../pcm1bit.h"
@@ -49,6 +51,7 @@
 #include "mz1e26.h"
 #include "mz1e30.h"
 #include "mz1e32.h"
+#include "mz1r12.h"
 #include "mz1r13.h"
 #include "mz1r37.h"
 #include "printer.h"
@@ -111,7 +114,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	mouse = new MOUSE(this, emu);
 	mz1e26 = new MZ1E26(this, emu);
 	mz1e30 = new MZ1E30(this, emu);
-	mz1e32 = new MZ1E32(this, emu);
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	} else {
+		mz1e32 = new MZ1E32(this, emu);
+	}
+	mz1r12 = new MZ1R12(this, emu);
 	mz1r13 = new MZ1R13(this, emu);
 	mz1r37 = new MZ1R37(this, emu);
 	printer = new PRINTER(this, emu);
@@ -204,7 +213,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	// i/o bus
 	io->set_iomap_range_rw(0x60, 0x63, w3100a);
-	io->set_iomap_range_rw(0x9a, 0x9b, mz1e32);
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	} else {
+		io->set_iomap_range_rw(0x9a, 0x9b, mz1e32);
+	}
 	io->set_iomap_range_rw(0xa0, 0xa3, serial);
 	io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
 	io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);
@@ -229,6 +242,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_rw(0xef, joystick);
 	io->set_iomap_range_w(0xf0, 0xf3, timer);
 	io->set_iomap_range_rw(0xf4, 0xf7, crtc);
+	io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 	
 	if(config.boot_mode == 0) {
@@ -610,7 +624,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	9
+#define STATE_VERSION	10
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -618,7 +632,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

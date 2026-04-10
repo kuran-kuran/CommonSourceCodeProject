@@ -321,6 +321,12 @@ errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, size_t numberOfElements, 
 	return 0;
 }
 
+errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, const _TCHAR *strSource)
+{
+	_tcscpy(strDestination, strSource);
+	return 0;
+}
+
 errno_t DLL_PREFIX my_strncpy_s(char *strDestination, size_t numberOfElements, const char *strSource, size_t count)
 {
 	strncpy(strDestination, strSource, count);

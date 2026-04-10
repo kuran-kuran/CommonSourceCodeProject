@@ -34,6 +34,9 @@ public:
 	virtual ~VM_TEMPLATE() {}
 	
 	// drive virtual machine
+	virtual const _TCHAR *device_name() {
+		return _T(DEVICE_NAME);
+	}
 	virtual void reset() { }
 	virtual void special_reset() { }
 	virtual void run() { }

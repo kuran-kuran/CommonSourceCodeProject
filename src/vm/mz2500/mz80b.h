@@ -40,6 +40,8 @@
 #define PRINTER_STROBE_RISING_EDGE
 
 // device informations for win32
+#define USE_DIPSWITCH
+#define USE_GENERAL_PARAM	1
 #define USE_SPECIAL_RESET
 #define USE_CPU_TYPE		2
 #define USE_FLOPPY_DISK		4
@@ -61,10 +63,20 @@
 #else
 #define USE_SOUND_VOLUME	4
 #endif
+#define USE_MIDI
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
+
+#define DIPSWITCH_CMU800		(1 << 0)
+#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define DIPSWITCH_CMU800_TEMPO_160	(1 << 7)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -83,6 +95,7 @@ class EMU;
 class DEVICE;
 class EVENT;
 
+class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
@@ -98,6 +111,7 @@ class KEYBOARD;
 class MEMORY;
 class MZ1R12;
 class MZ1R13;
+class PIO3034;
 class PRINTER;
 class TIMER;
 
@@ -120,6 +134,7 @@ protected:
 	// devices
 	EVENT* event;
 	
+	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* pit;
 	I8255* pio_i;
@@ -135,6 +150,7 @@ protected:
 	MEMORY* memory;
 	MZ1R12* mz1r12;
 	MZ1R13* mz1r13;
+	PIO3034* pio3034;
 	PRINTER* printer;
 	TIMER* timer;
 	

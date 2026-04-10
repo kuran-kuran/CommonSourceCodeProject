@@ -177,6 +177,11 @@ int EMU::get_host_cpus()
 // drive machine
 // ----------------------------------------------------------------------------
 
+const _TCHAR *EMU::device_name()
+{
+	return vm->device_name();
+}
+
 double EMU::get_frame_rate()
 {
 	return vm->get_frame_rate();

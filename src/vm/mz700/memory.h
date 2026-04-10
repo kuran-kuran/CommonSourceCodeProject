@@ -16,8 +16,8 @@
 #include "../../emu.h"
 #include "../device.h"
 
-#if defined(_MZ800)
-class DISPLAY;
+#if defined(SUPPORT_80COLUMN)
+class HD46505;
 #endif
 
 class MEMORY : public DEVICE
@@ -27,8 +27,11 @@ private:
 #if defined(_MZ800)
 	DEVICE *d_pio_int;
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	DEVICE *d_joystick;
+#endif
+#if defined(SUPPORT_80COLUMN)
+	HD46505 *d_crtc;
 #endif
 	
 	// memory
@@ -54,6 +57,10 @@ private:
 	uint8_t vram[0x8000];	// MZ-800 VRAM 32KB
 #else
 	uint8_t vram[0x1000];	// MZ-700/1500 VRAM 4KB
+#endif
+#if defined(SUPPORT_80COLUMN)
+	uint8_t font80[0x800];	// K&P 80-clumn CGROM 2KB
+	uint8_t vram80[0x800];	// K&P 80-clumn VRAM 2KB
 #endif
 	uint8_t mem_bank;
 #if defined(_MZ700)
@@ -93,6 +100,9 @@ private:
 #if defined(_MZ800) || defined(_MZ1500)
 	bool blank_pcg;
 #endif
+#if defined(SUPPORT_80COLUMN)
+	int cblink;
+#endif
 	
 	void set_blank(bool val);
 	void set_hblank(bool val);
@@ -101,7 +111,9 @@ private:
 	void set_vsync(bool val);
 	
 	// renderer
-#if defined(_MZ800)
+#if defined(SUPPORT_80COLUMN)
+	uint8_t screen[250][640];
+#elif defined(_MZ800)
 	uint8_t screen[200][640];
 	scrntype_t palette_mz800_pc[16];
 #else
@@ -122,6 +134,13 @@ public:
 	MEMORY(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
 		set_device_name(_T("Memory Bus"));
+#if defined(SUPPORT_SFD700)
+		sfd700_loaded = false;
+#endif
+#if defined(SUPPORT_80COLUMN)
+		font80_loaded = false;
+		d_crtc = NULL;
+#endif
 	}
 	~MEMORY() {}
 	
@@ -138,7 +157,7 @@ public:
 	void write_data8w(uint32_t addr, uint32_t data, int* wait);
 	uint32_t read_data8w(uint32_t addr, int* wait);
 	void write_io8(uint32_t addr, uint32_t data);
-#if defined(_MZ800)
+#if defined(_MZ800) || defined(SUPPORT_80COLUMN)
 	uint32_t read_io8(uint32_t addr);
 #endif
 #ifdef USE_DEBUGGER
@@ -165,13 +184,30 @@ public:
 		d_pio_int = device;
 	}
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	void set_context_joystick(DEVICE* device)
 	{
 		d_joystick = device;
 	}
 #endif
+#if defined(SUPPORT_80COLUMN)
+	void set_context_crtc(HD46505* device)
+	{
+		d_crtc = device;
+	}
+	uint8_t *get_vram80()
+	{
+		return vram80;
+	}
+#endif
 	void draw_screen();
+	
+#if defined(SUPPORT_SFD700)
+	bool sfd700_loaded;
+#endif
+#if defined(SUPPORT_80COLUMN)
+	bool font80_loaded;
+#endif
 };
 
 #endif

@@ -408,7 +408,8 @@ void* debugger_thread(void *lpx)
 					params[num++] = token;
 				}
 			}
-			if(_tcsicmp(params[0], _T("D")) == 0) {
+			if((_tcsicmp(params[0], _T("D")) == 0) || (_tcsicmp(params[0], _T("DI")) == 0)) {
+				bool invert = (_tcsicmp(params[0], _T("DI")) == 0);
 				if(num <= 3) {
 					uint32_t start_addr = dump_addr;
 					if(num >= 2) {
@@ -442,6 +443,9 @@ void* debugger_thread(void *lpx)
 							buffer[addr & 0x0f] = _T(' ');
 						} else {
 							uint32_t data = target->read_debug_data8((uint32_t)(addr % target->get_debug_data_addr_space()));
+							if (invert) {
+								data = data ^ 0xff;
+							}
 							my_printf(p->osd, ((addr & 0x0f) == 8) ? _T("-%02X"): _T(" %02X"), data);
 							buffer[addr & 0x0f] = ((data >= 0x20 && data <= 0x7e) || (cp932 && data >= 0xa1 && data <= 0xdf)) ? data : _T('.');
 						}
@@ -1487,6 +1491,7 @@ RESTART_GO:
 				// do nothing
 			} else if(_tcsicmp(params[0], _T("?")) == 0) {
 				my_printf(p->osd, _T("D [<range>] - dump memory\n"));
+				my_printf(p->osd, _T("DI [<range>] - dump memory with inverted bits\n"));
 				my_printf(p->osd, _T("E[{B,W,D}] <address> <list> - edit memory (byte,word,dword)\n"));
 				my_printf(p->osd, _T("EA <address> \"<value>\" - edit memory (ascii)\n"));
 				my_printf(p->osd, _T("I[{B,W,D}] <port> - input port (byte,word,dword)\n"));

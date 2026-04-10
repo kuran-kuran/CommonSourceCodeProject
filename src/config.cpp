@@ -376,6 +376,13 @@ void load_config(const _TCHAR* config_path)
 		MyGetPrivateProfileString(_T("Printer"), _T("PrinterDll"), _T("printer.dll"), config.printer_dll_path, _MAX_PATH, config_path);
 	#endif
 	
+	// misc
+	#if defined(USE_GENERAL_PARAM)
+		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
+			config.general_param[i] = MyGetPrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
+		}
+	#endif
+	
 	// win32
 	#ifdef _WIN32
 		config.use_telnet = MyGetPrivateProfileBool(_T("Win32"), _T("UseTelnet"), config.use_telnet, config_path);
@@ -593,6 +600,13 @@ void save_config(const _TCHAR* config_path)
 		MyWritePrivateProfileBool(_T("Input"), _T("JoyToKeyNumPad5"), config.joy_to_key_numpad5, config_path);
 		for(int i = 0; i < 16; i++) {
 			MyWritePrivateProfileInt(_T("Input"), create_string(_T("JoyToKeyButtons%d"), i + 1), config.joy_to_key_buttons[i], config_path);
+		}
+	#endif
+	
+	// misc
+	#if defined(USE_GENERAL_PARAM)
+		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
+			MyWritePrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
 		}
 	#endif
 	

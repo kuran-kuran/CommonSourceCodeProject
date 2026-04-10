@@ -50,11 +50,24 @@
 #if defined(_MZ1500)
 #define MZ1P17_SW1_4_ON
 #endif
+#if defined(_MZ700) && defined(_PAL)
+#define SUPPORT_SFD700
+#define SUPPORT_80COLUMN
+#endif
+#if defined(_MZ700) || defined(_MZ1500)
+#define SUPPORT_JOYSTICK
+#define SUPPORT_CMU800
+#endif
+#if defined(SUPPORT_80COLUMN)
+#define HAS_SY6845E
+#define HD46505_DONT_UPDATE_TIMING
+#endif
 
 // device informations for win32
-#if defined(_MZ700)
+#if defined(_MZ700) || defined(SUPPORT_SFD700) || defined(SUPPORT_CMU800)
 #define USE_DIPSWITCH
-#elif defined(_MZ800)
+#endif
+#if defined(_MZ800)
 #define USE_BOOT_MODE		2
 #endif
 #define USE_TAPE		1
@@ -66,11 +79,13 @@
 #if defined(_MZ700) || defined(_MZ1500)
 #define USE_AUTO_KEY_NUMPAD
 #define USE_VM_AUTO_KEY_TABLE
+#endif
+#if defined(SUPPORT_JOYSTICK)
 #define USE_JOYSTICK
 #define USE_JOYSTICK_TYPE	3
 #define USE_JOY_BUTTON_CAPTIONS
 #endif
-#if defined(_MZ800)
+#if defined(_MZ800) || defined(SUPPORT_80COLUMN)
 #define USE_MONITOR_TYPE	2
 #endif
 #define USE_SCREEN_FILTER
@@ -82,12 +97,39 @@
 #elif defined(_MZ1500)
 #define USE_SOUND_VOLUME	7
 #endif
+#if defined(SUPPORT_CMU800)
+#define USE_GENERAL_PARAM	1
+#define USE_MIDI
+#endif
 #if defined(_MZ1500)
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
 #endif
 #define USE_DEBUGGER
 #define USE_STATE
+
+#if defined(_MZ700)
+#define DIPSWITCH_PCG700		(1 << 0)
+#define DIPSWITCH_MZ1E05		(1 << 1)
+#define DIPSWITCH_MZ1E14		(1 << 2)
+#define DIPSWITCH_MZ1R12		(1 << 3)
+#if defined(SUPPORT_SFD700)
+#define DIPSWITCH_SFD700		(1 << 4)
+#endif
+#if defined(SUPPORT_80COLUMN)
+#define DIPSWITCH_80COLUMN		(1 << 5)
+#endif
+#endif
+#if defined(SUPPORT_CMU800)
+#define DIPSWITCH_CMU800		(1 << 6)
+#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 7)
+#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 8)
+#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 9)
+#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 10)
+#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 11)
+#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 12)
+#define DIPSWITCH_CMU800_TEMPO_160	(1 << 13)
+#endif
 
 #if defined(_MZ700) || defined(_MZ1500)
 static const int vm_auto_key_table_base[][2] = {
@@ -218,8 +260,15 @@ class Z80PIO;
 class PSG;
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+
+#if defined(SUPPORT_JOYSTICK)
 class JOYSTICK;
+#endif
+#if defined(SUPPORT_80COLUMN)
+class HD46505;
+#endif
+#if defined(SUPPORT_CMU800)
+class CMU800;
 #endif
 
 class VM : public VM_TEMPLATE
@@ -268,8 +317,14 @@ protected:
 	PSG* psg;
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	JOYSTICK* joystick;
+#endif
+#if defined(SUPPORT_80COLUMN)
+	HD46505* crtc;
+#endif
+#if defined(SUPPORT_CMU800)
+	CMU800* cmu800;
 #endif
 	
 #if defined(_MZ700)
@@ -291,6 +346,9 @@ public:
 	// ----------------------------------------
 	
 	// drive virtual machine
+#if defined(SUPPORT_SFD700) && defined(SUPPORT_80COLUMN)
+	const _TCHAR *device_name();
+#endif
 	void reset();
 	void run();
 	double get_frame_rate()

@@ -283,6 +283,9 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdL
 	
 	// initialize emulation core
 	emu = new EMU(hWnd, hInstance);
+	
+	// update window
+	SetWindowText(hWnd, emu->device_name());
 	emu->set_host_window_size(WINDOW_WIDTH, WINDOW_HEIGHT, true);
 	
 	// update top-level menu for emulator settings
@@ -389,14 +392,14 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdL
 			if(update_fps_time <= current_time) {
 				if(update_fps_time != 0) {
 					if(emu->message_count > 0) {
-						SetWindowText(hWnd, create_string(_T("%s - %s"), _T(DEVICE_NAME), emu->message));
+						SetWindowText(hWnd, create_string(_T("%s - %s"), emu->device_name(), emu->message));
 						emu->message_count--;
 					} else if(now_skip) {
 						int ratio = (int)(100.0 * (double)total_frames / emu->get_frame_rate() + 0.5);
-						SetWindowText(hWnd, create_string(_T("%s - Skip Frames (%d %%)"), _T(DEVICE_NAME), ratio));
+						SetWindowText(hWnd, create_string(_T("%s - Skip Frames (%d %%)"), emu->device_name(), ratio));
 					} else {
 						int ratio = (int)(100.0 * (double)draw_frames / (double)total_frames + 0.5);
-						SetWindowText(hWnd, create_string(_T("%s - %d fps (%d %%)"), _T(DEVICE_NAME), draw_frames, ratio));
+						SetWindowText(hWnd, create_string(_T("%s - %d fps (%d %%)"), emu->device_name(), draw_frames, ratio));
 					}
 					update_fps_time += 1000;
 					total_frames = draw_frames = 0;
@@ -2872,7 +2875,7 @@ void open_quick_disk_dialog(HWND hWnd, int drv)
 {
 	_TCHAR* path = get_open_file_name(
 		hWnd,
-		_T("Supported Files (*.mzt;*.q20;*.qdf)\0*.mzt;*.q20;*.qdf\0All Files (*.*)\0*.*\0\0"),
+		_T("Supported Files (*.mzt;*.mzf;*.q20;*.qdf)\0*.mzt;*.mzf;*.q20;*.qdf\0All Files (*.*)\0*.*\0\0"),
 		_T("Quick Disk"),
 		NULL,
 		config.initial_quick_disk_dir, _MAX_PATH

@@ -50,6 +50,7 @@
 
 // device informations for win32
 #define USE_DIPSWITCH
+#define USE_GENERAL_PARAM	1
 #define USE_TAPE		1
 #define USE_KEY_LOCKED
 #define USE_AUTO_KEY		5
@@ -64,6 +65,7 @@
 #else
 #define USE_SOUND_VOLUME	3
 #endif
+#define USE_MIDI
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
@@ -81,6 +83,16 @@
 #if defined(_MZ1200)
 #define USE_MONITOR_TYPE	4
 #endif
+
+#define DIPSWITCH_PCG700		(1 << 0)
+#define DIPSWITCH_CMU800		(1 << 1)
+#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 2)
+#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 3)
+#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 4)
+#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 5)
+#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 6)
+#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 7)
+#define DIPSWITCH_CMU800_TEMPO_160	(1 << 8)
 
 #if defined(_MZ80K) || defined(_MZ1200)
 static const int vm_auto_key_table_base[][2] = {
@@ -131,6 +143,7 @@ class EVENT;
 #if defined(_MZ1200) || defined(_MZ80A)
 class AND;
 #endif
+class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
@@ -163,6 +176,7 @@ protected:
 #if defined(_MZ1200) || defined(_MZ80A)
 	AND* and_int;
 #endif
+	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* ctc;
 	I8255* pio;

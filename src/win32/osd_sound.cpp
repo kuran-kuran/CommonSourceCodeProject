@@ -109,6 +109,12 @@ void OSD::update_sound(int* extra_frames)
 			lpdsSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 			sound_started = true;
 			return;
+		} else {
+			DWORD dw = 0;
+			lpdsSecondaryBuffer->GetStatus(&dw);
+			if(!(dw & DSBSTATUS_PLAYING)) {
+				lpdsSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+			}
 		}
 		
 		// check current position

@@ -891,6 +891,7 @@ int16_t DLL_PREFIX ExchangeEndianS16(uint16_t x);
 	errno_t DLL_PREFIX my_tcscat_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource);
 	errno_t DLL_PREFIX my_strcpy_s(char *strDestination, size_t numberOfElements, const char *strSource);
 	errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource);
+	errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination,  const _TCHAR *strSource);
 	errno_t DLL_PREFIX my_strncpy_s(char *strDestination, size_t numberOfElements, const char *strSource, size_t count);
 	errno_t DLL_PREFIX my_tcsncpy_s(_TCHAR *strDestination, size_t numberOfElements, const _TCHAR *strSource, size_t count);
 	char * DLL_PREFIX my_strtok_s(char *strToken, const char *strDelimit, char **context);

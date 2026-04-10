@@ -327,6 +327,7 @@
     <ClCompile Include="..\src\emu.cpp" />
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
+    <ClCompile Include="..\src\vm\cmu800.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -339,6 +340,7 @@
     <ClCompile Include="..\src\vm\i8255.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
+    <ClCompile Include="..\src\vm\midi.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz2500\calendar.cpp" />
     <ClCompile Include="..\src\vm\mz2500\cmt.cpp" />
@@ -352,6 +354,7 @@
     <ClCompile Include="..\src\vm\mz2500\mz1e26.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e30.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1e32.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r37.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz2500.cpp" />
@@ -373,6 +376,7 @@
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
+    <ClCompile Include="..\src\win32\osd_midi.cpp" />
     <ClCompile Include="..\src\win32\osd_screen.cpp" />
     <ClCompile Include="..\src\win32\osd_socket.cpp" />
     <ClCompile Include="..\src\win32\osd_sound.cpp" />
@@ -385,6 +389,7 @@
     <ClInclude Include="..\src\fifo.h" />
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
+    <ClInclude Include="..\src\vm\cmu800.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />
@@ -403,6 +408,7 @@
     <ClInclude Include="..\src\vm\i8255.h" />
     <ClInclude Include="..\src\vm\io.h" />
     <ClInclude Include="..\src\vm\mb8877.h" />
+    <ClInclude Include="..\src\vm\midi.h" />
     <ClInclude Include="..\src\vm\mz1p17.h" />
     <ClInclude Include="..\src\vm\mz2500\calendar.h" />
     <ClInclude Include="..\src\vm\mz2500\cmt.h" />
@@ -416,6 +422,7 @@
     <ClInclude Include="..\src\vm\mz2500\mz1e26.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e30.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1e32.h" />
+    <ClInclude Include="..\src\vm\mz2500\mz1r12.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r37.h" />
     <ClInclude Include="..\src\vm\mz2500\mz2500.h" />

@@ -222,6 +222,15 @@ BEGIN
         END
         POPUP "Sound"
         BEGIN
+            MENUITEM "CMU-800",                 ID_VM_DIPSWITCH0
+            MENUITEM "CMU-800 Tempo +10",       ID_VM_DIPSWITCH1
+            MENUITEM "CMU-800 Tempo -10",       ID_VM_DIPSWITCH2
+            MENUITEM "CMU-800 Tempo +5",        ID_VM_DIPSWITCH3
+            MENUITEM "CMU-800 Tempo -5",        ID_VM_DIPSWITCH4
+            MENUITEM "CMU-800 Tempo +1",        ID_VM_DIPSWITCH5
+            MENUITEM "CMU-800 Tempo -1",        ID_VM_DIPSWITCH6
+            MENUITEM "CMU-800 Tempo 160",       ID_VM_DIPSWITCH7
+            MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",          ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",          ID_VM_SOUND_NOISE_CMT
             MENUITEM "Play CMT Signal",         ID_VM_SOUND_TAPE_SIGNAL

@@ -13,12 +13,14 @@
 #include "../device.h"
 #include "../event.h"
 
+#include "../cmu800.h"
 #include "../datarec.h"
 #include "../disk.h"
 #include "../i8253.h"
 #include "../i8255.h"
 #include "../io.h"
 #include "../mb8877.h"
+#include "../midi.h"
 #include "../mz1p17.h"
 #include "../noise.h"
 #include "../pcm1bit.h"
@@ -36,6 +38,7 @@
 #include "memory80b.h"
 #include "mz1r12.h"
 #include "mz1r13.h"
+#include "pio3034.h"
 #include "printer.h"
 #include "timer.h"
 
@@ -61,6 +64,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	dummy = new DEVICE(this, emu);	// must be 1st device
 	event = new EVENT(this, emu);	// must be 2nd device
 	
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	}
 	drec = new DATAREC(this, emu);
 	drec->set_context_noise_play(new NOISE(this, emu));
 	drec->set_context_noise_stop(new NOISE(this, emu));
@@ -83,6 +90,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory = new MEMORY(this, emu);
 	mz1r12 = new MZ1R12(this, emu);
 	mz1r13 = new MZ1R13(this, emu);
+	pio3034 = new PIO3034(this, emu);
 	printer = new PRINTER(this, emu);
 	timer = new TIMER(this, emu);
 	
@@ -221,6 +229,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// i/o bus
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	}
+	io->set_iomap_range_rw(0xa0, 0xa3, pio3034);
 	io->set_iomap_range_rw(0xb8, 0xbb, mz1r13);
 #ifdef SUPPORT_QUICK_DISK
 	io->set_iomap_alias_rw(0xd0, sio, 0);
@@ -569,7 +581,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	6
+#define STATE_VERSION	7
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -577,7 +589,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

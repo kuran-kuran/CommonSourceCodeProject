@@ -33,6 +33,8 @@
 #define SCSI_HOST_AUTO_ACK
 
 // device informations for win32
+#define USE_DIPSWITCH
+#define USE_GENERAL_PARAM	1
 #define USE_SPECIAL_RESET
 #define USE_BOOT_MODE		3
 #define USE_FLOPPY_DISK		4
@@ -47,11 +49,21 @@
 #define USE_SCANLINE
 #define USE_SOUND_VOLUME	7
 #define USE_JOYSTICK
+#define USE_MIDI
 #define USE_MOUSE
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
+
+#define DIPSWITCH_CMU800		(1 << 0)
+#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define DIPSWITCH_CMU800_TEMPO_160	(1 << 7)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -67,6 +79,7 @@ class EMU;
 class DEVICE;
 class EVENT;
 
+class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
@@ -93,9 +106,10 @@ class MEMORY;
 class MOUSE;
 class MZ1E26;
 class MZ1E30;
+class MZ1E32;
+class MZ1R12;
 class MZ1R13;
 class MZ1R37;
-class MZ1E32;
 class PRINTER;
 class SERIAL;
 class TIMER;
@@ -108,6 +122,7 @@ protected:
 	// devices
 	EVENT* event;
 	
+	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* pit;
 	I8255* pio_i;
@@ -134,9 +149,10 @@ protected:
 	MOUSE* mouse;
 	MZ1E26* mz1e26;
 	MZ1E30* mz1e30;
+	MZ1E32* mz1e32;
+	MZ1R12* mz1r12;
 	MZ1R13* mz1r13;
 	MZ1R37* mz1r37;
-	MZ1E32* mz1e32;
 	PRINTER* printer;
 	SERIAL* serial;
 	TIMER* timer;

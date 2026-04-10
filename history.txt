@@ -1,3 +1,32 @@
+12/8/2025
+
+[EMU/DEBUGGER] support DI command (thanks Mr.kuran_kuran)
+[EMU/SOUND] restart playing sound if it is suspended (thanks Mr.YAT)
+
+[VM/*] improve process_state() for GNU C/Clang (thanks Mr.shikarunochi)
+[VM/CMU800] support CMU-800 (thanks Mr.kuran_kuran)
+[VM/HD46505] support SY6845E
+[VM/PC80S31K] hack: support 1.44MB 2HD
+
+[MZ700] support Kersten & Partner SFD-700 and 80-column display
+[MZ700] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ700/EMM] support 16MB battery backuped EMM
+[MZ80K] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ80B] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ80B] support PIO-3034
+[MZ2200] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ2200] support PIO-3034
+[MZ2500] support CMU-800 (thanks Mr.kuran_kuran)
+[MZ2500/MZ1R12] support MZ-1R12 (thanks Mr.kuran_kuran)
+[PC8801] hack: support 1.44MB 2HD
+[PC9801] hack: support 1.44MB 2HD
+[X1] support serial MIDI port (thanks Mr.MedamaP)
+[X1] hack: support 2DD
+[X1/EMM] support 16MB battery backuped EMM
+[X1TURBO] hack: support 1.44MB 2HD
+[X1TURBO/DISPLAY] improve text screen renderer (thanks Mr.MedamaP)
+
+
 11/30/2025
 
 [BX1/PRINTER] add hack code for printing FORMAT instruction

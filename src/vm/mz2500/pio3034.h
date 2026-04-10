@@ -1,22 +1,21 @@
 /*
-	SHARP MZ-700 Emulator 'EmuZ-700'
-	SHARP MZ-800 Emulator 'EmuZ-800'
-	SHARP MZ-1500 Emulator 'EmuZ-1500'
+	SHARP MZ-80B Emulator 'EmuZ-80B'
+	SHARP MZ-2200 Emulator 'EmuZ-2200'
 
 	Author : Takeda.Toshiya
-	Date   : 2010.09.02 -
+	Date   : 2025.12.08 -
 
-	[ emm ]
+	[ PIO-3034 ]
 */
 
-#ifndef _EMM_H_
-#define _EMM_H_
+#ifndef _PIO3034_H_
+#define _PIO3034_H_
 
 #include "../vm.h"
 #include "../../emu.h"
 #include "../device.h"
 
-class EMM : public DEVICE
+class PIO3034 : public DEVICE
 {
 private:
 	uint8_t *data_buffer;
@@ -24,11 +23,11 @@ private:
 	bool modified;
 	
 public:
-	EMM(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
+	PIO3034(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("EMM"));
+		set_device_name(_T("PIO-3034"));
 	}
-	~EMM() {}
+	~PIO3034() {}
 	
 	// common functions
 	void initialize();

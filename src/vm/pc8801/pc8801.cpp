@@ -961,6 +961,17 @@ void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 	
 	if(controller != NULL) {
 		controller->open_disk(drv & 1, file_path, bank);
+		
+		// for convenience
+		if(controller->get_media_type(drv) == MEDIA_TYPE_144) {
+			if(controller->get_drive_type(drv) == DRIVE_TYPE_2HD) {
+				controller->set_drive_type(drv, DRIVE_TYPE_144);
+			}
+		} else if(controller->get_media_type(drv) == MEDIA_TYPE_2HD) {
+			if(controller->get_drive_type(drv) == DRIVE_TYPE_144) {
+				controller->set_drive_type(drv, DRIVE_TYPE_2HD);
+			}
+		}
 	}
 }
 
@@ -1124,7 +1135,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {

@@ -49,8 +49,15 @@
 #include "psg.h"
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 #include "joystick.h"
+#endif
+#if defined(SUPPORT_80COLUMN)
+#include "../hd46505.h"
+#endif
+#if defined(SUPPORT_CMU800)
+#include "../cmu800.h"
+#include "../midi.h"
 #endif
 
 // ----------------------------------------------------------------------------
@@ -60,9 +67,19 @@
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
 #if defined(_MZ700)
-	if((config.dipswitch & 4) && (config.dipswitch & 8)) {
-		config.dipswitch &= ~8;
+	// MZ-1E14 vs MZ-1R12
+	if((config.dipswitch & DIPSWITCH_MZ1E14) && (config.dipswitch & DIPSWITCH_MZ1R12)) {
+		config.dipswitch &= ~DIPSWITCH_MZ1R12;
 	}
+#if defined(SUPPORT_SFD700)
+	// MZ-1E05 vs SFD-700
+	if((config.dipswitch & DIPSWITCH_MZ1E05) && (config.dipswitch & DIPSWITCH_SFD700)) {
+		config.dipswitch &= ~DIPSWITCH_SFD700;
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+	config.monitor_type = 0; // select standard monitor
+#endif
 	dipswitch = config.dipswitch;
 #elif defined(_MZ800)
 	boot_mode = config.boot_mode;
@@ -83,7 +100,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pio = new I8255(this, emu);
 	io = new IO(this, emu);
 	io->space = 0x100;
-	fdc = new MB8877(this, emu);	// mb8876
+	fdc = new MB8877(this, emu);	// MB8876
 	fdc->set_context_noise_seek(new NOISE(this, emu));
 	fdc->set_context_noise_head_down(new NOISE(this, emu));
 	fdc->set_context_noise_head_up(new NOISE(this, emu));
@@ -124,16 +141,24 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	psg_l->set_device_name(_T("SN76489AN PSG (Left)"));
 	psg_r = new SN76489AN(this, emu);
 	psg_r->set_device_name(_T("SN76489AN PSG (Right)"));
+	psg = new PSG(this, emu);
 #endif
 	pio_int = new Z80PIO(this, emu);
 	sio_rs = new Z80SIO(this, emu);
-	
-#if defined(_MZ1500)
-	psg = new PSG(this, emu);
 #endif
-#endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	joystick = new JOYSTICK(this, emu);
+#endif
+#if defined(SUPPORT_80COLUMN)
+	if(config.dipswitch & DIPSWITCH_80COLUMN) {
+		crtc = new HD46505(this, emu);	// SY6845E
+	}
+#endif
+#if defined(SUPPORT_CMU800)
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	}
 #endif
 	
 	// set contexts
@@ -160,7 +185,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	// memory mapped I/O
 	memory->set_context_pio(pio);
 	memory->set_context_pit(pit);
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	memory->set_context_joystick(joystick);
 #endif
 	
@@ -290,6 +315,13 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	sio_rs->set_rx_clock(1, 1200 * 16);
 #endif
 	
+#if defined(SUPPORT_80COLUMN)
+	if(config.dipswitch & DIPSWITCH_80COLUMN) {
+		crtc->set_vram_ptr(memory->get_vram80(), 0x800);
+		memory->set_context_crtc(crtc);
+	}
+#endif
+	
 	// cpu bus
 	cpu->set_context_mem(memory);
 	cpu->set_context_io(io);
@@ -383,6 +415,19 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iovalue_single_r(0xfe, 0xc0);
 #endif
 	
+#if defined(SUPPORT_80COLUMN)
+	if(config.dipswitch & DIPSWITCH_80COLUMN) {
+		io->set_iomap_single_r(0x70, memory);
+		io->set_iomap_single_w(0x71, memory);
+		io->set_iomap_range_rw(0x72, 0x73, crtc);
+	}
+#endif
+#if defined(SUPPORT_CMU800)
+	if(config.dipswitch & DIPSWITCH_CMU800) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	}
+#endif
+	
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->initialize();
@@ -420,6 +465,16 @@ DEVICE* VM::get_device(int id)
 // ----------------------------------------------------------------------------
 // drive virtual machine
 // ----------------------------------------------------------------------------
+
+#if defined(SUPPORT_SFD700) && defined(SUPPORT_80COLUMN)
+const _TCHAR *VM::device_name()
+{
+	if(memory->sfd700_loaded && memory->font80_loaded) {
+		return _T("Kersten & Partner MZ 7.80");
+	}
+	return _T(DEVICE_NAME);
+}
+#endif
 
 void VM::reset()
 {
@@ -685,11 +740,26 @@ bool VM::is_frame_skippable()
 void VM::update_config()
 {
 #if defined(_MZ700)
-	if(!(dipswitch & 4) && (config.dipswitch & 4)) {
-		config.dipswitch &= ~8;
-	} else if(!(dipswitch & 8) && (config.dipswitch & 8)) {
-		config.dipswitch &= ~4;
+	// MZ-1E14 vs MZ-1R12
+	if(!(dipswitch & DIPSWITCH_MZ1E14) && (config.dipswitch & DIPSWITCH_MZ1E14)) {
+		config.dipswitch &= ~DIPSWITCH_MZ1R12;
+	} else if(!(dipswitch & DIPSWITCH_MZ1R12) && (config.dipswitch & DIPSWITCH_MZ1R12)) {
+		config.dipswitch &= ~DIPSWITCH_MZ1E14;
 	}
+#if defined(SUPPORT_SFD700)
+	// MZ-1E05 vs SFD-700
+	if(!(dipswitch & DIPSWITCH_MZ1E05) && (config.dipswitch & DIPSWITCH_MZ1E05)) {
+		config.dipswitch &= ~DIPSWITCH_SFD700;
+	} else if(!(dipswitch & DIPSWITCH_SFD700) && (config.dipswitch & DIPSWITCH_SFD700)) {
+		config.dipswitch &= ~DIPSWITCH_MZ1E05;
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+//	if(config.monitor_type == 1 && !(config.dipswitch & DIPSWITCH_80COLUMN)) {
+	if(config.monitor_type == 1 && !memory->font80_loaded) {
+		config.monitor_type = 0;
+	}
+#endif
 	dipswitch = config.dipswitch;
 #endif
 #if defined(_MZ800)
@@ -707,7 +777,7 @@ void VM::update_config()
 #endif
 }
 
-#define STATE_VERSION	5
+#define STATE_VERSION	6
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -715,7 +785,12 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 		return false;
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
+#if defined(__GNUC__) || defined(__clang__) // @shikarunochi
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+#else
 		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+#endif
 		int len = (int)_tcslen(name);
 		
 		if(!state_fio->StateCheckInt32(len)) {
