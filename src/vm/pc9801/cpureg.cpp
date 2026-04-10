@@ -13,6 +13,7 @@
 
 #include "cpureg.h"
 #if defined(SUPPORT_32BIT_ADDRESS)
+#include "membus.h"
 #include "../i386_np21.h"
 //#include "../i386.h"
 #else
@@ -86,10 +87,22 @@ uint32_t CPUREG::read_io8(uint32_t addr)
 //		value |= 0x80; // CPU MODE, 1 = High/Low, 0 = Middle (PC-9821Ap/As/Ae/Af)
 //		value |= 0x40; // ODP, 1 = Existing (PC-9821Ts)
 #if defined(SUPPORT_SCSI_IF)
+#if defined(SUPPORT_32BIT_ADDRESS)
+		if(!(d_memory->bios_selected & 0x20)) {
+			value |= 0x40;
+		}
+#else
 //		value |= 0x40; // Internal 55-type SCSI-HDD, 0 = Existing
 #endif
+#endif
 #if defined(SUPPORT_SASI_IF)
+#if defined(SUPPORT_32BIT_ADDRESS)
+		if(!(d_memory->bios_selected & 0x40)) {
+			value |= 0x20;
+		}
+#else
 //		value |= 0x20; // Internal 27-type SASI-HDD, 0 = Existing
+#endif
 #endif
 //		value |= 0x10; // Unknown
 		value |= 0x08; // RAM access, 1 = Internal-standard/External-enhanced RAM, 0 = Internal-enhanced RAM

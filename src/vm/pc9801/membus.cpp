@@ -91,6 +91,17 @@ void MEMBUS::initialize()
 #endif
 	
 #if !defined(SUPPORT_HIRESO)
+	// EMS
+#if defined(SUPPORT_NEC_EMS)
+	memset(nec_ems, 0, sizeof(nec_ems));
+#endif
+	// EMS PC-9801-53
+	memset(ems, 0, sizeof(ems));
+	ems_bank[0] = 0; update_ems(0);
+	ems_bank[1] = 1; update_ems(1);
+	ems_bank[2] = 2; update_ems(2);
+	ems_bank[3] = 3;
+	
 	// EXT BIOS
 #if defined(_PC9801) || defined(_PC9801E)
 	memset(fd_bios_2hd, 0xff, sizeof(fd_bios_2hd));
@@ -141,10 +152,33 @@ void MEMBUS::initialize()
 //	ide_bios_ram_selected = false;
 	update_ide_bios();
 #endif
-	
-	// EMS
-#if defined(SUPPORT_NEC_EMS)
-	memset(nec_ems, 0, sizeof(nec_ems));
+#endif
+#if defined(SUPPORT_32BIT_ADDRESS)
+	bios_selected = 0;
+#if !defined(SUPPORT_HIRESO)
+	if(sound_bios_selected) {
+		bios_selected |= 0x80;
+	}
+#if defined(SUPPORT_SASI_IF)
+	if(sasi_bios_selected) {
+		bios_selected |= 0x40;
+	}
+#endif
+#if defined(SUPPORT_SCSI_IF)
+	if(scsi_bios_selected) {
+		bios_selected |= 0x20;
+	}
+#endif
+#if defined(SUPPORT_IDE_IF)
+	if(ide_bios_selected) {
+		bios_selected |= 0x10;
+	}
+#endif
+#endif
+#if defined(SUPPORT_BIOS_RAM)
+	if(bios_ram_selected) {
+		bios_selected |= 0x02;
+	}
 #endif
 #endif
 }
@@ -156,6 +190,9 @@ void MEMBUS::reset()
 	// BIOS/ITF
 #if defined(SUPPORT_BIOS_RAM)
 	bios_ram_selected = false;
+#if defined(SUPPORT_32BIT_ADDRESS)
+	bios_selected &= ~0x02;
+#endif
 #endif
 #if defined(SUPPORT_ITF_ROM)
 	itf_selected = true;
@@ -266,6 +303,15 @@ void MEMBUS::write_io8(uint32_t addr, uint32_t data)
 			break;
 		}
 		break;
+	case 0x08e1:
+	case 0x08e3:
+	case 0x08e5:
+	case 0x08e7:
+		if(ems_bank[(addr >> 1) & 3] != (uint8_t)(data & 0x7f)) {
+			ems_bank[(addr >> 1) & 3] = data & 0x7f;
+			update_ems((addr >> 1) & 3);
+		}
+		break;
 #endif
 #if defined(SUPPORT_24BIT_ADDRESS) || defined(SUPPORT_32BIT_ADDRESS)
 #if !defined(_PC98XA)
@@ -330,6 +376,7 @@ void MEMBUS::write_io8(uint32_t addr, uint32_t data)
 			update_bios();
 		}
 #endif
+		bios_selected = data;
 		break;
 #endif
 	// dummy for no cases
@@ -550,6 +597,16 @@ void MEMBUS::update_bios()
 }
 
 #if !defined(SUPPORT_HIRESO)
+void MEMBUS::update_ems(int bank)
+{
+	switch(bank) {
+	case 0: set_memory_rw(0xc0000, 0xc3fff, ems + 0x4000 * ems_bank[0]); break;
+	case 1: set_memory_rw(0xc4000, 0xc7fff, ems + 0x4000 * ems_bank[1]); break;
+	case 2: set_memory_rw(0xc8000, 0xcbfff, ems + 0x4000 * ems_bank[2]); break;
+	case 3: update_sound_bios(); break;
+	}
+}
+
 void MEMBUS::update_sound_bios()
 {
 	if(sound_bios_selected) {
@@ -560,7 +617,9 @@ void MEMBUS::update_sound_bios()
 			unset_memory_w(0xcc000, 0xcffff);
 //		}
 	} else {
-		unset_memory_rw(0xcc000, 0xcffff);
+		// EMS PC-9801-53
+		set_memory_rw(0xcc000, 0xcffff, ems + 0x4000 * ems_bank[3]);
+//		unset_memory_rw(0xcc000, 0xcffff);
 	}
 }
 
@@ -626,7 +685,7 @@ void MEMBUS::update_nec_ems()
 #endif
 #endif
 
-#define STATE_VERSION	5
+#define STATE_VERSION	6
 
 bool MEMBUS::process_state(FILEIO* state_fio, bool loading)
 {
@@ -666,11 +725,16 @@ bool MEMBUS::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(nec_ems, sizeof(nec_ems), 1);
 	state_fio->StateValue(nec_ems_selected);
 #endif
+	state_fio->StateArray(ems, sizeof(ems), 1);
+	state_fio->StateArray(ems_bank, sizeof(ems_bank), 1);
 #endif
 #if defined(SUPPORT_24BIT_ADDRESS) || defined(SUPPORT_32BIT_ADDRESS)
 	state_fio->StateValue(dma_access_ctrl);
 	state_fio->StateValue(window_80000h);
 	state_fio->StateValue(window_a0000h);
+#endif
+#if defined(SUPPORT_32BIT_ADDRESS)
+	state_fio->StateValue(bios_selected);
 #endif
 	if(!MEMORY::process_state(state_fio, loading)) {
 		return false;
@@ -680,6 +744,9 @@ bool MEMBUS::process_state(FILEIO* state_fio, bool loading)
 	if(loading) {
 		update_bios();
 #if !defined(SUPPORT_HIRESO)
+		update_ems(0);
+		update_ems(1);
+		update_ems(2);
 		update_sound_bios();
 #if defined(SUPPORT_SASI_IF)
 		update_sasi_bios();

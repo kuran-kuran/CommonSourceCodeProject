@@ -1,3 +1,9 @@
+12/15/2025
+
+[BX1] support I/O CONTROLLER X-7101B
+[PC9801/MEMBUS] support PC-9801-53 with 2MB RAM
+
+
 12/14/2025
 
 [CONFIG] add option_switch for enabling option devices instead of dipswitch

@@ -131,13 +131,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memset(bios_9000, 0xff, sizeof(bios_9000));
 	memset(bios_f000, 0xff, sizeof(bios_f000));
 	
-	memory->read_bios(_T("CART_5000.ROM"), cart_5000, sizeof(cart_5000));
-	memory->read_bios(_T("CART_6000.ROM"), cart_6000, sizeof(cart_6000));
-	memory->read_bios(_T("CART_7000.ROM"), cart_7000, sizeof(cart_7000));
-	memory->read_bios(_T("CART_8000.ROM"), cart_8000, sizeof(cart_8000));
-	memory->read_bios(_T("BIOS_9000.ROM"), bios_9000, sizeof(bios_9000));
-	memory->read_bios(_T("BIOS_F000.ROM"), bios_f000, sizeof(bios_f000));
-	
 #if defined(_AX1)
 	memory->set_memory_rw(0x0000, 0x07ff, ram + 0x0000);
 #elif defined(_BX1)
@@ -151,6 +144,31 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_memory_r(0x9000, 0xdfff, bios_9000);
 	memory->set_memory_mapped_io_rw(0xe000, 0xefff, io);
 	memory->set_memory_r(0xf000, 0xffff, bios_f000);
+	
+	// X-7101B cartridge has 3KB ROM + 1KB RAM
+	int size;
+	size = memory->read_bios(_T("CART_5000.ROM"), cart_5000, sizeof(cart_5000));
+	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
+		memory->set_memory_rw(0x5000 + size, 0x5fff, ram + 0x5000 + size);
+	}
+	size = memory->read_bios(_T("CART_6000.ROM"), cart_6000, sizeof(cart_6000));
+	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
+		memory->set_memory_rw(0x6000 + size, 0x6fff, ram + 0x6000 + size);
+	}
+	if(FILEIO::IsFileExisting(create_local_path(_T("X-7101B.ROM")))) {
+		size = memory->read_bios(_T("X-7101B.ROM"), cart_7000, sizeof(cart_7000));
+	} else {
+		size = memory->read_bios(_T("CART_7000.ROM"), cart_7000, sizeof(cart_7000));
+	}
+	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
+		memory->set_memory_rw(0x7000 + size, 0x7fff, ram + 0x7000 + size);
+	}
+	size = memory->read_bios(_T("CART_8000.ROM"), cart_8000, sizeof(cart_8000));
+	if((size = ((size + 1023) >> 10) << 10) > 0 && size < 0x1000) {
+		memory->set_memory_rw(0x8000 + size, 0x8fff, ram + 0x8000 + size);
+	}
+	memory->read_bios(_T("BIOS_9000.ROM"), bios_9000, sizeof(bios_9000));
+	memory->read_bios(_T("BIOS_F000.ROM"), bios_f000, sizeof(bios_f000));
 	
 	// io bus
 	io->set_iomap_range_r (0xe121, 0xe122, keyboard);
@@ -352,7 +370,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	2
+#define STATE_VERSION	3
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {

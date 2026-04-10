@@ -224,7 +224,7 @@ protected:
 	uint8_t cart_8000[0x1000]; // 8000h-8FFFh
 	uint8_t bios_9000[0x5000]; // 9000h-DFFFh (Integrated)
 	uint8_t bios_f000[0x1000]; // F000h-FFFFh (Integrated)
-	uint8_t ram[0x5000];
+	uint8_t ram[0x9000];
 	
 public:
 	// ----------------------------------------

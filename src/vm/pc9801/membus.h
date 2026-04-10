@@ -94,6 +94,10 @@ private:
 	bool nec_ems_selected;
 	void update_nec_ems();
 #endif
+	// EMS PC-9801-53
+	uint8_t ems[0x200000];
+	uint8_t ems_bank[4];
+	void update_ems(int bank);
 #endif
 	
 #if defined(SUPPORT_24BIT_ADDRESS) || defined(SUPPORT_32BIT_ADDRESS)
@@ -134,6 +138,9 @@ public:
 	{
 		d_display = device;
 	}
+#if defined(SUPPORT_32BIT_ADDRESS)
+	uint8_t bios_selected; // 0x053d
+#endif
 };
 
 #endif
