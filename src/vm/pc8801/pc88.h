@@ -161,6 +161,9 @@ private:
 #ifdef SUPPORT_M88_DISKDRV
 	DEVICE *d_diskio;
 #endif
+#ifdef SUPPORT_CMU800
+	DEVICE *d_cmu800;
+#endif
 	
 	uint8_t* rbank[16];
 	uint8_t* wbank[16];
@@ -416,6 +419,9 @@ public:
 #ifdef SUPPORT_M88_DISKDRV
 		d_diskio = NULL;
 #endif
+#ifdef SUPPORT_CMU800
+		d_cmu800 = NULL;
+#endif
 #if defined(PC8001_VARIANT)
 		set_device_name(_T("PC-8001 Core"));
 #else
@@ -565,6 +571,12 @@ public:
 	void set_context_diskio(DEVICE* device)
 	{
 		d_diskio = device;
+	}
+#endif
+#ifdef SUPPORT_CMU800
+	void set_context_cmu800(DEVICE* device)
+	{
+		d_cmu800 = device;
 	}
 #endif
 	void key_down(int code, bool repeat);

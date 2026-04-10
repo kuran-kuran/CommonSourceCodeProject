@@ -202,6 +202,15 @@ BEGIN
             MENUITEM "None",                        ID_VM_SOUND_TYPE0
             MENUITEM "OPN",                         ID_VM_SOUND_TYPE1
             MENUITEM SEPARATOR
+            MENUITEM "CMU-800",                     ID_VM_OPTION_SWITCH12
+            MENUITEM "CMU-800 Tempo +10",           ID_VM_OPTION_SWITCH13
+            MENUITEM "CMU-800 Tempo -10",           ID_VM_OPTION_SWITCH14
+            MENUITEM "CMU-800 Tempo +5",            ID_VM_OPTION_SWITCH15
+            MENUITEM "CMU-800 Tempo -5",            ID_VM_OPTION_SWITCH16
+            MENUITEM "CMU-800 Tempo +1",            ID_VM_OPTION_SWITCH17
+            MENUITEM "CMU-800 Tempo -1",            ID_VM_OPTION_SWITCH18
+            MENUITEM "CMU-800 Tempo 160",           ID_VM_OPTION_SWITCH19
+            MENUITEM SEPARATOR
             MENUITEM "GSX-8800",                    ID_VM_OPTION_SWITCH2
             MENUITEM "PCG-8100",                    ID_VM_OPTION_SWITCH3
             MENUITEM SEPARATOR

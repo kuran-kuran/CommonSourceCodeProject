@@ -29,7 +29,10 @@ private:
 	uint8_t before_rythm;
 	bool is_reset;
 	int tempo_freq, tempo_new, tempo_id;
+	bool key_on[8];
 	void reset_midi();
+	void note_on_midi8253(int channel);
+	void note_on_midi(int channel);
 public:
 	CMU800(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
@@ -38,6 +41,7 @@ public:
 	~CMU800() {}
 	
 	// common functions
+	void reset();
 	void initialize();
 	void release();
 	void write_io8(uint32_t addr, uint32_t data);

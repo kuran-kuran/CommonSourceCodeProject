@@ -100,6 +100,8 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
+	} else {
+		cmu800 = NULL;
 	}
 	if(config.option_switch & OPTION_SWITCH_MZ1E05) {
 		fdc = new MB8877(this, emu);
@@ -394,6 +396,9 @@ void VM::special_reset()
 		mz1m01->reset();
 	}
 #endif
+	if(cmu800) {
+		cmu800->reset();
+	}
 }
 
 void VM::run()
