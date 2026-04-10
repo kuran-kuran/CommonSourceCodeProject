@@ -239,7 +239,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	rtc = new UPD1990A(this, emu);
 #if defined(SUPPORT_2HD_FDD_IF)
 #if /*defined(_PC9801) ||*/ defined(_PC9801E)
-	if((config.dipswitch & DIPSWITCH_2HD) && FILEIO::IsFileExisting(create_local_path(_T("2HDIF.ROM")))) {
+	if((config.option_switch & OPTION_SWITCH_2HD) && FILEIO::IsFileExisting(create_local_path(_T("2HDIF.ROM")))) {
 #endif
 		fdc_2hd = new UPD765A(this, emu);
 		fdc_2hd->set_device_name(_T("uPD765A FDC (2HD I/F)"));
@@ -251,7 +251,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 #if defined(SUPPORT_2DD_FDD_IF)
 #if defined(_PC9801) || defined(_PC9801E)
-	if((config.dipswitch & DIPSWITCH_2DD) && FILEIO::IsFileExisting(create_local_path(_T("2DDIF.ROM")))) {
+	if((config.option_switch & OPTION_SWITCH_2DD) && FILEIO::IsFileExisting(create_local_path(_T("2DDIF.ROM")))) {
 #endif
 		fdc_2dd = new UPD765A(this, emu);
 		fdc_2dd->set_device_name(_T("uPD765A FDC (2DD I/F)"));
@@ -353,7 +353,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 #if defined(SUPPORT_320KB_FDD_IF)
 	// 320kb fdd drives
-	if((config.dipswitch & DIPSWITCH_2D) && (FILEIO::IsFileExisting(create_local_path(_T("DISK.ROM"))) || FILEIO::IsFileExisting(create_local_path(_T("PC88.ROM"))))) {
+	if((config.option_switch & OPTION_SWITCH_2D) && (FILEIO::IsFileExisting(create_local_path(_T("DISK.ROM"))) || FILEIO::IsFileExisting(create_local_path(_T("PC88.ROM"))))) {
 		pio_sub = new I8255(this, emu);
 		pio_sub->set_device_name(_T("8255 PIO (320KB FDD)"));
 		pc80s31k = new PC80S31K(this, emu);
@@ -1016,7 +1016,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pc88cpu_sub->set_context_event_manager(pc88event);
 	
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
+	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
 		pc88diskio = new DiskIO(this, emu);
 		pc88diskio->set_context_event_manager(pc88event);
 	} else {
@@ -1057,7 +1057,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_M88_DISKDRV
-	if(config.dipswitch & DIPSWITCH_M88_DISKDRV) {
+	if(config.option_switch & OPTION_SWITCH_M88_DISKDRV) {
 		pc88->set_context_diskio(pc88diskio);
 	}
 #endif

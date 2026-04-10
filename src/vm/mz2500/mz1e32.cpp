@@ -13,7 +13,8 @@ void MZ1E32::initialize()
 {
 	// rom file
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("MZ-1E32.ROM")), FILEIO_READ_BINARY)) {
+	if(fio->Fopen(create_local_path(_T("MZ1E32.ROM" )), FILEIO_READ_BINARY) ||
+	   fio->Fopen(create_local_path(_T("MZ-1E32.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fseek(0, FILEIO_SEEK_END);
 		if((rom_size = fio->Ftell()) == 0xA0000) {
 			rom_buffer = (uint8_t*)malloc(rom_size);

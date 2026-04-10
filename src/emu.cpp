@@ -73,8 +73,8 @@ EMU::EMU()
 #ifdef USE_CPU_TYPE
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+	option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	sound_type = config.sound_type;
@@ -284,9 +284,9 @@ void EMU::reset()
 	reinitialize |= (cpu_type != config.cpu_type);
 	cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	reinitialize |= (dipswitch != config.dipswitch);
-	dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+	reinitialize |= (option_switch != config.option_switch);
+	option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	reinitialize |= (sound_type != config.sound_type);
@@ -2618,6 +2618,15 @@ void EMU::close_hard_disk(int drv)
 	}
 }
 
+bool EMU::is_hard_disk_connected(int drv)
+{
+	if(drv < USE_HARD_DISK) {
+		return vm->is_hard_disk_connected(drv);
+	} else {
+		return false;
+	}
+}
+
 bool EMU::is_hard_disk_inserted(int drv)
 {
 	if(drv < USE_HARD_DISK) {
@@ -2823,6 +2832,15 @@ void EMU::close_compact_disc(int drv)
 	}
 }
 
+bool EMU::is_compact_disc_connected(int drv)
+{
+	if(drv < USE_COMPACT_DISC) {
+		return vm->is_compact_disc_connected(drv);
+	} else {
+		return false;
+	}
+}
+
 bool EMU::is_compact_disc_inserted(int drv)
 {
 	if(drv < USE_COMPACT_DISC) {
@@ -3025,7 +3043,7 @@ void EMU::free_sound_file(int id, int16_t **data)
 // ----------------------------------------------------------------------------
 
 #ifdef USE_STATE
-#define STATE_VERSION	2
+#define STATE_VERSION	3
 
 void EMU::save_state(const _TCHAR* file_path)
 {
@@ -3147,9 +3165,9 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 				reinitialize |= (cpu_type != config.cpu_type);
 				cpu_type = config.cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-				reinitialize |= (dipswitch != config.dipswitch);
-				dipswitch = config.dipswitch;
+#ifdef USE_OPTION_SWITCH
+				reinitialize |= (option_switch != config.option_switch);
+				option_switch = config.option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 				reinitialize |= (sound_type != config.sound_type);

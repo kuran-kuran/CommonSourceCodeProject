@@ -179,10 +179,14 @@ BEGIN
     BEGIN
         POPUP "Option"
         BEGIN
+            MENUITEM "MZ-1E05 (FD I/F)",        ID_VM_OPTION_SWITCH8
+            MENUITEM "MZ-1E14 (QD I/F)",        ID_VM_OPTION_SWITCH9
+            MENUITEM "MZ-1R12 (CMOS RAM)",      ID_VM_OPTION_SWITCH10
+            MENUITEM "MZ-1R18 (RAM File)",      ID_VM_OPTION_SWITCH11
+            MENUITEM "MZ-1R23 (Kanji ROM)",     ID_VM_OPTION_SWITCH12
+            MENUITEM "MZ-1R24 (Dict. ROM)",     ID_VM_OPTION_SWITCH13
             MENUITEM "PCG-700",                 ID_VM_DIPSWITCH0
-            MENUITEM "MZ-1E05",                 ID_VM_DIPSWITCH1
-            MENUITEM "MZ-1E14",                 ID_VM_DIPSWITCH2
-            MENUITEM "MZ-1R12",                 ID_VM_DIPSWITCH3
+            MENUITEM "PIO-3034 (EMM)",          ID_VM_OPTION_SWITCH14
         END
         POPUP "Joystick"
         BEGIN
@@ -192,14 +196,14 @@ BEGIN
         END
         POPUP "Sound"
         BEGIN
-            MENUITEM "CMU-800",                 ID_VM_DIPSWITCH6
-            MENUITEM "CMU-800 Tempo +10",       ID_VM_DIPSWITCH7
-            MENUITEM "CMU-800 Tempo -10",       ID_VM_DIPSWITCH8
-            MENUITEM "CMU-800 Tempo +5",        ID_VM_DIPSWITCH9
-            MENUITEM "CMU-800 Tempo -5",        ID_VM_DIPSWITCH10
-            MENUITEM "CMU-800 Tempo +1",        ID_VM_DIPSWITCH11
-            MENUITEM "CMU-800 Tempo -1",        ID_VM_DIPSWITCH12
-            MENUITEM "CMU-800 Tempo 160",       ID_VM_DIPSWITCH13
+            MENUITEM "CMU-800",                 ID_VM_OPTION_SWITCH0
+            MENUITEM "CMU-800 Tempo +10",       ID_VM_OPTION_SWITCH1
+            MENUITEM "CMU-800 Tempo -10",       ID_VM_OPTION_SWITCH2
+            MENUITEM "CMU-800 Tempo +5",        ID_VM_OPTION_SWITCH3
+            MENUITEM "CMU-800 Tempo -5",        ID_VM_OPTION_SWITCH4
+            MENUITEM "CMU-800 Tempo +1",        ID_VM_OPTION_SWITCH5
+            MENUITEM "CMU-800 Tempo -1",        ID_VM_OPTION_SWITCH6
+            MENUITEM "CMU-800 Tempo 160",       ID_VM_OPTION_SWITCH7
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",          ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",          ID_VM_SOUND_NOISE_CMT

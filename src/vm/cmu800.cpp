@@ -36,13 +36,13 @@ const int counterTable[] =
 
 void CMU800::initialize()
 {
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_10;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_10;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_5;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_5;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_1;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_1;
-	config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_160;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_10;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_5;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_5;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
 	
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
@@ -62,33 +62,33 @@ void CMU800::release()
 
 void CMU800::update_config()
 {
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_INC_10) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_10) {
 		tempo_new += 10;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_10;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_DEC_10) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_10) {
 		tempo_new -= 10;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_10;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_10;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_INC_5) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_5) {
 		tempo_new += 5;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_5;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_5;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_DEC_5) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_5) {
 		tempo_new -= 5;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_5;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_5;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_INC_1) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_1) {
 		tempo_new++;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_INC_1;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_DEC_1) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_1) {
 		tempo_new--;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_DEC_1;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
 	}
-	if(config.dipswitch & DIPSWITCH_CMU800_TEMPO_160) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_160) {
 		tempo_new = 160;
-		config.dipswitch &= ~DIPSWITCH_CMU800_TEMPO_160;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
 	}
 	if(tempo_new > TEMPO_MAX) {
 		tempo_new = TEMPO_MAX;

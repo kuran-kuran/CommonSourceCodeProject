@@ -112,8 +112,8 @@ private:
 #ifdef USE_CPU_TYPE
 	int cpu_type;
 #endif
-#ifdef USE_DIPSWITCH
-	uint32_t dipswitch;
+#ifdef USE_OPTION_SWITCH
+	uint32_t option_switch;
 #endif
 #ifdef USE_SOUND_TYPE
 	int sound_type;
@@ -456,6 +456,7 @@ public:
 	bool create_blank_hard_disk(const _TCHAR* file_path, int sector_size, int sectors, int surfaces, int cylinders);
 	void open_hard_disk(int drv, const _TCHAR* file_path);
 	void close_hard_disk(int drv);
+	bool is_hard_disk_connected(int drv);
 	bool is_hard_disk_inserted(int drv);
 	uint32_t is_hard_disk_accessed();
 #endif
@@ -478,6 +479,7 @@ public:
 #ifdef USE_COMPACT_DISC
 	void open_compact_disc(int drv, const _TCHAR* file_path);
 	void close_compact_disc(int drv);
+	bool is_compact_disc_connected(int drv);
 	bool is_compact_disc_inserted(int drv);
 	uint32_t is_compact_disc_accessed();
 #endif

@@ -50,6 +50,9 @@ void initialize_config()
 	#if defined(USE_DIPSWITCH) && defined(DIPSWITCH_DEFAULT)
 		config.dipswitch = DIPSWITCH_DEFAULT;
 	#endif
+	#if defined(USE_OPTION_SWITCH) && defined(OPTION_SWITCH_DEFAULT)
+		config.option_switch = OPTION_SWITCH_DEFAULT;
+	#endif
 	#if defined(USE_DEVICE_TYPE) && defined(DEVICE_TYPE_DEFAULT)
 		config.device_type = DEVICE_TYPE_DEFAULT;
 	#endif
@@ -173,6 +176,9 @@ void load_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		config.dipswitch = MyGetPrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
+	#endif
+	#ifdef USE_OPTION_SWITCH
+		config.option_switch = MyGetPrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		config.device_type = MyGetPrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
@@ -425,6 +431,9 @@ void save_config(const _TCHAR* config_path)
 	#ifdef USE_DIPSWITCH
 		MyWritePrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
 	#endif
+	#ifdef USE_OPTION_SWITCH
+		MyWritePrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
+	#endif
 	#ifdef USE_DEVICE_TYPE
 		MyWritePrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
 	#endif
@@ -638,7 +647,7 @@ void save_config(const _TCHAR* config_path)
 	#endif
 }
 
-#define STATE_VERSION	7
+#define STATE_VERSION	8
 
 bool process_config_state(void *f, bool loading)
 {
@@ -655,6 +664,9 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#ifdef USE_DIPSWITCH
 		state_fio->StateValue(config.dipswitch);
+	#endif
+	#ifdef USE_OPTION_SWITCH
+		state_fio->StateValue(config.option_switch);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		state_fio->StateValue(config.device_type);

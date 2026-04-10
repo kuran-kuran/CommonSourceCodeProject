@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ cmos memory ]
+	[ MZ-1R12 ]
 */
 
 #include "cmos.h"

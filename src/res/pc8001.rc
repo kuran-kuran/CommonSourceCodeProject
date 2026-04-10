@@ -165,12 +165,12 @@ BEGIN
     BEGIN
         POPUP "Floppy Drive"
         BEGIN
-            MENUITEM "5inch FD",                    ID_VM_DIPSWITCH6
+            MENUITEM "5inch FD",                    ID_VM_OPTION_SWITCH6
         END
         POPUP "Sound"
         BEGIN
-            MENUITEM "GSX-8800",                    ID_VM_DIPSWITCH2
-            MENUITEM "PCG-8100",                    ID_VM_DIPSWITCH3
+            MENUITEM "GSX-8800",                    ID_VM_OPTION_SWITCH2
+            MENUITEM "PCG-8100",                    ID_VM_OPTION_SWITCH3
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",              ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",              ID_VM_SOUND_NOISE_CMT, GRAYED

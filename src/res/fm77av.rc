@@ -182,7 +182,7 @@ BEGIN
         POPUP "Option"
         BEGIN
             MENUITEM "Cycle Steal",             ID_VM_DIPSWITCH0
-            MENUITEM "Extra RAM",               ID_VM_DIPSWITCH2
+            MENUITEM "Extra RAM",               ID_VM_OPTION_SWITCH2
             MENUITEM "Sync to HSYNC",           ID_VM_DIPSWITCH31
         END
         POPUP "Mouse"

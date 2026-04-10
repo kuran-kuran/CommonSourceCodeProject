@@ -1,3 +1,16 @@
+12/14/2025
+
+[CONFIG] add option_switch for enabling option devices instead of dipswitch
+[EMU] support is_hard_disk_connected() and is_compact_disc_connected()
+[VM/VM_TEMPLATE] add is_hard_disk_connected() and is_compact_disc_connected()
+
+[MZ700] support enabling/disabling option devices
+[MZ80K] support enabling/disabling option devices
+[MZ80B] support enabling/disabling option devices
+[MZ2500] support enabling/disabling option devices
+[PC8801MA/FLOPPY] support enabling/disabling CD-ROM
+
+
 12/8/2025
 
 [EMU/DEBUGGER] support DI command (thanks Mr.kuran_kuran)

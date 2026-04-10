@@ -59,7 +59,7 @@ void MEMORY::initialize()
 	gal5_wdat = 0x07;					// Color palette data
 #endif
 	
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	memset(fdif, 0xff, sizeof(fdif));
 #endif
 	memset(rdmy, 0xff, sizeof(rdmy));
@@ -76,10 +76,23 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #endif
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
-	if(fio->Fopen(create_local_path(_T("FDIF.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(fdif, sizeof(fdif), 1);
-		fio->Fclose();
+#if defined(SUPPORT_MZ80AFI)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		if(fio->Fopen(create_local_path(_T("FDIF.ROM"    )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ80AFI.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-80AFI.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(fdif, sizeof(fdif), 1);
+			fio->Fclose();
+		}
+	}
+#elif defined(SUPPORT_MZ80FIO)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		if(fio->Fopen(create_local_path(_T("FDIF.ROM"    )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ80FIO.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-80FIO.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(fdif, sizeof(fdif), 1);
+			fio->Fclose();
+		}
 	}
 #endif
 	if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
@@ -159,7 +172,7 @@ void MEMORY::reset()
 	memory_swap = false;
 	update_memory_swap();
 #endif
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 	// MB8866 IRQ,DRQ
 	fdc_irq = fdc_drq = false;
 	update_fdif_rom_bank();
@@ -330,7 +343,7 @@ void MEMORY::update_memory_swap()
 }
 #endif
 
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 void MEMORY::update_fdif_rom_bank()
 {
 	// FD IF ROM BANK switching
@@ -352,7 +365,7 @@ void MEMORY::write_signal(int id, uint32_t data, uint32_t mask)
 	
 	if(id == SIG_MEMORY_VGATE) {
 		vgate = signal;
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 	} else if(id == SIG_MEMORY_FDC_IRQ) {
 		if(fdc_irq != signal) {
 			fdc_irq = signal;
@@ -459,7 +472,7 @@ void MEMORY::draw_line(int v)
 #else
 	int ptr = (v >> 3) * 40;
 #endif
-	bool pcg_active = ((config.dipswitch & DIPSWITCH_PCG700) && !(pcg_ctrl & 8));
+	bool pcg_active = ((config.dipswitch & DIPSWITCH_PCG8000) && !(pcg_ctrl & 8));
 #if defined(_MZ1200)
 	uint8_t *pcg_ptr = pcg + ((pcg_ctrl & 4) ? 0x800 : 0);
 #else
@@ -529,7 +542,7 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(hblank);
 	state_fio->StateValue(memory_swap);
 #endif
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 	state_fio->StateValue(fdc_irq);
 	state_fio->StateValue(fdc_drq);
 #endif
@@ -558,7 +571,7 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 #if defined(_MZ1200) || defined(_MZ80A)
 		update_memory_swap();
 #endif
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 		update_fdif_rom_bank();
 #endif
 	}

@@ -384,6 +384,10 @@ public:
 #ifdef SUPPORT_PC88_FDD_8INCH
 		d_fdc_8inch = NULL;
 #endif
+#ifdef SUPPORT_PC88_CDROM
+		d_scsi_host = NULL;
+		d_scsi_cdrom = NULL;
+#endif
 #ifdef SUPPORT_PC88_OPN1
 		d_opn1 = NULL;
 #endif

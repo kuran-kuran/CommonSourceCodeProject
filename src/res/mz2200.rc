@@ -211,16 +211,28 @@ BEGIN
             MENUITEM "4MHz",                    ID_VM_CPU_TYPE0
             MENUITEM "6MHz",                    ID_VM_CPU_TYPE1
         END
+        POPUP "Option"
+        BEGIN
+            MENUITEM "MZ-1E05 (FD I/F)",        ID_VM_OPTION_SWITCH8
+            MENUITEM "MZ-1E18 (QD I/F)",        ID_VM_OPTION_SWITCH9
+            MENUITEM "MZ-1R12 (CMOS RAM)",      ID_VM_OPTION_SWITCH10
+            MENUITEM "MZ-1R13 (Kanji ROM)",     ID_VM_OPTION_SWITCH11
+            MENUITEM "MZ-1M01 (16bit CPU)",     ID_VM_OPTION_SWITCH12
+            MENUITEM "PIO-3034 (EMM: A0h-A3h)", ID_VM_OPTION_SWITCH13
+            MENUITEM "PIO-3034 (EMM: A4h-A7h)", ID_VM_OPTION_SWITCH14
+            MENUITEM "PIO-3034 (EMM: A8h-ABh)", ID_VM_OPTION_SWITCH15
+            MENUITEM "PIO-3034 (EMM: ACh-AFh)", ID_VM_OPTION_SWITCH16
+        END
         POPUP "Sound"
         BEGIN
-            MENUITEM "CMU-800",                 ID_VM_DIPSWITCH0
-            MENUITEM "CMU-800 Tempo +10",       ID_VM_DIPSWITCH1
-            MENUITEM "CMU-800 Tempo -10",       ID_VM_DIPSWITCH2
-            MENUITEM "CMU-800 Tempo +5",        ID_VM_DIPSWITCH3
-            MENUITEM "CMU-800 Tempo -5",        ID_VM_DIPSWITCH4
-            MENUITEM "CMU-800 Tempo +1",        ID_VM_DIPSWITCH5
-            MENUITEM "CMU-800 Tempo -1",        ID_VM_DIPSWITCH6
-            MENUITEM "CMU-800 Tempo 160",       ID_VM_DIPSWITCH7
+            MENUITEM "CMU-800",                 ID_VM_OPTION_SWITCH0
+            MENUITEM "CMU-800 Tempo +10",       ID_VM_OPTION_SWITCH1
+            MENUITEM "CMU-800 Tempo -10",       ID_VM_OPTION_SWITCH2
+            MENUITEM "CMU-800 Tempo +5",        ID_VM_OPTION_SWITCH3
+            MENUITEM "CMU-800 Tempo -5",        ID_VM_OPTION_SWITCH4
+            MENUITEM "CMU-800 Tempo +1",        ID_VM_OPTION_SWITCH5
+            MENUITEM "CMU-800 Tempo -1",        ID_VM_OPTION_SWITCH6
+            MENUITEM "CMU-800 Tempo 160",       ID_VM_OPTION_SWITCH7
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",          ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",          ID_VM_SOUND_NOISE_CMT

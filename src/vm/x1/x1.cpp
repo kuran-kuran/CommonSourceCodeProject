@@ -226,11 +226,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	ctc->set_constant_clock(1, CPU_CLOCKS >> 1);
 	ctc->set_constant_clock(2, CPU_CLOCKS >> 1);
 	sio->set_context_rts(1, mouse, SIG_MOUSE_RTS, 1);
-    if(config.serial_type == 2) {
-        MIDI *midi = new MIDI(this, emu);
-        sio->set_context_send(0, midi, SIG_MIDI_OUT);
+	if(config.serial_type == 2) {
+		MIDI *midi = new MIDI(this, emu);
+		sio->set_context_send(0, midi, SIG_MIDI_OUT);
 		midi->set_context_in(sio, SIG_Z80SIO_RECV_CH0, 0xff);
-    }
+	}
 //	sio->set_tx_clock(0, 9600 * 16);	// 9600 baud for RS-232C
 //	sio->set_rx_clock(0, 9600 * 16);	// clock is from Z-80CTC ch1 (2MHz/13)
 //	sio->set_tx_clock(1, 4800 * 16);	// 4800 baud for mouse

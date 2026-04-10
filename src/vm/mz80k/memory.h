@@ -20,7 +20,7 @@
 #include "../device.h"
 
 #define SIG_MEMORY_VGATE	0
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 #define SIG_MEMORY_FDC_IRQ	1
 #define SIG_MEMORY_FDC_DRQ	2
 #endif
@@ -53,7 +53,7 @@ private:
 	void update_memory_swap();
 #endif
 	
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 	uint8_t fdif[0x800];	// FD IF ROM 2KB
 	bool fdc_irq, fdc_drq;
 	void update_fdif_rom_bank();

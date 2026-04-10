@@ -194,18 +194,19 @@ BEGIN
     BEGIN
         POPUP "Option"
         BEGIN
+            MENUITEM "MZ-80FIO (FD I/F)",       ID_VM_OPTION_SWITCH8
             MENUITEM "PCG-1200",                ID_VM_DIPSWITCH0
         END
         POPUP "Sound"
         BEGIN
-            MENUITEM "CMU-800",                 ID_VM_DIPSWITCH1
-            MENUITEM "CMU-800 Tempo +10",       ID_VM_DIPSWITCH2
-            MENUITEM "CMU-800 Tempo -10",       ID_VM_DIPSWITCH3
-            MENUITEM "CMU-800 Tempo +5",        ID_VM_DIPSWITCH4
-            MENUITEM "CMU-800 Tempo -5",        ID_VM_DIPSWITCH5
-            MENUITEM "CMU-800 Tempo +1",        ID_VM_DIPSWITCH6
-            MENUITEM "CMU-800 Tempo -1",        ID_VM_DIPSWITCH7
-            MENUITEM "CMU-800 Tempo 160",       ID_VM_DIPSWITCH8
+            MENUITEM "CMU-800",                 ID_VM_OPTION_SWITCH0
+            MENUITEM "CMU-800 Tempo +10",       ID_VM_OPTION_SWITCH1
+            MENUITEM "CMU-800 Tempo -10",       ID_VM_OPTION_SWITCH2
+            MENUITEM "CMU-800 Tempo +5",        ID_VM_OPTION_SWITCH3
+            MENUITEM "CMU-800 Tempo -5",        ID_VM_OPTION_SWITCH4
+            MENUITEM "CMU-800 Tempo +1",        ID_VM_OPTION_SWITCH5
+            MENUITEM "CMU-800 Tempo -1",        ID_VM_OPTION_SWITCH6
+            MENUITEM "CMU-800 Tempo 160",       ID_VM_OPTION_SWITCH7
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",          ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",          ID_VM_SOUND_NOISE_CMT

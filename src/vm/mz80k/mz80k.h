@@ -27,7 +27,7 @@
 #endif
 
 #ifdef _MZ80A
-#define SUPPORT_MZ80AIF
+#define SUPPORT_MZ80AFI
 #else
 #define SUPPORT_MZ80FIO
 #endif
@@ -39,7 +39,7 @@
 #define SCREEN_WIDTH		320
 #define SCREEN_HEIGHT		200
 #define WINDOW_HEIGHT_ASPECT	240
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 #define HAS_MB8866
 #define MAX_DRIVE		4
 #elif defined(SUPPORT_MZ80FIO)
@@ -50,6 +50,7 @@
 
 // device informations for win32
 #define USE_DIPSWITCH
+#define USE_OPTION_SWITCH
 #define USE_GENERAL_PARAM	1
 #define USE_TAPE		1
 #define USE_KEY_LOCKED
@@ -60,7 +61,7 @@
 //#define USE_AUTO_KEY_NUMPAD
 #define USE_VM_AUTO_KEY_TABLE
 #endif
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 #define USE_SOUND_VOLUME	4
 #else
 #define USE_SOUND_VOLUME	3
@@ -70,10 +71,10 @@
 #define USE_PRINTER_TYPE	4
 #define USE_DEBUGGER
 #define USE_STATE
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 #define USE_DRIVE_TYPE		2
 #endif
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 #define USE_FLOPPY_DISK		4
 #endif
 // COLOR GAL 5 - 2019.01.24 Suga
@@ -84,15 +85,23 @@
 #define USE_MONITOR_TYPE	4
 #endif
 
-#define DIPSWITCH_PCG700		(1 << 0)
-#define DIPSWITCH_CMU800		(1 << 1)
-#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 2)
-#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 3)
-#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 4)
-#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 5)
-#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 6)
-#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 7)
-#define DIPSWITCH_CMU800_TEMPO_160	(1 << 8)
+#define OPTION_SWITCH_CMU800	(1 << 0)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
+#define OPTION_SWITCH_FLOPPY	(1 << 8)
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_FLOPPY)
+#else
+#define OPTION_SWITCH_DEFAULT	OPTION_SWITCH_CMU800
+#endif
+
+#define DIPSWITCH_PCG8000		(1 << 0)
+#define DIPSWITCH_DEFAULT		DIPSWITCH_PCG8000
 
 #if defined(_MZ80K) || defined(_MZ1200)
 static const int vm_auto_key_table_base[][2] = {
@@ -129,7 +138,7 @@ static const int vm_auto_key_table_base[][2] = {
 #ifdef USE_SOUND_VOLUME
 static const _TCHAR *sound_device_caption[] = {
 	_T("Beep"), _T("CMT (Signal)"),
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	_T("Noise (FDD)"),
 #endif
 	_T("Noise (CMT)"),
@@ -147,6 +156,7 @@ class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
+class IO;
 class LS393;
 class PCM1BIT;
 class Z80;
@@ -155,13 +165,11 @@ class KEYBOARD;
 class MEMORY;
 class PRINTER;
 
-#if defined(SUPPORT_MZ80AIF)
+#if defined(SUPPORT_MZ80AFI)
 class MB8877;
-class IO;
 class MZ80AIF;
 #elif defined(SUPPORT_MZ80FIO)
 class T3444A;
-class IO;
 class MZ80FIO;
 #endif
 
@@ -176,10 +184,10 @@ protected:
 #if defined(_MZ1200) || defined(_MZ80A)
 	AND* and_int;
 #endif
-	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* ctc;
 	I8255* pio;
+	IO* io;
 	LS393* counter;
 	PCM1BIT* pcm;
 	Z80* cpu;
@@ -188,13 +196,15 @@ protected:
 	MEMORY* memory;
 	PRINTER* printer;
 	
-#if defined(SUPPORT_MZ80AIF)
+	// CMU-800
+	CMU800* cmu800;
+#if defined(SUPPORT_MZ80AFI)
+	// MZ-80AFI
 	MB8877* fdc;
-	IO* io;
 	MZ80AIF* mz80aif;
 #elif defined(SUPPORT_MZ80FIO)
+	// MZ-80FIO
 	T3444A* fdc;
-	IO* io;
 	MZ80FIO* mz80fio;
 #endif
 	
@@ -241,13 +251,14 @@ public:
 	bool get_kana_locked();
 	
 	// user interface
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	void open_floppy_disk(int drv, const _TCHAR* file_path, int bank);
 	void close_floppy_disk(int drv);
 	bool is_floppy_disk_inserted(int drv);
 	void is_floppy_disk_protected(int drv, bool value);
 	bool is_floppy_disk_protected(int drv);
 	uint32_t is_floppy_disk_accessed();
+	bool is_floppy_disk_connected(int drv);
 #endif
 	void play_tape(int drv, const _TCHAR* file_path);
 	void rec_tape(int drv, const _TCHAR* file_path);

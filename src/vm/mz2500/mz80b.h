@@ -40,7 +40,7 @@
 #define PRINTER_STROBE_RISING_EDGE
 
 // device informations for win32
-#define USE_DIPSWITCH
+#define USE_OPTION_SWITCH
 #define USE_GENERAL_PARAM	1
 #define USE_SPECIAL_RESET
 #define USE_CPU_TYPE		2
@@ -69,14 +69,26 @@
 #define USE_DEBUGGER
 #define USE_STATE
 
-#define DIPSWITCH_CMU800		(1 << 0)
-#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 1)
-#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
-#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 3)
-#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
-#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 5)
-#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
-#define DIPSWITCH_CMU800_TEMPO_160	(1 << 7)
+#define OPTION_SWITCH_CMU800		(1 << 0)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_160	(1 << 7)
+#define OPTION_SWITCH_MZ1E05		(1 << 8)
+#define OPTION_SWITCH_MZ1E18		(1 << 9)
+#define OPTION_SWITCH_MZ1R12		(1 << 10)
+#define OPTION_SWITCH_MZ1R13		(1 << 11)
+#define OPTION_SWITCH_MZ1M01		(1 << 12)
+#define OPTION_SWITCH_PIO3034_A0H	(1 << 13)
+#define OPTION_SWITCH_PIO3034_A4H	(1 << 14)
+#define OPTION_SWITCH_PIO3034_A8H	(1 << 15)
+#define OPTION_SWITCH_PIO3034_ACH	(1 << 16)
+#define OPTION_SWITCH_PIO3034		(OPTION_SWITCH_PIO3034_A0H | OPTION_SWITCH_PIO3034_A4H | OPTION_SWITCH_PIO3034_A8H | OPTION_SWITCH_PIO3034_ACH)
+
+#define OPTION_SWITCH_DEFAULT		(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E18 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1M01 | OPTION_SWITCH_PIO3034_A0H)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -95,36 +107,42 @@ class EMU;
 class DEVICE;
 class EVENT;
 
-class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
 class IO;
-class MB8877;
 class PCM1BIT;
 class Z80;
 class Z80PIO;
 
 class CMT;
-class FLOPPY;
 class KEYBOARD;
 class MEMORY;
-class MZ1R12;
-class MZ1R13;
-class PIO3034;
 class PRINTER;
 class TIMER;
 
+// CMU-800
+class CMU800;
+// MZ-1E05
+class MB8877;
+class FLOPPY;
 #ifdef SUPPORT_QUICK_DISK
+// MZ-1E18
 class Z80SIO;
 class QUICKDISK;
 #endif
-
+// MZ-1R12
+class MZ1R12;
+// MZ-1R13
+class MZ1R13;
 #ifdef SUPPORT_16BIT_BOARD
+// MZ-1M01
 class I86;
 class I8259;
 class MZ1M01;
 #endif
+// PIO-3034
+class PIO3034;
 
 class VM : public VM_TEMPLATE
 {
@@ -134,37 +152,45 @@ protected:
 	// devices
 	EVENT* event;
 	
-	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* pit;
 	I8255* pio_i;
 	IO* io;
-	MB8877* fdc;
 	PCM1BIT* pcm;
 	Z80* cpu;
 	Z80PIO* pio;
 	
 	CMT* cmt;
-	FLOPPY* floppy;
 	KEYBOARD* keyboard;
 	MEMORY* memory;
-	MZ1R12* mz1r12;
-	MZ1R13* mz1r13;
-	PIO3034* pio3034;
 	PRINTER* printer;
 	TIMER* timer;
 	
+	// CMU-800
+	CMU800* cmu800;	
+	// MZ-1E05
+	MB8877* fdc;
+	FLOPPY* floppy;
 #ifdef SUPPORT_QUICK_DISK
+	// MZ-1E18
 	Z80SIO* sio;
 	QUICKDISK* qd;
 #endif
-	
+	// MZ-1R12
+	MZ1R12* mz1r12;
+	// MZ-1R13
+	MZ1R13* mz1r13;
 #ifdef SUPPORT_16BIT_BOARD
+	// MZ-1M01
 	Z80PIO* pio_to16;
 	I86* cpu_16;
 	I8259* pic_16;
 	MZ1M01* mz1m01;
 #endif
+	// PIO-3034
+	PIO3034* pio3034;
+	
+	int option_switch;
 	
 public:
 	// ----------------------------------------
@@ -210,11 +236,13 @@ public:
 	void is_floppy_disk_protected(int drv, bool value);
 	bool is_floppy_disk_protected(int drv);
 	uint32_t is_floppy_disk_accessed();
+	bool is_floppy_disk_connected(int drv);
 #ifdef SUPPORT_QUICK_DISK
 	void open_quick_disk(int drv, const _TCHAR* file_path);
 	void close_quick_disk(int drv);
 	bool is_quick_disk_inserted(int drv);
 	uint32_t is_quick_disk_accessed();
+	bool is_quick_disk_connected(int drv);
 #endif
 	void play_tape(int drv, const _TCHAR* file_path);
 	void rec_tape(int drv, const _TCHAR* file_path);

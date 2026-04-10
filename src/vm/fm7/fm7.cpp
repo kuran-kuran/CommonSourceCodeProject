@@ -88,7 +88,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 
 	
 #ifdef WITH_Z80
-	if((config.dipswitch & FM7_DIPSW_Z80CARD_ON) != 0) {
+	if((config.option_switch & FM7_OPTSW_Z80CARD_ON) != 0) {
 		z80cpu = new Z80(this, emu);
 		g_mainstat = new AND(this, emu);
 		g_intr = new OR(this, emu);
@@ -107,7 +107,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 	}
 #endif
 #if defined(CAPABLE_JCOMMCARD)
-	if((config.dipswitch & FM7_DIPSW_JSUBCARD_ON) != 0) {
+	if((config.option_switch & FM7_OPTSW_JSUBCARD_ON) != 0) {
 		jsubcpu = new MC6809(this, emu);
 		jcommcard = new FM7_JCOMMCARD(this, emu);
 		g_jsubhalt = new AND(this, emu);
@@ -122,12 +122,12 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 	uart[0] = new I8251(this, emu);
 # else
 #  if defined(CAPABLE_JCOMMCARD)
-	if((config.dipswitch & FM7_DIPSW_JSUBCARD_ON) != 0) uart[0] = new I8251(this, emu);
+	if((config.option_switch & FM7_OPTSW_JSUBCARD_ON) != 0) uart[0] = new I8251(this, emu);
 #  endif
-	if(((config.dipswitch & FM7_DIPSW_RS232C_ON) != 0) && (uart[0] == NULL)) uart[0] = new I8251(this, emu);
+	if(((config.option_switch & FM7_OPTSW_RS232C_ON) != 0) && (uart[0] == NULL)) uart[0] = new I8251(this, emu);
 # endif
-	if((config.dipswitch & FM7_DIPSW_MODEM_ON) != 0) uart[1] = new I8251(this, emu);
-	if((config.dipswitch & FM7_DIPSW_MIDI_ON) != 0) uart[2] = new I8251(this, emu);
+	if((config.option_switch & FM7_OPTSW_MODEM_ON) != 0) uart[1] = new I8251(this, emu);
+	if((config.option_switch & FM7_OPTSW_MIDI_ON) != 0) uart[2] = new I8251(this, emu);
 
 		
 #if defined(_FM77AV_VARIANTS)
@@ -186,7 +186,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 #endif
 
 #if defined(_FM8) || defined(_FM7) || defined(_FMNEW7)
-	if((config.dipswitch & FM7_DIPSW_CONNECT_320KFDC) != 0) {
+	if((config.option_switch & FM7_OPTSW_CONNECT_320KFDC) != 0) {
 		fdc = new MB8877(this, emu);
 		fdc->set_context_noise_seek(new NOISE(this, emu));
 		fdc->set_context_noise_head_down(new NOISE(this, emu));
@@ -203,7 +203,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 	}
 #endif		
 #if defined(HAS_2HD)
-	if((config.dipswitch & FM7_DIPSW_CONNECT_1MFDC) != 0) {
+	if((config.option_switch & FM7_OPTSW_CONNECT_1MFDC) != 0) {
 		fdc_2HD = new MB8877(this, emu);
 		fdc_2HD->set_context_noise_seek(new NOISE(this, emu));
 		fdc_2HD->set_context_noise_head_down(new NOISE(this, emu));
@@ -219,7 +219,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 #endif
 
 #if defined(_FM8) || defined(_FM7) || defined(_FMNEW7)
-	if((config.dipswitch & FM7_DIPSW_CONNECT_KANJIROM) != 0) {
+	if((config.option_switch & FM7_OPTSW_CONNECT_KANJIROM) != 0) {
 		kanjiclass1 = new KANJIROM(this, emu, false);
 	} else {
 		kanjiclass1 = NULL;
@@ -290,7 +290,7 @@ VM::VM(EMU* parent_emu): VM_TEMPLATE(parent_emu)
 		uart[0]->set_device_name(_T("RS-232C BOARD(I8251 SIO)"));
 	}
 # if defined(CAPABLE_JCOMMCARD)
-	if((config.dipswitch & FM7_DIPSW_JSUBCARD_ON) != 0) {
+	if((config.option_switch & FM7_OPTSW_JSUBCARD_ON) != 0) {
 		if(uart[0] != NULL) uart[0]->set_device_name(_T("J.COMM BOARD RS-232C(I8251 SIO)"));
 	}
 # elif defined(_FM77AV20) || defined(_FM77AV40) || defined(_FM77AV20EX) || \
@@ -489,7 +489,7 @@ void VM::connect_bus(void)
 	mainio->set_context_firq(maincpu, SIG_CPU_FIRQ, 0xffffffff);
 	mainio->set_context_nmi(maincpu, SIG_CPU_NMI, 0xffffffff);
 #if defined(_FM77AV) || defined(_FM7) || defined(_FMNEW7) || defined(_FM77_VARIANTS)
-	if((config.dipswitch & FM7_DIPSW_RS232C_ON) != 0) 	mainio->set_context_uart(0, uart[0]); /* $FD06- : RS232C */
+	if((config.option_switch & FM7_OPTSW_RS232C_ON) != 0) 	mainio->set_context_uart(0, uart[0]); /* $FD06- : RS232C */
 #else
 	mainio->set_context_uart(0, uart[0]);
 #endif
@@ -517,7 +517,7 @@ void VM::connect_bus(void)
 	}
 	
 #if defined(_FM8) || defined(_FM7) || defined(_FMNEW7)
-	if((config.dipswitch & FM7_DIPSW_CONNECT_KANJIROM) != 0) {
+	if((config.option_switch & FM7_OPTSW_CONNECT_KANJIROM) != 0) {
 		mainio->set_context_kanjirom_class1(kanjiclass1);
 	}
 #else

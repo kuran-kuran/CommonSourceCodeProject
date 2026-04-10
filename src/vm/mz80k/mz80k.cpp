@@ -24,6 +24,7 @@
 #include "../datarec.h"
 #include "../i8253.h"
 #include "../i8255.h"
+#include "../io.h"
 #include "../ls393.h"
 #include "../midi.h"
 #include "../mz1p17.h"
@@ -40,13 +41,11 @@
 #include "memory.h"
 #include "printer.h"
 
-#if defined(SUPPORT_MZ80AIF)
-#include "../io.h"
+#if defined(SUPPORT_MZ80AFI)
 #include "../disk.h"
 #include "../mb8877.h"
 #include "mz80aif.h"
 #elif defined(SUPPORT_MZ80FIO)
-#include "../io.h"
 #include "../disk.h"
 #include "../t3444a.h"
 #include "mz80fio.h"
@@ -66,16 +65,14 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #if defined(_MZ1200) || defined(_MZ80A)
 	and_int = new AND(this, emu);
 #endif
-	if(config.dipswitch & DIPSWITCH_CMU800) {
-		cmu800 = new CMU800(this, emu);
-		cmu800->set_context_midi(new MIDI(this, emu));
-	}
 	drec = new DATAREC(this, emu);
 	drec->set_context_noise_play(new NOISE(this, emu));
 	drec->set_context_noise_stop(new NOISE(this, emu));
 	drec->set_context_noise_fast(new NOISE(this, emu));
 	ctc = new I8253(this, emu);
 	pio = new I8255(this, emu);
+	io = new IO(this, emu);
+	io->space = 0x100;
 	counter = new LS393(this, emu);
 	pcm = new PCM1BIT(this, emu);
 	cpu = new Z80(this, emu);
@@ -84,32 +81,37 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory = new MEMORY(this, emu);
 	printer = new PRINTER(this, emu);
 	
-#if defined(SUPPORT_MZ80AIF)
-	io = new IO(this, emu);
-	io->space = 0x100;
-	fdc = new MB8877(this, emu);	// mb8866
-	fdc->set_context_noise_seek(new NOISE(this, emu));
-	fdc->set_context_noise_head_down(new NOISE(this, emu));
-	fdc->set_context_noise_head_up(new NOISE(this, emu));
-	mz80aif = new MZ80AIF(this, emu);
+	if(config.option_switch & OPTION_SWITCH_CMU800) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	}
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+#if defined(SUPPORT_MZ80AFI)
+		fdc = new MB8877(this, emu);	// mb8866
+		mz80aif = new MZ80AIF(this, emu);
 #elif defined(SUPPORT_MZ80FIO)
-	io = new IO(this, emu);
-	io->space = 0x100;
-	fdc = new T3444A(this, emu);	// t3444m
-	fdc->set_context_noise_seek(new NOISE(this, emu));
-	fdc->set_context_noise_head_down(new NOISE(this, emu));
-	fdc->set_context_noise_head_up(new NOISE(this, emu));
-	mz80fio = new MZ80FIO(this, emu);
+		fdc = new T3444A(this, emu);	// t3444m
+		mz80fio = new MZ80FIO(this, emu);
+#endif
+		fdc->set_context_noise_seek(new NOISE(this, emu));
+		fdc->set_context_noise_head_down(new NOISE(this, emu));
+		fdc->set_context_noise_head_up(new NOISE(this, emu));
+	} else {
+		fdc = NULL;
+	}
 #endif
 	
 	// set contexts
 	event->set_context_cpu(cpu);
 	event->set_context_sound(pcm);
 	event->set_context_sound(drec);
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
-	event->set_context_sound(fdc->get_context_noise_seek());
-	event->set_context_sound(fdc->get_context_noise_head_down());
-	event->set_context_sound(fdc->get_context_noise_head_up());
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		event->set_context_sound(fdc->get_context_noise_seek());
+		event->set_context_sound(fdc->get_context_noise_head_down());
+		event->set_context_sound(fdc->get_context_noise_head_up());
+	}
 #endif
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
@@ -143,12 +145,16 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_context_ctc(ctc);
 	memory->set_context_pio(pio);
 	
-#if defined(SUPPORT_MZ80AIF)
-	fdc->set_context_irq(memory, SIG_MEMORY_FDC_IRQ, 1);
-	fdc->set_context_drq(memory, SIG_MEMORY_FDC_DRQ, 1);
-	mz80aif->set_context_fdc(fdc);
+#if defined(SUPPORT_MZ80AFI)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		fdc->set_context_irq(memory, SIG_MEMORY_FDC_IRQ, 1);
+		fdc->set_context_drq(memory, SIG_MEMORY_FDC_DRQ, 1);
+		mz80aif->set_context_fdc(fdc);
+	}
 #elif defined(SUPPORT_MZ80FIO)
-	mz80fio->set_context_fdc(fdc);
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		mz80fio->set_context_fdc(fdc);
+	}
 #endif
 	
 	if(config.printer_type == 0) {  
@@ -163,25 +169,25 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	
 	// cpu bus
 	cpu->set_context_mem(memory);
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
 	cpu->set_context_io(io);
-#else
-	cpu->set_context_io(dummy);
-#endif
 	cpu->set_context_intr(dummy);
 #ifdef USE_DEBUGGER
 	cpu->set_context_debugger(new DEBUGGER(this, emu));
 #endif
 	
 	// i/o bus
-	if(config.dipswitch & DIPSWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800) {
 		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	}
-#if defined(SUPPORT_MZ80AIF)
-	io->set_iomap_range_rw(0xd8, 0xdb, fdc);
-	io->set_iomap_range_w(0xdc, 0xdd, mz80aif);
+#if defined(SUPPORT_MZ80AFI)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		io->set_iomap_range_rw(0xd8, 0xdb, fdc);
+		io->set_iomap_range_w(0xdc, 0xdd, mz80aif);
+	}
 #elif defined(SUPPORT_MZ80FIO)
-	io->set_iomap_range_rw(0xf8, 0xfb, mz80fio);
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		io->set_iomap_range_rw(0xf8, 0xfb, mz80fio);
+	}
 #endif
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 	
@@ -189,18 +195,20 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->initialize();
 	}
-#if defined(SUPPORT_MZ80AIF)
-	for(int drv = 0; drv < MAX_DRIVE; drv++) {
-//		if(config.drive_type) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
-//		} else {
-//			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
-//		}
-	}
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
+	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
+		for(int drv = 0; drv < MAX_DRIVE; drv++) {
+#if defined(SUPPORT_MZ80AFI)
+//			if(config.drive_type) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
+//			} else {
+//				fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+//			}
 #elif defined(SUPPORT_MZ80FIO)
-	for(int drv = 0; drv < MAX_DRIVE; drv++) {
-		fdc->set_drive_type(drv, DRIVE_TYPE_2D);
-//		fdc->set_drive_mfm(drv, false);
+			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+//			fdc->set_drive_mfm(drv, false);
+#endif
+		}
 	}
 #endif
 }
@@ -300,11 +308,13 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 		pcm->set_volume(0, decibel_l, decibel_r);
 	} else if(ch-- == 0) {
 		drec->set_volume(0, decibel_l, decibel_r);
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	} else if(ch-- == 0) {
-		fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
-		fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
-		fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
+		if(fdc) {
+			fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
+			fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
+			fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
+		}
 #endif
 	} else if(ch-- == 0) {
 		drec->get_context_noise_play()->set_volume(0, decibel_l, decibel_r);
@@ -344,47 +354,67 @@ bool VM::get_kana_locked()
 // user interface
 // ----------------------------------------------------------------------------
 
-#if defined(SUPPORT_MZ80AIF) || defined(SUPPORT_MZ80FIO)
+#if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 {
-	fdc->open_disk(drv, file_path, bank);
-	
-#if defined(SUPPORT_MZ80AIF)
-	if(fdc->get_media_type(drv) == MEDIA_TYPE_2DD) {
-		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2D) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
+	if(fdc) {
+		fdc->open_disk(drv, file_path, bank);
+		
+#if defined(SUPPORT_MZ80AFI)
+		if(fdc->get_media_type(drv) == MEDIA_TYPE_2DD) {
+			if(fdc->get_drive_type(drv) == DRIVE_TYPE_2D) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
+			}
+		} else if(fdc->get_media_type(drv) == MEDIA_TYPE_2D) {
+			if(fdc->get_drive_type(drv) == DRIVE_TYPE_2DD) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+			}
 		}
-	} else if(fdc->get_media_type(drv) == MEDIA_TYPE_2D) {
-		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2DD) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
-		}
-	}
 #endif
+	}
 }
 
 void VM::close_floppy_disk(int drv)
 {
-	fdc->close_disk(drv);
+	if(fdc) {
+		fdc->close_disk(drv);
+	}
 }
 
 bool VM::is_floppy_disk_inserted(int drv)
 {
-	return fdc->is_disk_inserted(drv);
+	if(fdc) {
+		return fdc->is_disk_inserted(drv);
+	}
+	return false;
 }
 
 void VM::is_floppy_disk_protected(int drv, bool value)
 {
-	fdc->is_disk_protected(drv, value);
+	if(fdc) {
+		fdc->is_disk_protected(drv, value);
+	}
 }
 
 bool VM::is_floppy_disk_protected(int drv)
 {
-	return fdc->is_disk_protected(drv);
+	if(fdc) {
+		return fdc->is_disk_protected(drv);
+	}
+	return false;
 }
 
 uint32_t VM::is_floppy_disk_accessed()
 {
-	return fdc->read_signal(0);
+	if(fdc) {
+		return fdc->read_signal(0);
+	}
+	return false;
+}
+
+bool VM::is_floppy_disk_connected(int drv)
+{
+	return (fdc != NULL);
 }
 #endif
 
@@ -480,7 +510,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	8
+#define STATE_VERSION	9
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {

@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2014.12.26-
 
-	[ kanji/dictionary rom ]
+	[ MZ-1R23 / MZ-1R24 ]
 */
 
 #include "kanji.h"
@@ -18,19 +18,19 @@ void KANJI::initialize()
 	
 	// load rom images
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("KANJI.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(kanji, sizeof(kanji), 1);
-		fio->Fclose();
-	} else if(fio->Fopen(create_local_path(_T("MZ1R23.ROM")), FILEIO_READ_BINARY)) {
+	if(fio->Fopen(create_local_path(_T("KANJI.ROM"  )), FILEIO_READ_BINARY) ||
+	   fio->Fopen(create_local_path(_T("MZ1R23.ROM" )), FILEIO_READ_BINARY) ||
+	   fio->Fopen(create_local_path(_T("MZ-1R23.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(kanji, sizeof(kanji), 1);
 		fio->Fclose();
 	}
-	if(fio->Fopen(create_local_path(_T("DICT.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(dic, sizeof(dic), 1);
-		fio->Fclose();
-	} else if(fio->Fopen(create_local_path(_T("MZ1R24.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(dic, sizeof(dic), 1);
-		fio->Fclose();
+	if(config.option_switch & OPTION_SWITCH_MZ1R24) {
+		if(fio->Fopen(create_local_path(_T("DICT.ROM"   )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ1R24.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1R24.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(dic, sizeof(dic), 1);
+			fio->Fclose();
+		}
 	}
 	delete fio;
 }

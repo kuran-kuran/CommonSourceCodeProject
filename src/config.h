@@ -80,6 +80,9 @@ typedef struct {
 	#if defined(USE_SHARED_DLL) || defined(USE_DIPSWITCH)
 		uint32_t dipswitch;
 	#endif
+	#if defined(USE_SHARED_DLL) || defined(USE_OPTION_SWITCH)
+		int option_switch;
+	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_DEVICE_TYPE)
 		int device_type;
 	#endif

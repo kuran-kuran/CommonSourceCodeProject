@@ -133,23 +133,44 @@ void MEMORY::initialize()
 		fio->Fclose();
 	}
 #else
-	if((config.dipswitch & DIPSWITCH_MZ1E05) && fio->Fopen(create_local_path(_T("MZ1E05.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext + 0x1000, 0x1000, 1);
-		fio->Fclose();
+	if(config.option_switch & OPTION_SWITCH_MZ1E05) {
+		if(fio->Fopen(create_local_path(_T("MZ1E05.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1E05.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x1000, 0x1000, 1);
+			fio->Fclose();
+		}
 	}
-	if((config.dipswitch & DIPSWITCH_MZ1E14) && fio->Fopen(create_local_path(_T("MZ1E14.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext + 0x800, 0x800, 1);
-		fio->Fclose();
+	if(config.option_switch & OPTION_SWITCH_MZ1E14) {
+		if(fio->Fopen(create_local_path(_T("MZ1E14.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1E14.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x800, 0x800, 1);
+			fio->Fclose();
+		}
 	}
-	if((config.dipswitch & DIPSWITCH_MZ1R12) && fio->Fopen(create_local_path(_T("MZ1R12.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext + 0x800, 0x800, 1);
-		fio->Fclose();
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		if(fio->Fopen(create_local_path(_T("MZ1R12.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1R12.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x800, 0x800, 1);
+			fio->Fclose();
+		}
 	}
 #if defined(SUPPORT_SFD700)
-	if((config.dipswitch & DIPSWITCH_SFD700) && fio->Fopen(create_local_path(_T("SFD700.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext + 0x1000, 0x800, 1);
-		fio->Fclose();
-		sfd700_loaded = true;
+	if(config.option_switch & OPTION_SWITCH_SFD700) {
+		if(fio->Fopen(create_local_path(_T("SFD700.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("SFD-700.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x1000, 0x800, 1);
+			fio->Fclose();
+			sfd700_loaded = true;
+		}
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
+		if(fio->Fopen(create_local_path(_T("FONT80.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(font80, sizeof(font80), 1);
+			fio->Fclose();
+			font80_loaded = true;
+		}
 	}
 #endif
 #endif
@@ -157,13 +178,6 @@ void MEMORY::initialize()
 		fio->Fread(font, sizeof(font), 1);
 		fio->Fclose();
 	}
-#if defined(SUPPORT_80COLUMN)
-	if((config.dipswitch & DIPSWITCH_80COLUMN) && fio->Fopen(create_local_path(_T("FONT80.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(font80, sizeof(font80), 1);
-		fio->Fclose();
-		font80_loaded = true;
-	}
-#endif
 	delete fio;
 	
 #if defined(_MZ700)
@@ -995,7 +1009,7 @@ void MEMORY::draw_line(int v)
 {
 	int ptr = 40 * (v >> 3);
 #if defined(_MZ700)
-	bool pcg_active = ((config.dipswitch & 1) && !(pcg_ctrl & 8));
+	bool pcg_active = ((config.dipswitch & DIPSWITCH_PCG700) && !(pcg_ctrl & 8));
 #endif
 	
 	for(int x = 0; x < 320; x += 8) {

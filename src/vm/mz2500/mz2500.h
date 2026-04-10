@@ -33,7 +33,7 @@
 #define SCSI_HOST_AUTO_ACK
 
 // device informations for win32
-#define USE_DIPSWITCH
+#define USE_OPTION_SWITCH
 #define USE_GENERAL_PARAM	1
 #define USE_SPECIAL_RESET
 #define USE_BOOT_MODE		3
@@ -56,14 +56,23 @@
 #define USE_DEBUGGER
 #define USE_STATE
 
-#define DIPSWITCH_CMU800		(1 << 0)
-#define DIPSWITCH_CMU800_TEMPO_INC_10	(1 << 1)
-#define DIPSWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
-#define DIPSWITCH_CMU800_TEMPO_INC_5	(1 << 3)
-#define DIPSWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
-#define DIPSWITCH_CMU800_TEMPO_INC_1	(1 << 5)
-#define DIPSWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
-#define DIPSWITCH_CMU800_TEMPO_160	(1 << 7)
+#define OPTION_SWITCH_CMU800	(1 << 0)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
+#define OPTION_SWITCH_MZ1E26	(1 << 8)
+#define OPTION_SWITCH_MZ1E30	(1 << 9)
+#define OPTION_SWITCH_MZ1E32	(1 << 10)
+#define OPTION_SWITCH_MZ1R12	(1 << 11)
+#define OPTION_SWITCH_MZ1R13	(1 << 12)
+#define OPTION_SWITCH_MZ1R37	(1 << 13)
+#define OPTION_SWITCH_W3100A	(1 << 14)
+
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E26 | OPTION_SWITCH_MZ1E30 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1R37)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -79,7 +88,6 @@ class EMU;
 class DEVICE;
 class EVENT;
 
-class CMU800;
 class DATAREC;
 class I8253;
 class I8255;
@@ -87,9 +95,6 @@ class IO;
 class MB8877;
 class PCM1BIT;
 class RP5C01;
-class SASI_HDD;
-class SCSI_HOST;
-class W3100A;
 class YM2203;
 class Z80;
 class Z80PIO;
@@ -104,15 +109,20 @@ class JOYSTICK;
 class KEYBOARD;
 class MEMORY;
 class MOUSE;
+class PRINTER;
+class SERIAL;
+class TIMER;
+
+class CMU800;
 class MZ1E26;
 class MZ1E30;
+class SASI_HDD;
+class SCSI_HOST;
 class MZ1E32;
 class MZ1R12;
 class MZ1R13;
 class MZ1R37;
-class PRINTER;
-class SERIAL;
-class TIMER;
+class W3100A;
 
 class VM : public VM_TEMPLATE
 {
@@ -122,7 +132,6 @@ protected:
 	// devices
 	EVENT* event;
 	
-	CMU800* cmu800;
 	DATAREC* drec;
 	I8253* pit;
 	I8255* pio_i;
@@ -130,9 +139,6 @@ protected:
 	MB8877* fdc;
 	PCM1BIT* pcm;
 	RP5C01* rtc;
-	SASI_HDD* sasi_hdd;
-	SCSI_HOST* sasi_host;
-	W3100A* w3100a;
 	YM2203* opn;
 	Z80* cpu;
 	Z80PIO* pio;
@@ -147,17 +153,31 @@ protected:
 	KEYBOARD* keyboard;
 	MEMORY* memory;
 	MOUSE* mouse;
-	MZ1E26* mz1e26;
-	MZ1E30* mz1e30;
-	MZ1E32* mz1e32;
-	MZ1R12* mz1r12;
-	MZ1R13* mz1r13;
-	MZ1R37* mz1r37;
 	PRINTER* printer;
 	SERIAL* serial;
 	TIMER* timer;
 	
+	// CMU-800
+	CMU800* cmu800;
+	// MZ-1E26
+	MZ1E26* mz1e26;
+	// MZ-1E30
+	MZ1E30* mz1e30;
+	SASI_HDD* sasi_hdd;
+	SCSI_HOST* sasi_host;
+	// MZ-1E32
+	MZ1E32* mz1e32;
+	// MZ-1R12
+	MZ1R12* mz1r12;
+	// MZ-1R13
+	MZ1R13* mz1r13;
+	// MZ-1R37
+	MZ1R37* mz1r37;
+	// W3100A
+	W3100A* w3100a;
+	
 	// monitor type cache
+	int option_switch;
 	int boot_mode;
 	int monitor_type;
 	
@@ -215,6 +235,7 @@ public:
 	void close_hard_disk(int drv);
 	bool is_hard_disk_inserted(int drv);
 	uint32_t is_hard_disk_accessed();
+	bool is_hard_disk_connected(int drv);
 	void play_tape(int drv, const _TCHAR* file_path);
 	void rec_tape(int drv, const _TCHAR* file_path);
 	void close_tape(int drv);
