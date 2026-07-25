@@ -194,7 +194,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		event->set_context_sound(qd->get_context_noise_seek());
 	}
 #endif
-	
+	if (config.option_switch & OPTION_SWITCH_CMU800) {
+		event->set_context_sound(cmu800);
+	}
+
 	drec->set_context_ear(cmt, SIG_CMT_OUT, 1);
 	drec->set_context_remote(cmt, SIG_CMT_REMOTE, 1);
 	drec->set_context_end(cmt, SIG_CMT_END, 1);

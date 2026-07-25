@@ -44,7 +44,8 @@ void CMU800::initialize()
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
-	
+
+	use_midi = false;
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
 	
@@ -55,6 +56,28 @@ void CMU800::initialize()
 	tempo_freq = tempo_new;
 	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
 	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
+	// CMU-800 wave
+	memset(melody_wave, 0, sizeof(melody_wave));
+	memset(bass_wave, 0, sizeof(bass_wave));
+	FILEIO* fio = new FILEIO();
+	if (fio->Fopen(create_local_path(_T("CMU800Merody.raw")), FILEIO_READ_BINARY)) {
+		fio->Fread(melody_wave, sizeof(melody_wave), 1);
+		fio->Fclose();
+	}
+	if (fio->Fopen(create_local_path(_T("CMU800Bass.raw")), FILEIO_READ_BINARY)) {
+		fio->Fread(bass_wave, sizeof(bass_wave), 1);
+		fio->Fclose();
+	}
+	int melody_channels[] = {0, 2, 3, 4, 5};
+	for (int ch: melody_channels)
+	{
+		tone[ch].Initialize();
+		tone[ch].SetWaveTable(melody_wave);
+	}
+	tone[1].Initialize();
+	tone[1].SetWaveTable(bass_wave);
+	volume_l = 1024;
+	volume_r = 1024;
 }
 
 void CMU800::release()
@@ -123,33 +146,36 @@ void CMU800::reset_midi()
 	{
 		return;
 	}
-	// GM reset
-	d_midi->write_signal(SIG_MIDI_OUT, 0xF0, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x7E, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x09, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x01, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xF7, 0xFF);
-	for(int channel = 0; channel < 11; ++ channel)
+	if(use_midi)
 	{
-		// all sound off
-		d_midi->write_signal(SIG_MIDI_OUT, 0xB0 + channel, 0xFF);
-		d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
-		d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
+		// GM reset
+		d_midi->write_signal(SIG_MIDI_OUT, 0xF0, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x7E, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x09, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x01, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xF7, 0xFF);
+		for (int channel = 0; channel < 11; ++channel)
+		{
+			// all sound off
+			d_midi->write_signal(SIG_MIDI_OUT, 0xB0 + channel, 0xFF);
+			d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
+			d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
+		}
+		// 全チャンネルクラビネットに変更
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC2, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC3, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC4, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	}
-	// 全チャンネルクラビネットに変更
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC2, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC3, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC4, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	memset(toggle, 0, sizeof(toggle));
 	memset(counter, 0, sizeof(counter));
 	cv = 0;
@@ -209,15 +235,28 @@ void CMU800::note_on_midi(int channel)
 	{
 		cv -= 12;
 	}
-	d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
-	d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+	if(use_midi)
+	{
+		d_midi->write_signal(SIG_MIDI_OUT, 0x90 + channel, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
+		d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+	}
+	else
+	{
+		tone[channel].Set8253(val);
+	}
 	note_on_flag[channel] = 1;
 	cv_key[channel] = key;
 }
 
 void CMU800::write_io8(uint32_t addr, uint32_t data)
 {
+	unsigned int a = addr & 0xFF;
+	unsigned int d = data & 0xFF;
+	char temp[256];
+	sprintf(temp, "Port: %02X, Data: %02X\n", a, d);
+	OutputDebugStringA(temp);
+
 	switch(addr & 0xFF) {
 	case 0x90:
 	case 0x91:
@@ -292,9 +331,12 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				if((beforeBit != 0) && (bit == 0))
 				{
 					// sound a rhythm
-					d_midi->write_signal(SIG_MIDI_OUT, 0x99, 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, rythm_table[i], 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+					if(use_midi)
+					{
+						d_midi->write_signal(SIG_MIDI_OUT, 0x99, 0xFF);
+						d_midi->write_signal(SIG_MIDI_OUT, rythm_table[i], 0xFF);
+						d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+					}
 				}
 				bitMask <<= 1;
 			}
@@ -313,9 +355,12 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				if(note_on == false && note_on_flag[channel] == 1)
 				{
 					// note off
-					d_midi->write_signal(SIG_MIDI_OUT, 0x80 + channel, 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
-					d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+					if(use_midi)
+					{
+						d_midi->write_signal(SIG_MIDI_OUT, 0x80 + channel, 0xFF);
+						d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
+						d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+					}
 					cv_key[channel] = 0;
 					note_on_flag[channel] = 0;
 				}
@@ -383,6 +428,30 @@ void CMU800::adjust_tempo(int delta)
 		tempo_new = TEMPO_MIN;
 	}
 	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+}
+
+void CMU800::mix(int32_t* buffer, int cnt)
+{
+	for(int i = 0; i < cnt; ++i)
+	{
+		int cmu800mixed = 0;
+		for(int channel = 0; channel < 6; ++ channel)
+		{
+			if (note_on_flag[channel] == 1)
+			{
+				cmu800mixed += tone[channel].GetData(32767);
+			}
+		}
+		cmu800mixed *= 8; // gain up
+		*buffer++ += apply_volume(cmu800mixed, volume_l);
+		*buffer++ += apply_volume(cmu800mixed, volume_r);
+	}
+}
+
+void CMU800::set_volume(int ch, int decibel_l, int decibel_r)
+{
+	volume_l = decibel_to_volume(decibel_l);
+	volume_r = decibel_to_volume(decibel_r);
 }
 
 #define STATE_VERSION	2

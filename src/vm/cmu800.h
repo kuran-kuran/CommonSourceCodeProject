@@ -13,11 +13,13 @@
 #include "vm.h"
 #include "../emu.h"
 #include "device.h"
+#include "cmu800tone.h"
 
 class CMU800 : public DEVICE
 {
 private:
 	DEVICE* d_midi;
+	Cmu800Tone tone[6];
 	uint8_t regs[16];
 	uint8_t toggle[6];
 	uint16_t counter[6];
@@ -30,6 +32,11 @@ private:
 	bool is_reset;
 	int tempo_freq, tempo_new, tempo_id;
 	bool key_on[8];
+	bool use_midi;
+	int8_t melody_wave[4096];
+	int8_t bass_wave[4096];
+	int volume_l;
+	int volume_r;
 	void reset_midi();
 	void note_on_midi8253(int channel);
 	void note_on_midi(int channel);
@@ -47,10 +54,13 @@ public:
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
 	void event_callback(int event_id, int err);
+	void mix(int32_t* buffer, int cnt);
+	void set_volume(int ch, int decibel_l, int decibel_r);
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
-	
+
 	// unique function
+	void initialize_sound(int rate, int volume);
 	void set_context_midi(DEVICE* device)
 	{
 		d_midi = device;
