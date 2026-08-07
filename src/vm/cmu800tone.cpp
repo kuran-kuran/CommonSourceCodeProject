@@ -16,6 +16,8 @@ void Cmu800Tone::Initialize()
 {
     phase_ = 0;
     phaseStep_ = 0;
+    envelope_.Initialize();
+    envelope_.SetDecay(10);
 }
 
 std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider)
@@ -34,6 +36,47 @@ std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider)
 void Cmu800Tone::Set8253(std::uint16_t divider)
 {
     phaseStep_ = MakePhaseStepFrom8253(divider);
+    envelope_.Trigger();
+}
+
+void Cmu800Tone::SetDecay(std::uint8_t value)
+{
+    envelope_.SetDecay(value);
+}
+
+void Cmu800Tone::SetDecayFactorQ31(std::uint32_t factorQ31)
+{
+    envelope_.SetDecayFactorQ31(factorQ31);
+}
+
+void Cmu800Tone::Trigger()
+{
+    envelope_.Trigger();
+}
+
+void Cmu800Tone::Stop()
+{
+    envelope_.Stop();
+}
+
+bool Cmu800Tone::IsPlaying() const
+{
+    return envelope_.IsActive();
+}
+
+std::int32_t Cmu800Tone::GetData()
+{
+    return GetDataWithVolume(32767);
+}
+
+std::int32_t Cmu800Tone::GetDataWithVolume(std::int32_t volumeQ15)
+{
+    const std::int32_t envelopeVolumeQ15 = envelope_.GetVolumeQ15AndAdvance();
+    const std::int32_t externalVolumeQ15 =
+        std::min(std::max(volumeQ15, 0), 32767);
+    const std::int32_t combinedVolumeQ15 =
+        (envelopeVolumeQ15 * externalVolumeQ15 + (1 << 14)) >> 15;
+    return GetData(combinedVolumeQ15);
 }
 
 std::int32_t Cmu800Tone::GetData(std::int32_t volumeQ15)

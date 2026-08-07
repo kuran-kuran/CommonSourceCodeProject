@@ -48,7 +48,7 @@ void CMU800::initialize()
 	use_midi = false;
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
-	
+
 	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800]) <= 0) {
 		tempo_new = TEMPO_INI;
 		config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
@@ -178,6 +178,7 @@ void CMU800::reset_midi()
 	}
 	memset(toggle, 0, sizeof(toggle));
 	memset(counter, 0, sizeof(counter));
+	memset(before_counter, 0, sizeof(before_counter));
 	cv = 0;
 	note_on = false;
 	memset(cv_key, 0, sizeof(cv_key));
@@ -230,10 +231,10 @@ void CMU800::note_on_midi(int channel)
 	}
 	// note on
 	uint8_t key = cv + 24;
-	// cvを103以内に抑える。下げるときは一度に1オクターブ下げる
-	while(cv > 103)
+	// cvを112以内に抑える。下げるときは一度に1オクターブ下げる
+	while(key > 112)
 	{
-		cv -= 12;
+		key -= 12;
 	}
 	if(use_midi)
 	{
@@ -253,9 +254,9 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 {
 	unsigned int a = addr & 0xFF;
 	unsigned int d = data & 0xFF;
-	char temp[256];
-	sprintf(temp, "Port: %02X, Data: %02X\n", a, d);
-	OutputDebugStringA(temp);
+	//char temp[256];
+	//sprintf(temp, "Port: %02X, Data: %02X\n", a, d);
+	//OutputDebugStringA(temp);
 
 	switch(addr & 0xFF) {
 	case 0x90:
@@ -271,7 +272,22 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			is_reset = false;
 			if(toggle[port_number] == 0)
 			{
+				if(note_on_flag[port_number] == 1)
+				{
+					if(before_counter[port_number] != counter[port_number])
+					{
+						key_on[port_number] = true;
+						// 0x90h、Volocity 0でのnote off (Volocity 0で消音するとスラー、タイになるらしい)
+						if(use_midi)
+						{
+							d_midi->write_signal(SIG_MIDI_OUT, 0x90 + port_number, 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, cv_key[port_number], 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
+						}
+					}
+				}
 				note_on_midi8253(addr & 0xF);
+				before_counter[port_number] = counter[port_number];
 			}
 			break;
 		}
@@ -291,7 +307,22 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 			is_reset = false;
 			if(toggle[port_number] == 0)
 			{
+				if(note_on_flag[port_number] == 1)
+				{
+					if(before_counter[port_number] != counter[port_number])
+					{
+						key_on[port_number] = true;
+						// 0x90h、Volocity 0でのnote off (Volocity 0で消音するとスラー、タイになるらしい)
+						if(use_midi)
+						{
+							d_midi->write_signal(SIG_MIDI_OUT, 0x90 + port_number, 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, cv_key[port_number], 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
+						}
+					}
+				}
 				note_on_midi8253((addr & 0xF) - 1);
+				before_counter[port_number] = counter[port_number];
 			}
 			break;
 		}
@@ -439,10 +470,10 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		{
 			if (note_on_flag[channel] == 1)
 			{
-				cmu800mixed += tone[channel].GetData(32767);
+				cmu800mixed += tone[channel].GetDataWithVolume(32767);
 			}
 		}
-		cmu800mixed *= 8; // gain up
+		cmu800mixed *= 32; // gain up
 		*buffer++ += apply_volume(cmu800mixed, volume_l);
 		*buffer++ += apply_volume(cmu800mixed, volume_r);
 	}

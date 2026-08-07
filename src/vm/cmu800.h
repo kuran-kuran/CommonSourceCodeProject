@@ -23,6 +23,7 @@ private:
 	uint8_t regs[16];
 	uint8_t toggle[6];
 	uint16_t counter[6];
+	uint16_t before_counter[6];
 	uint8_t cv;
 	bool note_on;
 	uint8_t cv_key[8];
