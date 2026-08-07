@@ -69,13 +69,19 @@ void CMU800::initialize()
 		fio->Fclose();
 	}
 	int melody_channels[] = {0, 2, 3, 4, 5};
+	uint8_t decayValue = 10;
+	uint8_t sustainValue = 127;
 	for (int ch: melody_channels)
 	{
 		tone[ch].Initialize();
 		tone[ch].SetWaveTable(melody_wave);
+		tone[ch].SetDecay(decayValue);       // 0`255
 	}
+	tone[0].EnableSustain(true);
+	tone[0].SetSustain(sustainValue);   // 0`255
 	tone[1].Initialize();
 	tone[1].SetWaveTable(bass_wave);
+	tone[1].SetDecay(decayValue);       // 0`255
 	volume_l = 1024;
 	volume_r = 1024;
 }
@@ -245,6 +251,14 @@ void CMU800::note_on_midi(int channel)
 	else
 	{
 		tone[channel].Set8253(val);
+		if(channel == 0)
+		{
+			tone[channel].SetGate(true);
+		}
+		else
+		{
+			tone[channel].Trigger();
+		}
 	}
 	note_on_flag[channel] = 1;
 	cv_key[channel] = key;
@@ -392,6 +406,10 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 						d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
 						d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
 					}
+					if(channel == 0)
+					{
+						tone[channel].SetGate(false);
+					}
 					cv_key[channel] = 0;
 					note_on_flag[channel] = 0;
 				}
@@ -468,7 +486,8 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		int cmu800mixed = 0;
 		for(int channel = 0; channel < 6; ++ channel)
 		{
-			if (note_on_flag[channel] == 1)
+			const bool shouldMix = (channel == 0) ? tone[channel].IsPlaying() : (note_on_flag[channel] == 1);
+			if(shouldMix)
 			{
 				cmu800mixed += tone[channel].GetDataWithVolume(32767);
 			}

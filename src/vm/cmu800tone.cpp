@@ -17,7 +17,6 @@ void Cmu800Tone::Initialize()
     phase_ = 0;
     phaseStep_ = 0;
     envelope_.Initialize();
-    envelope_.SetDecay(10);
 }
 
 std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider)
@@ -36,7 +35,6 @@ std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider)
 void Cmu800Tone::Set8253(std::uint16_t divider)
 {
     phaseStep_ = MakePhaseStepFrom8253(divider);
-    envelope_.Trigger();
 }
 
 void Cmu800Tone::SetDecay(std::uint8_t value)
@@ -47,6 +45,21 @@ void Cmu800Tone::SetDecay(std::uint8_t value)
 void Cmu800Tone::SetDecayFactorQ31(std::uint32_t factorQ31)
 {
     envelope_.SetDecayFactorQ31(factorQ31);
+}
+
+void Cmu800Tone::EnableSustain(bool enabled)
+{
+    envelope_.EnableSustain(enabled);
+}
+
+void Cmu800Tone::SetSustain(std::uint8_t value)
+{
+    envelope_.SetSustain(value);
+}
+
+void Cmu800Tone::SetGate(bool gateIsOn)
+{
+    envelope_.SetGate(gateIsOn);
 }
 
 void Cmu800Tone::Trigger()

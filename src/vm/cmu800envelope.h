@@ -5,7 +5,7 @@
 // One-shot exponential decay envelope for the 48 kHz CMU-800 players.
 // The internal level is Q31 so even the long Decay setting can be represented
 // smoothly.  GetVolumeQ15AndAdvance() returns the Q15 value accepted by
-// Cmu800TonePlayer::GetData() and Cmu800RhythmPlayer::GetData().
+// Cmu800Tone::GetData() and Cmu800RhythmPlayer::GetData().
 class Cmu800Envelope {
 public:
     // Values measured approximately from 260806_0282_Decay.WAV.
@@ -28,6 +28,15 @@ public:
     // settings.  The Q31 details stay inside this class.
     void SetDecay(std::uint8_t value);
 
+    // Sustain is used by CMU-800 ch1 only.  It is disabled by default so
+    // ch2..ch6 retain the original one-shot Decay behavior.
+    void EnableSustain(bool enabled);
+    void SetSustain(std::uint8_t value);
+
+    // Set the logical GATE state.  A false -> true transition starts a note;
+    // a true -> false transition starts Release when Sustain is enabled.
+    void SetGate(bool gateIsOn);
+
     // Start a new note at full level.  Call this once on the GATE transition,
     // not continuously while the GATE remains active.
     void Trigger();
@@ -40,6 +49,21 @@ public:
     std::int32_t GetVolumeQ15AndAdvance();
 
 private:
+    enum class Stage : std::uint8_t {
+        Inactive,
+        OneShotDecay,
+        DecayToSustain,
+        SustainHold,
+        Release
+    };
+
+    void Advance(std::uint32_t factorQ31);
+
     std::uint32_t levelQ31_;
     std::uint32_t decayFactorQ31_;
+    std::uint32_t releaseFactorQ31_;
+    std::uint32_t sustainLevelQ31_;
+    bool sustainEnabled_;
+    bool gateIsOn_;
+    Stage stage_;
 };

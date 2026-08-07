@@ -20,6 +20,9 @@ public:
     // Envelope control.  Trigger() is intended for a GATE transition.
     void SetDecay(std::uint8_t value);
     void SetDecayFactorQ31(std::uint32_t factorQ31);
+    void EnableSustain(bool enabled);
+    void SetSustain(std::uint8_t value);
+    void SetGate(bool gateIsOn);
     void Trigger();
     void Stop();
     bool IsPlaying() const;
