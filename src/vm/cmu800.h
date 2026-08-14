@@ -56,8 +56,8 @@ private:
 	int8_t* b1CH_data;
 	uint8_t* b0User_wave;
 	int8_t* b0User_data;
-	int volume_l;
-	int volume_r;
+	int volume_l[5];
+	int volume_r[5];
 	void reset_midi();
 	void note_on_midi8253(int channel);
 	void note_on_midi(int channel);
@@ -82,7 +82,7 @@ public:
 	bool process_state(FILEIO* state_fio, bool loading);
 
 	// unique function
-	void initialize_sound(int rate, int volume);
+	//void initialize_sound(int rate, int volume);
 	void set_context_midi(DEVICE* device)
 	{
 		d_midi = device;

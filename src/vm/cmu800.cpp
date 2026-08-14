@@ -217,8 +217,11 @@ void CMU800::initialize()
 		tone[1].Initialize();
 		tone[1].SetWaveTable(bass_data);
 		tone[1].SetDecay(decayValue);       // 0Å`255
-		volume_l = 1024;
-		volume_r = 1024;
+		for (int i = 0; i < 5; ++ i)
+		{
+			volume_l[i] = 1024;
+			volume_r[i] = 1024;
+		}
 	}
 }
 
@@ -269,6 +272,27 @@ void CMU800::release()
 void CMU800::reset()
 {
 	reset_midi();
+	memset(toggle, 0, sizeof(toggle));
+	memset(counter, 0, sizeof(counter));
+	memset(before_counter, 0, sizeof(before_counter));
+	cv = 0;
+	note_on = false;
+	memset(cv_key, 0, sizeof(cv_key));
+	memset(note_on_flag, 0, sizeof(note_on_flag));
+	memset(before_tone, 0, sizeof(before_tone));
+	for (int i = 0; i < 8; ++i)
+	{
+		key_on[i] = false;
+	}
+	before_rhythm = 0xFE;
+	for (int ch = 0; ch < 6; ++ ch)
+	{
+		tone[ch].Stop();
+	}
+	for (int i = 0; i < 8; ++ i)
+	{
+		rhythm[i].Stop();
+	}
 }
 
 void CMU800::update_config()
@@ -358,19 +382,6 @@ void CMU800::reset_midi()
 		d_midi->write_signal(SIG_MIDI_OUT, 0xC5, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 	}
-	memset(toggle, 0, sizeof(toggle));
-	memset(counter, 0, sizeof(counter));
-	memset(before_counter, 0, sizeof(before_counter));
-	cv = 0;
-	note_on = false;
-	memset(cv_key, 0, sizeof(cv_key));
-	memset(note_on_flag, 0, sizeof(note_on_flag));
-	memset(before_tone, 0, sizeof(before_tone));
-	for(int i = 0; i < 8; ++ i)
-	{
-		key_on[i] = false;
-	}
-	before_rhythm = 0xFE;
 	is_reset = true;
 }
 
@@ -730,38 +741,77 @@ void CMU800::set_sample_rate(uint32_t sample_rate)
 
 void CMU800::mix(int32_t* buffer, int cnt)
 {
-	if(use_midi)
+	if (use_midi)
 	{
 		return;
 	}
-	for(int i = 0; i < cnt; ++i)
+	for (int i = 0; i < cnt; ++i)
 	{
-		int cmu800Tonemixed = 0;
-		for(int channel = 0; channel < 6; ++ channel)
+		int32_t cmu800MixedL = 0;
+		int32_t cmu800MixedR = 0;
+		// Tone
+		// âπó ch 0: Melody
+		// âπó ch 1: Bass
+		// âπó ch 2: Chord
+		for (int channel = 0; channel < 6; ++channel)
 		{
-			const bool shouldMix = (channel == 0) ? tone[channel].IsPlaying() : (note_on_flag[channel] == 1);
-			if(shouldMix)
+			const bool shouldMix =
+				(channel == 0) ?
+				tone[channel].IsPlaying() :
+				(note_on_flag[channel] == 1);
+			if (shouldMix)
 			{
-				cmu800Tonemixed += tone[channel].GetDataWithVolume(32767);
+				int volumeChannel;
+				if (channel == 0)
+				{
+					// Melody
+					volumeChannel = 0;
+				}
+				else if (channel == 1)
+				{
+					// Bass
+					volumeChannel = 1;
+				}
+				else
+				{
+					// Chord 1Å`4
+					volumeChannel = 2;
+				}
+				int32_t sample =
+					tone[channel].GetDataWithVolume(32767);
+				sample *= 16; // Tone gain up
+				cmu800MixedL +=
+					apply_volume(sample, volume_l[volumeChannel]);
+				cmu800MixedR +=
+					apply_volume(sample, volume_r[volumeChannel]);
 			}
 		}
-		cmu800Tonemixed *= 16; // gain up
-		int cmu800rhythmMixed = 0;
+		// âπó ch 3: Rhythm
+		int32_t rhythmMixed = 0;
 		for (int channel = 0; channel < 8; ++channel)
 		{
-			cmu800rhythmMixed += rhythm[channel].GetData(32767);
+			rhythmMixed += rhythm[channel].GetData(32767);
 		}
-		cmu800rhythmMixed *= 256; // gain up
-		int cmu800mixed = cmu800Tonemixed + cmu800rhythmMixed;
-		*buffer++ += apply_volume(cmu800mixed, volume_l);
-		*buffer++ += apply_volume(cmu800mixed, volume_r);
+		rhythmMixed *= 256; // Rhythm gain up
+		cmu800MixedL += apply_volume(rhythmMixed, volume_l[3]);
+		cmu800MixedR += apply_volume(rhythmMixed, volume_r[3]);
+		// âπó ch 4: Master
+		cmu800MixedL = apply_volume(cmu800MixedL, volume_l[4]);
+		cmu800MixedR = apply_volume(cmu800MixedR, volume_r[4]);
+		*buffer++ += cmu800MixedL;
+		*buffer++ += cmu800MixedR;
 	}
 }
 
+// âπó ch 0: Merody
+//        1: Bass
+//        2: Chord
+//        3: Rhythm
+//        4: Master
 void CMU800::set_volume(int ch, int decibel_l, int decibel_r)
 {
-	volume_l = decibel_to_volume(decibel_l);
-	volume_r = decibel_to_volume(decibel_r);
+	volume_l[ch] = (decibel_l <= -40) ? 0 : decibel_to_volume(decibel_l);
+	volume_r[ch] = (decibel_r <= -40) ? 0 : decibel_to_volume(decibel_r);
 }
 
 #define STATE_VERSION	2

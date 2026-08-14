@@ -506,17 +506,45 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 	if(ch == 0) {
 		pcm->set_volume(0, decibel_l, decibel_r);
 	} else if(ch == 1) {
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
+	} else if(ch == 2) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
+	} else if(ch == 3) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch == 4) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch == 5) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
+	}
+	else if (ch == 6) {
 		drec->set_volume(0, decibel_l, decibel_r);
-	} else if(ch == 2 && fdc) {
+	}
+	else if (ch == 7 && fdc) {
 		fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
-	} else if(ch == 3) {
+	}
+	else if (ch == 8) {
 		drec->get_context_noise_play()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_stop()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_fast()->set_volume(0, decibel_l, decibel_r);
 #ifdef SUPPORT_QUICK_DISK
-	} else if(ch == 4 && qd) {
+	} else if(ch == 9 && qd) {
 		qd->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
 #endif
 	}

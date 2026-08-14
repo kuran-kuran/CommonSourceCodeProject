@@ -60,9 +60,9 @@
 #endif
 #define USE_SCANLINE
 #ifdef SUPPORT_QUICK_DISK
-#define USE_SOUND_VOLUME	5
+#define USE_SOUND_VOLUME	10
 #else
-#define USE_SOUND_VOLUME	4
+#define USE_SOUND_VOLUME	9
 #endif
 #define USE_MIDI
 #define USE_PRINTER
@@ -104,7 +104,9 @@
 
 #ifdef USE_SOUND_VOLUME
 static const _TCHAR *sound_device_caption[] = {
-	_T("Beep"), _T("CMT (Signal)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
+	_T("Beep"),
+	_T("CMU-800 Melody"), _T("CMU-800 Bass"), _T("CMU-800 Chord"), _T("CMU-800 Rhythm"), _T("CMU-800 Master"),
+	_T("CMT (Signal)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
 #ifdef SUPPORT_QUICK_DISK
 	_T("Noise (QD)"),
 #endif
