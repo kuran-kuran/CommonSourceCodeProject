@@ -164,7 +164,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
 	event->set_context_sound(drec->get_context_noise_fast());
-	
+	if (config.option_switch & OPTION_SWITCH_CMU800) {
+		event->set_context_sound(cmu800);
+	}
+
 	drec->set_context_ear(cmt, SIG_CMT_OUT, 1);
 	drec->set_context_remote(cmt, SIG_CMT_REMOTE, 1);
 	drec->set_context_end(cmt, SIG_CMT_END, 1);
@@ -418,6 +421,11 @@ void VM::initialize_sound(int rate, int samples)
 	// init sound gen
 	opn->initialize_sound(rate, 2000000, samples, 0, -8);
 	pcm->initialize_sound(rate, 4096);
+
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -440,14 +448,39 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 	} else if(ch == 2) {
 		pcm->set_volume(0, decibel_l, decibel_r);
 	} else if(ch == 3) {
-		drec->set_volume(0, decibel_l, decibel_r);
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
 	} else if(ch == 4) {
-		drec->set_volume(1, decibel_l, decibel_r);
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
 	} else if(ch == 5) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch == 6) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch == 7) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
+	} else if(ch == 8) {
+		drec->set_volume(0, decibel_l, decibel_r);
+	} else if(ch == 9) {
+		drec->set_volume(1, decibel_l, decibel_r);
+	} else if(ch == 10) {
 		fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
-	} else if(ch == 6) {
+	} else if(ch == 11) {
 		drec->get_context_noise_play()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_stop()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_fast()->set_volume(0, decibel_l, decibel_r);
@@ -690,6 +723,9 @@ bool VM::is_frame_skippable()
 void VM::key_down(int code, bool repeat)
 {
 	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+	if(!cmu800) {
+		return;
+	}
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
 		if(code == 17) {
 			// left-ctrl and right-ctrl
@@ -746,7 +782,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	11
+#define STATE_VERSION	(12 + 0x01000000) // –{‰Æ‚Í12
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {

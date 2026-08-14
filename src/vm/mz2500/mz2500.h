@@ -34,7 +34,7 @@
 
 // device informations for win32
 #define USE_OPTION_SWITCH
-#define USE_GENERAL_PARAM	1
+#define USE_GENERAL_PARAM	5
 #define USE_SPECIAL_RESET
 #define USE_BOOT_MODE		3
 #define USE_FLOPPY_DISK		4
@@ -47,7 +47,7 @@
 #define USE_MONITOR_TYPE	4
 #define USE_SCREEN_FILTER
 #define USE_SCANLINE
-#define USE_SOUND_VOLUME	7
+#define USE_SOUND_VOLUME	12
 #define USE_JOYSTICK
 #define USE_MIDI
 #define USE_MOUSE
@@ -64,13 +64,21 @@
 #define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
 #define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
 #define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
-#define OPTION_SWITCH_MZ1E26	(1 << 8)
-#define OPTION_SWITCH_MZ1E30	(1 << 9)
-#define OPTION_SWITCH_MZ1E32	(1 << 10)
-#define OPTION_SWITCH_MZ1R12	(1 << 11)
-#define OPTION_SWITCH_MZ1R13	(1 << 12)
-#define OPTION_SWITCH_MZ1R37	(1 << 13)
-#define OPTION_SWITCH_W3100A	(1 << 14)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1	(1 << 8)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1	(1 << 9)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1		(1 << 10)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1		(1 << 11)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_INC_1		(1 << 12)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1		(1 << 13)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1		(1 << 14)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1		(1 << 15)
+#define OPTION_SWITCH_MZ1E26	(1 << 16)
+#define OPTION_SWITCH_MZ1E30	(1 << 17)
+#define OPTION_SWITCH_MZ1E32	(1 << 18)
+#define OPTION_SWITCH_MZ1R12	(1 << 19)
+#define OPTION_SWITCH_MZ1R13	(1 << 20)
+#define OPTION_SWITCH_MZ1R37	(1 << 21)
+#define OPTION_SWITCH_W3100A	(1 << 22)
 
 #define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E26 | OPTION_SWITCH_MZ1E30 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1R37)
 
@@ -80,7 +88,9 @@
 
 #ifdef USE_SOUND_VOLUME
 static const _TCHAR *sound_device_caption[] = {
-	_T("OPN (FM)"), _T("OPN (PSG)"), _T("Beep"), _T("CMT (Signal)"), _T("CMT (Voice)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
+	_T("OPN (FM)"), _T("OPN (PSG)"), _T("Beep"),
+	_T("CMU-800 Melody"), _T("CMU-800 Bass"), _T("CMU-800 Chord"), _T("CMU-800 Rhythm"), _T("CMU-800 Master"),
+	_T("CMT (Signal)"), _T("CMT (Voice)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
 };
 #endif
 

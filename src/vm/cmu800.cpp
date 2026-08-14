@@ -925,7 +925,7 @@ void CMU800::set_volume(int ch, int decibel_l, int decibel_r)
 	volume_r[ch] = (decibel_r <= -40) ? 0 : decibel_to_volume(decibel_r);
 }
 
-#define STATE_VERSION	0x000100001
+#define STATE_VERSION	0x000000003
 
 bool CMU800::process_state(FILEIO* state_fio, bool loading)
 {

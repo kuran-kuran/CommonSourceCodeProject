@@ -48,7 +48,11 @@ void MEMORY::initialize()
 	
 	// load rom images
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
+	if (fio->Fopen(create_local_path(_T("IPL2500.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+	else if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
