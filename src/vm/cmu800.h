@@ -34,6 +34,7 @@ private:
 	uint8_t before_rhythm;
 	bool is_reset;
 	int tempo_freq, tempo_new, tempo_id;
+	int melody_sustain, melody_decay, bass_decay, chord_decay;
 	bool key_on[8];
 	bool use_midi;
 	uint8_t* melody_wave;

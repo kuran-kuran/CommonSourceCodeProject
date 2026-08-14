@@ -28,9 +28,11 @@ const int counterTable[] =
 	0x004B, 0x0047, 0x0043, 0x003F, 0x003C
 };
 
-#ifndef GENERAL_PARAM_CMU800
-#define GENERAL_PARAM_CMU800 0
-#endif
+#define GENERAL_PARAM_CMU800_TEMPO   0
+#define GENERAL_PARAM_CMU800_SUSTAIN 1
+#define GENERAL_PARAM_CMU800_DECAY1  2
+#define GENERAL_PARAM_CMU800_DECAY2  3
+#define GENERAL_PARAM_CMU800_DECAY3  4
 #define TEMPO_INI 160
 #define TEMPO_MIN 10
 #define TEMPO_MAX 500
@@ -44,15 +46,22 @@ void CMU800::initialize()
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
-
+	config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1;
+	config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1;
 	use_midi = false;
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
 
-	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800]) <= 0)
+	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800_TEMPO]) <= 0)
 	{
 		tempo_new = TEMPO_INI;
-		config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+		config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
 	}
 	tempo_freq = tempo_new;
 	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
@@ -222,6 +231,10 @@ void CMU800::initialize()
 			volume_l[i] = 1024;
 			volume_r[i] = 1024;
 		}
+		melody_sustain = 5;
+		melody_decay = 5;
+		bass_decay = 5;
+		chord_decay = 5;
 	}
 }
 
@@ -297,40 +310,138 @@ void CMU800::reset()
 
 void CMU800::update_config()
 {
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_10) {
+	// Tempo
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_10) {
 		tempo_new += 10;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_10;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_10) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_10) {
 		tempo_new -= 10;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_10;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_5) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_5) {
 		tempo_new += 5;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_5;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_5) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_5) {
 		tempo_new -= 5;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_5;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_1) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_1) {
 		tempo_new++;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_INC_1;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_1) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_DEC_1) {
 		tempo_new--;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_DEC_1;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800_TEMPO_160) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_160) {
 		tempo_new = 160;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_TEMPO_160;
 	}
-	if(tempo_new > TEMPO_MAX) {
+	if (tempo_new > TEMPO_MAX) {
 		tempo_new = TEMPO_MAX;
-	} else if(tempo_new < TEMPO_MIN) {
+	}
+	else if (tempo_new < TEMPO_MIN) {
 		tempo_new = TEMPO_MIN;
 	}
-	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+	config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
+	// Melody Sustain
+	bool update = false;
+	if (config.option_switch & OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1) {
+		melody_sustain++;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1;
+		update = true;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1) {
+		melody_sustain--;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1;
+		update = true;
+	}
+	if (melody_sustain > 10) {
+		melody_sustain = 10;
+	}
+	else if (melody_sustain < 0) {
+		melody_sustain = 0;
+	}
+	config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain;
+	if(update) {
+		int value255 = static_cast<uint8_t>((melody_sustain * 255 + 5) / 10);
+		tone[0].SetSustain(value255);
+		emu->out_message(_T("CMU-800: Melody Sustain = %d/10"), melody_sustain);
+	}
+	// Melody Decay
+	update = false;
+	if (config.option_switch & OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1) {
+		melody_decay ++;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1;
+		update = true;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1) {
+		melody_decay --;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1;
+		update = true;
+	}
+	if(melody_decay > 10) {
+		melody_decay = 10;
+	} else if(melody_decay < 0) {
+		melody_decay = 0;
+	}
+	config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay;
+	if(update) {
+		int value255 = static_cast<uint8_t>((melody_decay * 255 + 5) / 10);
+		tone[0].SetDecay(value255);
+		emu->out_message(_T("CMU-800: Melody Decay = %d/10"), melody_decay);
+	}
+	// Bass Decay
+	update = false;
+	if (config.option_switch & OPTION_SWITCH_CMU800_BASS_DECAY_INC_1) {
+		bass_decay ++;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_INC_1;
+		update = true;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1) {
+		bass_decay --;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1;
+		update = true;
+	}
+	if(bass_decay > 10) {
+		bass_decay = 10;
+	} else if(bass_decay < 0) {
+		bass_decay = 0;
+	}
+	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
+	if(update) {
+		int value255 = static_cast<uint8_t>((bass_decay * 255 + 5) / 10);
+		tone[1].SetDecay(value255);
+		emu->out_message(_T("CMU-800: Bass Decay = %d/10"), bass_decay);
+	}
+	// Chord Decay
+	update = false;
+	if (config.option_switch & OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1) {
+		chord_decay ++;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1;
+		update = true;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1) {
+		chord_decay --;
+		config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1;
+		update = true;
+	}
+	if(chord_decay > 10) {
+		chord_decay = 10;
+	} else if(chord_decay < 0) {
+		chord_decay = 0;
+	}
+	config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay;
+	if(update) {
+		int value255 = static_cast<uint8_t>((chord_decay * 255 + 5) / 10);
+		tone[2].SetDecay(value255);
+		tone[3].SetDecay(value255);
+		tone[4].SetDecay(value255);
+		tone[5].SetDecay(value255);
+		emu->out_message(_T("CMU-800: Chord Decay = %d/10"), chord_decay);
+	}
 }
 
 void CMU800::event_callback(int event_id, int err)
@@ -726,7 +837,7 @@ void CMU800::adjust_tempo(int delta)
 	} else if(tempo_new < TEMPO_MIN) {
 		tempo_new = TEMPO_MIN;
 	}
-	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+	config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
 }
 
 void CMU800::set_sample_rate(uint32_t sample_rate)
@@ -814,7 +925,7 @@ void CMU800::set_volume(int ch, int decibel_l, int decibel_r)
 	volume_r[ch] = (decibel_r <= -40) ? 0 : decibel_to_volume(decibel_r);
 }
 
-#define STATE_VERSION	2
+#define STATE_VERSION	0x000100001
 
 bool CMU800::process_state(FILEIO* state_fio, bool loading)
 {
@@ -840,5 +951,9 @@ bool CMU800::process_state(FILEIO* state_fio, bool loading)
 	tempo_freq = 0;
 	state_fio->StateValue(tempo_new);
 	state_fio->StateValue(tempo_id);
+	state_fio->StateValue(melody_sustain);
+	state_fio->StateValue(melody_decay);
+	state_fio->StateValue(bass_decay);
+	state_fio->StateValue(chord_decay);
 	return true;
 }
