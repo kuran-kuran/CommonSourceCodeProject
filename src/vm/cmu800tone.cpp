@@ -95,7 +95,7 @@ std::int32_t Cmu800Tone::GetDataWithVolume(std::int32_t volumeQ15)
 std::int32_t Cmu800Tone::GetData(std::int32_t volumeQ15)
 {
     constexpr std::uint32_t kTableIndexShift = 20u; // 32 - log2(4096)
-    if (table_ == nullptr) return 0;
+    if (table_ == NULL) return 0;
 
     const std::int32_t sample = table_[phase_ >> kTableIndexShift];
     phase_ += phaseStep_;

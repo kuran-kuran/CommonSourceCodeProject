@@ -14,12 +14,14 @@
 #include "../emu.h"
 #include "device.h"
 #include "cmu800tone.h"
+#include "cmu800rhythm.h"
 
 class CMU800 : public DEVICE
 {
 private:
 	DEVICE* d_midi;
 	Cmu800Tone tone[6];
+	Cmu800Rhythm rhythm[8];
 	uint8_t regs[16];
 	uint8_t toggle[6];
 	uint16_t counter[6];
@@ -29,18 +31,37 @@ private:
 	uint8_t cv_key[8];
 	uint8_t note_on_flag[8];
 	uint8_t before_tone[8];
-	uint8_t before_rythm;
+	uint8_t before_rhythm;
 	bool is_reset;
 	int tempo_freq, tempo_new, tempo_id;
 	bool key_on[8];
 	bool use_midi;
-	int8_t melody_wave[4096];
-	int8_t bass_wave[4096];
+	uint8_t* melody_wave;
+	int8_t melody_data[4096];
+	uint8_t* bass_wave;
+	int8_t bass_data[4096];
+	uint8_t* b7BD_wave;
+	int8_t* b7BD_data;
+	uint8_t* b6SD_wave;
+	int8_t* b6SD_data;
+	uint8_t* b5LT_wave;
+	int8_t* b5LT_data;
+	uint8_t* b4HT_wave;
+	int8_t* b4HT_data;
+	uint8_t* b3CY_wave;
+	int8_t* b3CY_data;
+	uint8_t* b2OH_wave;
+	int8_t* b2OH_data;
+	uint8_t* b1CH_wave;
+	int8_t* b1CH_data;
+	uint8_t* b0User_wave;
+	int8_t* b0User_data;
 	int volume_l;
 	int volume_r;
 	void reset_midi();
 	void note_on_midi8253(int channel);
 	void note_on_midi(int channel);
+	bool get_wave_data(uint8_t* wave, uint8_t** data_ptr, uint32_t* data_size);
 public:
 	CMU800(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{

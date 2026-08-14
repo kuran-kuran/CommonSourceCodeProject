@@ -45,7 +45,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -329,6 +329,7 @@
     <ClCompile Include="..\src\fileio.cpp" />
     <ClCompile Include="..\src\vm\cmu800.cpp" />
     <ClCompile Include="..\src\vm\cmu800envelope.cpp" />
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp" />
     <ClCompile Include="..\src\vm\cmu800tone.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
@@ -379,6 +380,7 @@
     <ClInclude Include="..\src\res\resource.h" />
     <ClInclude Include="..\src\vm\cmu800.h" />
     <ClInclude Include="..\src\vm\cmu800envelope.h" />
+    <ClInclude Include="..\src\vm\cmu800rhythm.h" />
     <ClInclude Include="..\src\vm\cmu800tone.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />

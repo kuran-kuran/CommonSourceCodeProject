@@ -2,6 +2,7 @@
 
 #include "Cmu800Envelope.h"
 
+#include <cstddef>
 #include <cstdint>
 
 // One CMU-800 style voice using a 4096-sample signed 8-bit wavetable at
@@ -9,7 +10,7 @@
 class Cmu800Tone {
 public:
     // table points to 4096 bytes.  On Pico it can point directly to Flash.
-    explicit Cmu800Tone(const std::int8_t* table = nullptr);
+    explicit Cmu800Tone(const std::int8_t* table = NULL);
 
     void SetWaveTable(const std::int8_t* table);
     void Initialize();

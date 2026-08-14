@@ -5,7 +5,7 @@
 // One-shot exponential decay envelope for the 48 kHz CMU-800 players.
 // The internal level is Q31 so even the long Decay setting can be represented
 // smoothly.  GetVolumeQ15AndAdvance() returns the Q15 value accepted by
-// Cmu800Tone::GetData() and Cmu800RhythmPlayer::GetData().
+// Cmu800Tone::GetData() and Cmu800Rhythm::GetData().
 class Cmu800Envelope {
 public:
     // Values measured approximately from 260806_0282_Decay.WAV.
