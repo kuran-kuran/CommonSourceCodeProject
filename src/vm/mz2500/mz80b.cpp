@@ -483,6 +483,11 @@ void VM::initialize_sound(int rate, int samples)
 	
 	// init sound gen
 	pcm->initialize_sound(rate, 8000);
+
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -723,6 +728,9 @@ bool VM::is_frame_skippable()
 void VM::key_down(int code, bool repeat)
 {
 	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+	if(!cmu800) {
+		return;
+	}
 	if(config.option_switch & OPTION_SWITCH_CMU800) {
 		if(code == 17) {
 			// left-ctrl and right-ctrl

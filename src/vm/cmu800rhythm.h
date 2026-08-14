@@ -14,6 +14,8 @@ public:
 
     void SetSample(const std::int8_t* sample, std::uint32_t sampleCount);
     void Initialize();
+    void Initialize(std::uint32_t sampleRate);
+    void SetSampleRate(std::uint32_t sampleRate);
 
     // Start the drum sound from its beginning.  Calling Trigger() again
     // restarts the same sound, as the CMU-800 rhythm bits do.
@@ -29,6 +31,8 @@ public:
 private:
     const std::int8_t* sample_;
     std::uint32_t sampleCount_;
-    std::uint32_t position_;
+    std::uint64_t positionQ32_;
+    std::uint64_t stepQ32_;
+    std::uint32_t sampleRate_;
     bool playing_;
 };

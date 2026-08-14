@@ -5,8 +5,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// One CMU-800 style voice using a 4096-sample signed 8-bit wavetable at
-// a 48 kHz output rate.  The returned sample is signed and ready for mixing.
+// One CMU-800 style voice using a 4096-sample signed 8-bit wavetable.
+// The returned sample is signed and ready for mixing.
 class Cmu800Tone {
 public:
     // table points to 4096 bytes.  On Pico it can point directly to Flash.
@@ -14,6 +14,8 @@ public:
 
     void SetWaveTable(const std::int8_t* table);
     void Initialize();
+    void Initialize(std::uint32_t sampleRate);
+    void SetSampleRate(std::uint32_t sampleRate);
 
     // Set a CMU-800 8253 divider.  For example, 0x0B39 is A=442 Hz.
     void Set8253(std::uint16_t divider);
@@ -42,10 +44,12 @@ public:
     std::int32_t GetData(std::int32_t volumeQ15);
 
 private:
-    static std::uint32_t MakePhaseStepFrom8253(std::uint16_t divider);
+    std::uint32_t MakePhaseStepFrom8253(std::uint16_t divider) const;
 
     const std::int8_t* table_;
     std::uint32_t phase_;
     std::uint32_t phaseStep_;
+    std::uint32_t sampleRate_;
+    std::uint16_t divider_;
     Cmu800Envelope envelope_;
 };

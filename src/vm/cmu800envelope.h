@@ -18,6 +18,8 @@ public:
 
     // Reset the envelope to silence while preserving the selected decay rate.
     void Initialize();
+    void Initialize(std::uint32_t sampleRate);
+    void SetSampleRate(std::uint32_t sampleRate);
 
     // Select the per-sample Q31 multiplier.  0 is immediate silence after the
     // current sample; 0x7fffffff is the slowest representable decay.
@@ -44,7 +46,7 @@ public:
 
     bool IsActive() const;
 
-    // Return one Q15 volume value (0..32767), then advance by one 48 kHz
+    // Return one Q15 volume value (0..32767), then advance by one output
     // sample.  This must be called once per generated audio sample.
     std::int32_t GetVolumeQ15AndAdvance();
 
@@ -58,11 +60,14 @@ private:
     };
 
     void Advance(std::uint32_t factorQ31);
+    void AdvanceOneReferenceSample();
 
     std::uint32_t levelQ31_;
     std::uint32_t decayFactorQ31_;
     std::uint32_t releaseFactorQ31_;
     std::uint32_t sustainLevelQ31_;
+    std::uint32_t sampleRate_;
+    std::uint64_t referenceClockAccumulator_;
     bool sustainEnabled_;
     bool gateIsOn_;
     Stage stage_;

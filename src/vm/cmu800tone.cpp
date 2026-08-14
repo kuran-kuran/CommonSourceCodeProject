@@ -3,7 +3,7 @@
 #include <algorithm>
 
 Cmu800Tone::Cmu800Tone(const std::int8_t* table) :
-    table_(table), phase_(0), phaseStep_(0)
+    table_(table), phase_(0), phaseStep_(0), sampleRate_(48000u), divider_(0)
 {
 }
 
@@ -16,24 +16,38 @@ void Cmu800Tone::Initialize()
 {
     phase_ = 0;
     phaseStep_ = 0;
+    divider_ = 0;
     envelope_.Initialize();
 }
 
-std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider)
+void Cmu800Tone::Initialize(std::uint32_t sampleRate)
+{
+    SetSampleRate(sampleRate);
+    Initialize();
+}
+
+void Cmu800Tone::SetSampleRate(std::uint32_t sampleRate)
+{
+    sampleRate_ = sampleRate != 0 ? sampleRate : 48000u;
+    envelope_.SetSampleRate(sampleRate_);
+    phaseStep_ = MakePhaseStepFrom8253(divider_);
+}
+
+std::uint32_t Cmu800Tone::MakePhaseStepFrom8253(std::uint16_t divider) const
 {
     constexpr std::uint32_t k8253ClockHz = 1269866u;
-    constexpr std::uint32_t kSampleRate = 48000u;
     if (divider == 0) return 0;
 
     // phaseStep = (8253Clock / divider) * 2^32 / sampleRate.
     // Called only when a note changes, never in the audio-sample routine.
     return static_cast<std::uint32_t>(
         (static_cast<std::uint64_t>(k8253ClockHz) << 32) /
-        (static_cast<std::uint64_t>(kSampleRate) * divider));
+        (static_cast<std::uint64_t>(sampleRate_) * divider));
 }
 
 void Cmu800Tone::Set8253(std::uint16_t divider)
 {
+    divider_ = divider;
     phaseStep_ = MakePhaseStepFrom8253(divider);
 }
 

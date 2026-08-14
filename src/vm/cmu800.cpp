@@ -204,7 +204,7 @@ void CMU800::initialize()
 			}
 		}
 		int melody_channels[] = { 0, 2, 3, 4, 5 };
-		uint8_t decayValue = 10;
+		uint8_t decayValue = 127;
 		uint8_t sustainValue = 127;
 		for(int ch : melody_channels)
 		{
@@ -716,6 +716,16 @@ void CMU800::adjust_tempo(int delta)
 		tempo_new = TEMPO_MIN;
 	}
 	config.general_param[GENERAL_PARAM_CMU800] = tempo_new;
+}
+
+void CMU800::set_sample_rate(uint32_t sample_rate)
+{
+	for(int i = 0; i < 6; ++ i) {
+		tone[i].SetSampleRate(sample_rate);
+	}
+	for(int i = 0; i < 8; ++ i) {
+		rhythm[i].SetSampleRate(sample_rate);
+	}
 }
 
 void CMU800::mix(int32_t* buffer, int cnt)
