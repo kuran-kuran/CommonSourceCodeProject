@@ -90,6 +90,7 @@ public:
 	}
 	void adjust_tempo(int delta);
 	void set_sample_rate(uint32_t sample_rate);
+	void enable_midi(bool enabled);
 };
 
 #endif

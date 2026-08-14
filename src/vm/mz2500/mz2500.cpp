@@ -65,7 +65,7 @@
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
 	// CMU-800 vs MZ-1E32
-	if((config.option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+	if((config.option_switch & OPTION_SWITCH_CMU800_MASK) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
 		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
 	}
 	option_switch = config.option_switch;
@@ -110,7 +110,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	serial = new SERIAL(this, emu);
 	timer = new TIMER(this, emu);
 	
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
 	} else {
@@ -164,7 +164,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
 	event->set_context_sound(drec->get_context_noise_fast());
-	if (config.option_switch & OPTION_SWITCH_CMU800) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		event->set_context_sound(cmu800);
 	}
 
@@ -247,7 +247,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(config.option_switch & OPTION_SWITCH_W3100A) {
 		io->set_iomap_range_rw(0x60, 0x63, w3100a);
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	}
 	if(config.option_switch & OPTION_SWITCH_MZ1E32) {
@@ -726,7 +726,7 @@ void VM::key_down(int code, bool repeat)
 	if(!cmu800) {
 		return;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		if(code == 17) {
 			// left-ctrl and right-ctrl
 			ctrl = true;
@@ -764,11 +764,18 @@ void VM::update_config()
 	bool boot_mode_changed = (boot_mode != config.boot_mode);
 	monitor_type = config.monitor_type;
 	boot_mode = config.boot_mode;
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= (~(OPTION_SWITCH_CMU800_MIDI | OPTION_SWITCH_MZ1E32));
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= (~(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E32));
+	}
 	// CMU-800 vs MZ-1E32
-	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800)) {
-		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
-	} else if(!(option_switch & OPTION_SWITCH_MZ1E32) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
-		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	if(!(option_switch & OPTION_SWITCH_MZ1E32) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MASK;
 	}
 	option_switch = config.option_switch;
 	

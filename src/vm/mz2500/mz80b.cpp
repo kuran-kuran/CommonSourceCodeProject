@@ -104,7 +104,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	timer = new TIMER(this, emu);
 	
 	MIDI* midi = new MIDI(this, emu);
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(midi);
 	} else {
@@ -194,7 +194,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		event->set_context_sound(qd->get_context_noise_seek());
 	}
 #endif
-	if (config.option_switch & OPTION_SWITCH_CMU800) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		event->set_context_sound(cmu800);
 	}
 
@@ -309,7 +309,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// i/o bus
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	}
 	if(config.option_switch & OPTION_SWITCH_PIO3034_A0H) {
@@ -759,7 +759,7 @@ void VM::key_down(int code, bool repeat)
 	if(!cmu800) {
 		return;
 	}
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		if(code == 17) {
 			// left-ctrl and right-ctrl
 			ctrl = true;
@@ -818,6 +818,15 @@ void VM::update_config()
 	}
 	if(!(option_switch & OPTION_SWITCH_MZ2000SD) && (config.option_switch & OPTION_SWITCH_MZ2000SD)) {
 		config.option_switch &= ~OPTION_SWITCH_PIO3034_A0H;
+	}
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
 	}
 	option_switch = config.option_switch;
 	

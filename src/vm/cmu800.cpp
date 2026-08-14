@@ -54,7 +54,11 @@ void CMU800::initialize()
 	config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1;
 	config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1;
-	use_midi = false;
+	if(config.option_switch & OPTION_SWITCH_CMU800_MIDI) {
+		use_midi = true;
+	} else {
+		use_midi = false;
+	}
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
 
@@ -310,6 +314,14 @@ void CMU800::reset()
 
 void CMU800::update_config()
 {
+	// Use MIDI
+	if (config.option_switch & OPTION_SWITCH_CMU800) {
+		use_midi = false;
+		reset();
+	} else if (config.option_switch & OPTION_SWITCH_CMU800_MIDI) {
+		use_midi = true;
+		reset();
+	}
 	// Tempo
 	if (config.option_switch & OPTION_SWITCH_CMU800_TEMPO_INC_10) {
 		tempo_new += 10;
@@ -848,6 +860,12 @@ void CMU800::set_sample_rate(uint32_t sample_rate)
 	for(int i = 0; i < 8; ++ i) {
 		rhythm[i].SetSampleRate(sample_rate);
 	}
+}
+
+void CMU800::enable_midi(bool enabled)
+{
+	use_midi = enabled;
+	reset();
 }
 
 void CMU800::mix(int32_t* buffer, int cnt)
