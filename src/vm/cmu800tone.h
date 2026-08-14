@@ -10,21 +10,21 @@
 class Cmu800Tone {
 public:
     // table points to 4096 bytes.  On Pico it can point directly to Flash.
-    explicit Cmu800Tone(const std::int8_t* table = NULL);
+    explicit Cmu800Tone(const int8_t* table = NULL);
 
-    void SetWaveTable(const std::int8_t* table);
+    void SetWaveTable(const int8_t* table);
     void Initialize();
-    void Initialize(std::uint32_t sampleRate);
-    void SetSampleRate(std::uint32_t sampleRate);
+    void Initialize(uint32_t sampleRate);
+    void SetSampleRate(uint32_t sampleRate);
 
     // Set a CMU-800 8253 divider.  For example, 0x0B39 is A=442 Hz.
-    void Set8253(std::uint16_t divider);
+    void Set8253(uint16_t divider);
 
     // Envelope control.  Trigger() is intended for a GATE transition.
-    void SetDecay(std::uint8_t value);
-    void SetDecayFactorQ31(std::uint32_t factorQ31);
+    void SetDecay(uint8_t value);
+    void SetDecayFactorQ31(uint32_t factorQ31);
     void EnableSustain(bool enabled);
-    void SetSustain(std::uint8_t value);
+    void SetSustain(uint8_t value);
     void SetGate(bool gateIsOn);
     void Trigger();
     void Stop();
@@ -32,24 +32,24 @@ public:
 
     // Get one 48 kHz sample using the built-in CMU-800 decay envelope.
     // Call once per audio sample while mixing, including inaudible tails.
-    std::int32_t GetData();
+    int32_t GetData();
 
     // Get one 48 kHz sample using both the built-in envelope and an external
     // Q15 volume (0..32767).  The envelope advances even when volumeQ15 is 0.
-    std::int32_t GetDataWithVolume(std::int32_t volumeQ15);
+    int32_t GetDataWithVolume(int32_t volumeQ15);
 
     // Get one 48 kHz sample.  volumeQ15 is 0..32767; 32767 is full level.
     // This overload leaves the built-in envelope unchanged and is useful for
     // an externally controlled volume or a sustain sound.
-    std::int32_t GetData(std::int32_t volumeQ15);
+    int32_t GetData(int32_t volumeQ15);
 
 private:
-    std::uint32_t MakePhaseStepFrom8253(std::uint16_t divider) const;
+    uint32_t MakePhaseStepFrom8253(uint16_t divider) const;
 
-    const std::int8_t* table_;
-    std::uint32_t phase_;
-    std::uint32_t phaseStep_;
-    std::uint32_t sampleRate_;
-    std::uint16_t divider_;
+    const int8_t* table_;
+    uint32_t phase_;
+    uint32_t phaseStep_;
+    uint32_t sampleRate_;
+    uint16_t divider_;
     Cmu800Envelope envelope_;
 };

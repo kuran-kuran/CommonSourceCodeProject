@@ -9,13 +9,13 @@
 // The returned value is signed and ready to add to an int32_t mixer.
 class Cmu800Rhythm {
 public:
-    Cmu800Rhythm(const std::int8_t* sample = NULL,
-                 std::uint32_t sampleCount = 0);
+    Cmu800Rhythm(const int8_t* sample = NULL,
+                 uint32_t sampleCount = 0);
 
-    void SetSample(const std::int8_t* sample, std::uint32_t sampleCount);
+    void SetSample(const int8_t* sample, uint32_t sampleCount);
     void Initialize();
-    void Initialize(std::uint32_t sampleRate);
-    void SetSampleRate(std::uint32_t sampleRate);
+    void Initialize(uint32_t sampleRate);
+    void SetSampleRate(uint32_t sampleRate);
 
     // Start the drum sound from its beginning.  Calling Trigger() again
     // restarts the same sound, as the CMU-800 rhythm bits do.
@@ -26,13 +26,13 @@ public:
 
     // Get one 48 kHz sample. volumeQ15 is 0..32767; 32767 is full level.
     // After the final sample this returns zero until the next Trigger().
-    std::int32_t GetData(std::int32_t volumeQ15);
+    int32_t GetData(int32_t volumeQ15);
 
 private:
-    const std::int8_t* sample_;
-    std::uint32_t sampleCount_;
-    std::uint64_t positionQ32_;
-    std::uint64_t stepQ32_;
-    std::uint32_t sampleRate_;
+    const int8_t* sample_;
+    uint32_t sampleCount_;
+    uint64_t positionQ32_;
+    uint64_t stepQ32_;
+    uint32_t sampleRate_;
     bool playing_;
 };
