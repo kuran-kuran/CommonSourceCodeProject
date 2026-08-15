@@ -735,6 +735,12 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		// b1 CH (close hihat)
 		// b0 Reserve (not use)
 		{
+			// open hihat‚Æclose hihat‚ª“¯‚É–Â‚Á‚½ê‡‚Íclose hihat‚ªŸ‚Â
+			if((data & 0x06) == 0)
+			{
+				// open hihat‚ğÁ‚·
+				data |= 0b00000100;
+			}
 			uint8_t bitMask = 0x01; //0b00000010;
 			for(int32_t i = 0; i < 8; ++ i)
 			{
@@ -753,6 +759,12 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 					}
 					else
 					{
+						// open hihat‚Æclose hihat‚Í“¯‚É‚Í–Â‚ç‚È‚¢
+						if(i == 1) {
+							rhythm[2].Stop();
+						} else if(i == 2) {
+							rhythm[1].Stop();
+						}
 						rhythm[i].Trigger();
 					}
 				}
