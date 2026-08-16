@@ -57,6 +57,8 @@
 
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+	option_switch = config.option_switch;
+
 	// create devices
 	first_device = last_device = NULL;
 	dummy = new DEVICE(this, emu);	// must be 1st device
@@ -81,9 +83,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory = new MEMORY(this, emu);
 	printer = new PRINTER(this, emu);
 	
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
+	} else {
+		cmu800 = NULL;
 	}
 #if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	if(config.option_switch & OPTION_SWITCH_FLOPPY) {
@@ -116,7 +120,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
 	event->set_context_sound(drec->get_context_noise_fast());
-	
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		event->set_context_sound(cmu800);
+	}
+
 #if defined(_MZ1200) || defined(_MZ80A)
 	and_int->set_context_out(cpu, SIG_CPU_IRQ, 1);
 	and_int->set_mask(SIG_AND_BIT_0 | SIG_AND_BIT_1);
@@ -176,7 +183,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// i/o bus
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
 	}
 #if defined(SUPPORT_MZ80AFI)
@@ -248,6 +255,9 @@ void VM::reset()
 	and_int->write_signal(SIG_AND_BIT_0, 0, 1);	// CLOCK = L
 	and_int->write_signal(SIG_AND_BIT_1, 1, 1);	// INTMASK = H
 #endif
+	if(cmu800) {
+		cmu800->reset();
+	}
 }
 
 void VM::run()
@@ -289,6 +299,11 @@ void VM::initialize_sound(int rate, int samples)
 	
 	// init sound gen
 	pcm->initialize_sound(rate, 8000);
+
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -306,6 +321,31 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 {
 	if(ch-- == 0) {
 		pcm->set_volume(0, decibel_l, decibel_r);
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
 	} else if(ch-- == 0) {
 		drec->set_volume(0, decibel_l, decibel_r);
 #if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
@@ -505,6 +545,17 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+	option_switch = config.option_switch;
+
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
 	}

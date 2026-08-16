@@ -328,6 +328,9 @@
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
     <ClCompile Include="..\src\vm\cmu800.cpp" />
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp" />
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp" />
+    <ClCompile Include="..\src\vm\cmu800tone.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -370,6 +373,9 @@
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
     <ClInclude Include="..\src\vm\cmu800.h" />
+    <ClInclude Include="..\src\vm\cmu800envelope.h" />
+    <ClInclude Include="..\src\vm\cmu800rhythm.h" />
+    <ClInclude Include="..\src\vm\cmu800tone.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />

@@ -82,6 +82,8 @@
 
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+	option_switch = config.option_switch;
+
 	// check configs
 #if defined(PC8001_VARIANT)
 #if defined(_PC8001)
@@ -384,10 +386,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 #endif
 #ifdef SUPPORT_CMU800
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
 		pc88->set_context_cmu800(cmu800);
+	} else {
+		cmu800 = NULL;
 	}
 #endif
 	
@@ -460,7 +464,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 		pc88event->set_context_sound(pc88noise_8inch_head_up);
 	}
 #endif
-	
+#if defined(SUPPORT_CMU800)
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		pc88event->set_context_sound(cmu800);
+	}
+#endif
+
 	// set other device contexts
 	pc88->set_context_cpu(pc88cpu);
 	pc88->set_context_pcm(pc88pcm);
@@ -704,6 +713,11 @@ void VM::reset()
 		pc88pio_sub->write_signal(SIG_I8255_PORT_C, 0, 0xff);
 	}
 	pc88pio->write_signal(SIG_I8255_PORT_C, 0, 0xff);
+#if defined(SUPPORT_CMU800)
+	if(cmu800) {
+		cmu800->reset();
+	}
+#endif
 }
 
 void VM::run()
@@ -798,6 +812,12 @@ void VM::initialize_sound(int rate, int samples)
 	if(config.printer_type == 2) {
 		PCM8BIT *pcm8 = (PCM8BIT *)pc88prn;
 		pcm8->initialize_sound(rate, 32000);
+	}
+#endif
+#if defined(SUPPORT_CMU800)
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
 	}
 #endif
 }
@@ -925,6 +945,43 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 			pcm8->set_volume(0, decibel_l, decibel_r);
 		}
 		return;
+	}
+#endif
+#if defined(SUPPORT_CMU800)
+	if(ch-- == 0) {
+		if(cmu800) {
+			 // Melody volume
+			 cmu800->set_volume(0, decibel_l, decibel_r);
+			 return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+			return;
+		}
 	}
 #endif
 	if(ch-- == 0) {
@@ -1165,6 +1222,17 @@ void VM::update_config()
 		config.boot_mode = MODE_PC88_V2;
 	}
 #endif
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
 	if(boot_mode != config.boot_mode) {
 		// boot mode is changed !!!
 		boot_mode = config.boot_mode;
@@ -1174,6 +1242,7 @@ void VM::update_config()
 			device->update_config();
 		}
 	}
+	option_switch = config.option_switch;
 }
 
 #define STATE_VERSION	13

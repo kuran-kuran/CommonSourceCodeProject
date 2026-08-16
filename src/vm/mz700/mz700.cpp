@@ -86,6 +86,17 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if(!(config.option_switch & OPTION_SWITCH_MZ1R23) && (config.option_switch & OPTION_SWITCH_MZ1R24)) {
 		config.option_switch &= ~OPTION_SWITCH_MZ1R24;
 	}
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if(!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
 #if defined(_MZ1500)
 	config.option_switch &= ~OPTION_SWITCH_MZ1E14;
 	// MZ-1R12 vs MZ1500_SD
@@ -164,9 +175,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 #if defined(SUPPORT_CMU800)
-	if(config.option_switch & OPTION_SWITCH_CMU800) {
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
+	} 	else {
+		cmu800 = NULL;
 	}
 	ctrl = false;
 #endif
@@ -234,7 +247,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	{
 		event->set_context_sound(qd->get_context_noise_seek());
 	}
-	
+#if defined(SUPPORT_CMU800)
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		event->set_context_sound(cmu800);
+	}
+#endif
+
 	// VRAM/PCG wait
 	memory->set_context_cpu(cpu);
 	
@@ -575,6 +593,11 @@ void VM::reset()
 #if defined(_MZ1500)
 	pio_int->write_signal(SIG_Z80PIO_PORT_A, 0x02, 0x03);	// BUSY = L, PE = H
 #endif
+#if defined(SUPPORT_CMU800)
+	if(cmu800) {
+		cmu800->reset();
+	}
+#endif
 }
 
 void VM::run()
@@ -622,6 +645,12 @@ void VM::initialize_sound(int rate, int samples)
 	psg_l->initialize_sound(rate, CPU_CLOCKS, 8000);
 	psg_r->initialize_sound(rate, CPU_CLOCKS, 8000);
 #endif
+#if defined(SUPPORT_CMU800)
+	// init CMU-800
+	if (cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
+#endif
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -650,6 +679,33 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 #endif
 	if(ch-- == 0) {
 		pcm->set_volume(0, decibel_l, decibel_r);
+#if defined(SUPPORT_CMU800)
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
+#endif
 	} else if(ch-- == 0) {
 		drec->set_volume(0, decibel_l, decibel_r);
 	} else if(ch-- == 0) {
@@ -930,6 +986,17 @@ void VM::update_config()
 	if(!(config.option_switch & OPTION_SWITCH_MZ1R23) && (config.option_switch & OPTION_SWITCH_MZ1R24)) {
 		config.option_switch &= ~OPTION_SWITCH_MZ1R24;
 	}
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if(!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
 #if defined(_MZ700) || defined(_MZ1500)
 	option_switch = config.option_switch;
 #endif

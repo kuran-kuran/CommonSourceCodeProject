@@ -62,9 +62,9 @@
 #define USE_VM_AUTO_KEY_TABLE
 #endif
 #if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
-#define USE_SOUND_VOLUME	4
+#define USE_SOUND_VOLUME	9
 #else
-#define USE_SOUND_VOLUME	3
+#define USE_SOUND_VOLUME	8
 #endif
 #define USE_MIDI
 #define USE_PRINTER
@@ -85,16 +85,26 @@
 #define USE_MONITOR_TYPE	4
 #endif
 
-#define OPTION_SWITCH_CMU800	(1 << 0)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 3)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
-#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
-#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
-#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
+#define OPTION_SWITCH_CMU800				(1 << 0)
+#define OPTION_SWITCH_CMU800_MIDI			(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 7)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 8)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1	(1 << 9)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1	(1 << 10)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1		(1 << 11)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1		(1 << 12)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_INC_1		(1 << 13)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1		(1 << 14)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1		(1 << 15)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1		(1 << 16)
+#define OPTION_SWITCH_CMU800_MASK	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_CMU800_MIDI)
 #if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
-#define OPTION_SWITCH_FLOPPY	(1 << 8)
+#define OPTION_SWITCH_FLOPPY	(1 << 17)
 #define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_FLOPPY)
 #else
 #define OPTION_SWITCH_DEFAULT	OPTION_SWITCH_CMU800
@@ -137,7 +147,9 @@ static const int vm_auto_key_table_base[][2] = {
 
 #ifdef USE_SOUND_VOLUME
 static const _TCHAR *sound_device_caption[] = {
-	_T("Beep"), _T("CMT (Signal)"),
+	_T("Beep"),
+	_T("CMU-800 Melody"), _T("CMU-800 Bass"), _T("CMU-800 Chord"), _T("CMU-800 Rhythm"), _T("CMU-800 Master"),
+	_T("CMT (Signal)"),
 #if defined(SUPPORT_MZ80AFI) || defined(SUPPORT_MZ80FIO)
 	_T("Noise (FDD)"),
 #endif
@@ -207,7 +219,9 @@ protected:
 	T3444A* fdc;
 	MZ80FIO* mz80fio;
 #endif
-	
+
+	int option_switch;
+
 public:
 	// ----------------------------------------
 	// initialize

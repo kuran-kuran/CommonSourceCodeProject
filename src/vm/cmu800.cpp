@@ -216,6 +216,7 @@ void CMU800::initialize()
 				rhythm[0].SetSample(b0User_data, data_size);
 			}
 		}
+		delete fio;
 		int melody_channels[] = { 0, 2, 3, 4, 5 };
 		uint8_t decayValue = 127;
 		uint8_t sustainValue = 127;
@@ -484,7 +485,7 @@ void CMU800::reset_midi()
 		d_midi->write_signal(SIG_MIDI_OUT, 0x09, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0x01, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0xF7, 0xFF);
-		for (int channel = 0; channel < 11; ++channel)
+		for(int channel = 0; channel < 11; ++ channel)
 		{
 			// all sound off
 			d_midi->write_signal(SIG_MIDI_OUT, 0xB0 + channel, 0xFF);
