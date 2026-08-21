@@ -37,10 +37,6 @@ private:
 	int melody_sustain, melody_decay, bass_decay, chord_decay;
 	bool key_on[8];
 	bool use_midi;
-	uint8_t* melody_wave;
-	int8_t melody_data[4096];
-	uint8_t* bass_wave;
-	int8_t bass_data[4096];
 	uint8_t* b7BD_wave;
 	int8_t* b7BD_data;
 	uint8_t* b6SD_wave;

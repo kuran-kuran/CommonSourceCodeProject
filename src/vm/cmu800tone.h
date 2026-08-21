@@ -1,55 +1,48 @@
 #pragma once
 
-#include "Cmu800Envelope.h"
-
 #include <cstddef>
 #include <cstdint>
 
-// One CMU-800 style voice using a 4096-sample signed 8-bit wavetable.
-// The returned sample is signed and ready for mixing.
+#include "Cmu800Envelope.h"
+
+// Pico-only, no-envelope wavetable oscillator.  Both tables live in Flash.
 class Cmu800Tone {
 public:
-    // table points to 4096 bytes.  On Pico it can point directly to Flash.
-    explicit Cmu800Tone(const int8_t* table = NULL);
+    static constexpr std::size_t kWaveTableSampleCount = 4096u;
+    static constexpr std::uint32_t kSampleRate = 48000u;
 
-    void SetWaveTable(const int8_t* table);
+    enum class Wave { Melody, Bass };
+
+    Cmu800Tone();
+    explicit Cmu800Tone(Wave wave);
+    void SetWave(Wave wave);
     void Initialize();
-    void Initialize(uint32_t sampleRate);
-    void SetSampleRate(uint32_t sampleRate);
+    void Initialize(std::uint32_t sampleRate);
+    void SetSampleRate(std::uint32_t sampleRate);
+    void Set8253(std::uint16_t divider);
 
-    // Set a CMU-800 8253 divider.  For example, 0x0B39 is A=442 Hz.
-    void Set8253(uint16_t divider);
-
-    // Envelope control.  Trigger() is intended for a GATE transition.
-    void SetDecay(uint8_t value);
-    void SetDecayFactorQ31(uint32_t factorQ31);
+    // Same envelope API as Cmu800Tone.  Sustain is intended for Melody only.
+    void SetDecay(std::uint8_t value);
+    void SetDecayFactorQ31(std::uint32_t factorQ31);
     void EnableSustain(bool enabled);
-    void SetSustain(uint8_t value);
+    void SetSustain(std::uint8_t value);
     void SetGate(bool gateIsOn);
     void Trigger();
     void Stop();
     bool IsPlaying() const;
 
-    // Get one 48 kHz sample using the built-in CMU-800 decay envelope.
-    // Call once per audio sample while mixing, including inaudible tails.
-    int32_t GetData();
+    std::int32_t GetData();
+    std::int32_t GetDataWithVolume(std::int32_t volumeQ15);
+    std::int32_t GetData(std::int32_t volumeQ15);
 
-    // Get one 48 kHz sample using both the built-in envelope and an external
-    // Q15 volume (0..32767).  The envelope advances even when volumeQ15 is 0.
-    int32_t GetDataWithVolume(int32_t volumeQ15);
-
-    // Get one 48 kHz sample.  volumeQ15 is 0..32767; 32767 is full level.
-    // This overload leaves the built-in envelope unchanged and is useful for
-    // an externally controlled volume or a sustain sound.
-    int32_t GetData(int32_t volumeQ15);
+    static const std::int8_t kMelodyTable[kWaveTableSampleCount];
+    static const std::int8_t kBassTable[kWaveTableSampleCount];
 
 private:
-    uint32_t MakePhaseStepFrom8253(uint16_t divider) const;
-
-    const int8_t* table_;
-    uint32_t phase_;
-    uint32_t phaseStep_;
-    uint32_t sampleRate_;
-    uint16_t divider_;
+    const std::int8_t* table_;
+    std::uint32_t phase_ = 0;
+    std::uint32_t phaseStep_ = 0;
+    std::uint32_t sampleRate_ = kSampleRate;
+    std::uint16_t divider_ = 0;
     Cmu800Envelope envelope_;
 };

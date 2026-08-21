@@ -70,11 +70,6 @@ void CMU800::initialize()
 	tempo_freq = tempo_new;
 	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
 	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
-	// CMU-800 wave
-	memset(melody_data, 0, sizeof(melody_data));
-	memset(bass_data, 0, sizeof(bass_data));
-	melody_wave = NULL;
-	bass_wave = NULL;
 	b7BD_wave = NULL;
 	b6SD_wave = NULL;
 	b5LT_wave = NULL;
@@ -88,30 +83,6 @@ void CMU800::initialize()
 		uint8_t* data_ptr;
 		uint32_t data_size;
 		FILEIO* fio = new FILEIO();
-		if(fio->Fopen(create_local_path(_T("CMU800Merody.wav")), FILEIO_READ_BINARY))
-		{
-			long fileLength = fio->FileLength();
-			melody_wave = (uint8_t*)malloc(fileLength);
-			fio->Fread(melody_wave, fileLength, 1);
-			fio->Fclose();
-			bool result = get_wave_data(melody_wave, &data_ptr, &data_size);
-			if(result)
-			{
-				memcpy(melody_data, data_ptr, sizeof(melody_data));
-			}
-		}
-		if(fio->Fopen(create_local_path(_T("CMU800Bass.wav")), FILEIO_READ_BINARY))
-		{
-			long fileLength = fio->FileLength();
-			bass_wave = (uint8_t*)malloc(fileLength);
-			fio->Fread(bass_wave, fileLength, 1);
-			fio->Fclose();
-			bool result = get_wave_data(bass_wave, &data_ptr, &data_size);
-			if(result)
-			{
-				memcpy(bass_data, data_ptr, sizeof(bass_data));
-			}
-		}
 		if(fio->Fopen(create_local_path(_T("CMU800BassDrum.wav")), FILEIO_READ_BINARY))
 		{
 			long fileLength = fio->FileLength();
@@ -223,13 +194,13 @@ void CMU800::initialize()
 		for(int ch : melody_channels)
 		{
 			tone[ch].Initialize();
-			tone[ch].SetWaveTable(melody_data);
+			tone[ch].SetWave(Cmu800Tone::Wave::Melody);
 			tone[ch].SetDecay(decayValue);  // 0Å`255
 		}
 		tone[0].EnableSustain(true);
 		tone[0].SetSustain(sustainValue);   // 0Å`255
 		tone[1].Initialize();
-		tone[1].SetWaveTable(bass_data);
+		tone[1].SetWave(Cmu800Tone::Wave::Bass);
 		tone[1].SetDecay(decayValue);       // 0Å`255
 		for (int i = 0; i < 5; ++ i)
 		{
@@ -245,14 +216,6 @@ void CMU800::initialize()
 
 void CMU800::release()
 {
-	if (melody_wave != NULL) {
-		free(melody_wave);
-		melody_wave = NULL;
-	}
-	if (bass_wave != NULL) {
-		free(bass_wave);
-		bass_wave = NULL;
-	}
 	if(b7BD_wave != NULL) {
 		free(b7BD_wave);
 		b7BD_wave = NULL;
@@ -897,10 +860,14 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		// âπó ch 2: Chord
 		for (int channel = 0; channel < 6; ++channel)
 		{
+#if true
 			const bool shouldMix =
 				(channel == 0) ?
 				tone[channel].IsPlaying() :
 				(note_on_flag[channel] == 1);
+#else
+			const bool shouldMix = tone[channel].IsPlaying();
+#endif
 			if (shouldMix)
 			{
 				int volumeChannel;
@@ -934,7 +901,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		{
 			rhythmMixed += rhythm[channel].GetData(32767);
 		}
-		rhythmMixed *= 256; // Rhythm gain up
+		rhythmMixed *= 128; // Rhythm gain up
 		cmu800MixedL += apply_volume(rhythmMixed, volume_l[3]);
 		cmu800MixedR += apply_volume(rhythmMixed, volume_r[3]);
 		// âπó ch 4: Master
