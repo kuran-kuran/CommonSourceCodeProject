@@ -562,7 +562,6 @@ void Cmu800Tone::SetDecayFactorQ31(std::uint32_t value) { envelope_.SetDecayFact
 void Cmu800Tone::EnableSustain(bool enabled) { envelope_.EnableSustain(enabled); }
 void Cmu800Tone::SetSustain(std::uint8_t value) { envelope_.SetSustain(value); }
 void Cmu800Tone::SetGate(bool gateIsOn) { envelope_.SetGate(gateIsOn); }
-void Cmu800Tone::Trigger() { envelope_.Trigger(); }
 void Cmu800Tone::Stop() { envelope_.Stop(); }
 bool Cmu800Tone::IsPlaying() const { return envelope_.IsActive(); }
 

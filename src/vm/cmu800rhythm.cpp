@@ -55,7 +55,7 @@ bool Cmu800Rhythm::IsPlaying() const
 int32_t Cmu800Rhythm::GetData(int32_t volumeQ15)
 {
     const uint64_t position = positionQ32_ >> 32;
-    if (!playing_ || sample_ == NULL || position >= sampleCount_) {
+    if(!playing_ || sample_ == NULL || position >= sampleCount_) {
         playing_ = false;
         return 0;
     }
@@ -73,7 +73,7 @@ int32_t Cmu800Rhythm::GetData(int32_t volumeQ15)
     const int32_t sample = weighted / 65536;
 
     positionQ32_ += stepQ32_;
-    if ((positionQ32_ >> 32) >= sampleCount_) playing_ = false;
-    if (volumeQ15 <= 0) return 0;
+    if((positionQ32_ >> 32) >= sampleCount_) playing_ = false;
+    if(volumeQ15 <= 0) return 0;
     return (sample * std::min(volumeQ15, 32767)) >> 15;
 }

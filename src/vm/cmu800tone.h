@@ -27,7 +27,6 @@ public:
     void EnableSustain(bool enabled);
     void SetSustain(std::uint8_t value);
     void SetGate(bool gateIsOn);
-    void Trigger();
     void Stop();
     bool IsPlaying() const;
 

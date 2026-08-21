@@ -87,7 +87,7 @@ void Cmu800Envelope::SetDecay(std::uint8_t value)
     // This control path runs only when the user changes the Decay setting,
     // never in the 48 kHz audio loop.  Keep the three measured anchor points
     // exact; more measured points can later replace this with a lookup table.
-    if (value <= 128u) {
+    if(value <= 128u) {
         const std::uint32_t distance = kDecayMiddleQ31 - kDecayMinimumQ31;
         const std::uint32_t factor = kDecayMinimumQ31 +
             static_cast<std::uint32_t>(
@@ -126,7 +126,7 @@ void Cmu800Envelope::SetSustain(std::uint8_t value)
         targetMs - kTableMinimumMs) * kTableMaxIndex * kTableMaxIndex /
         kTableRangeMs;
     std::uint32_t tableIndex = 0;
-    while (static_cast<std::uint64_t>(tableIndex + 1u) * (tableIndex + 1u) <=
+    while(static_cast<std::uint64_t>(tableIndex + 1u) * (tableIndex + 1u) <=
            scaled && tableIndex < kTableMaxIndex) {
         ++tableIndex;
     }
@@ -136,12 +136,12 @@ void Cmu800Envelope::SetSustain(std::uint8_t value)
 
 void Cmu800Envelope::SetGate(bool gateIsOn)
 {
-    if (gateIsOn == gateIsOn_) return;
+    if(gateIsOn == gateIsOn_) return;
 
     gateIsOn_ = gateIsOn;
-    if (gateIsOn_) {
+    if(gateIsOn_) {
         Trigger();
-    } else if (sustainEnabled_ && levelQ31_ != 0) {
+    } else if(sustainEnabled_ && levelQ31_ != 0) {
         stage_ = Stage::Release;
     }
 }
@@ -176,7 +176,7 @@ void Cmu800Envelope::Advance(std::uint32_t factorQ31)
 
 void Cmu800Envelope::AdvanceOneReferenceSample()
 {
-    switch (stage_) {
+    switch(stage_) {
     case Stage::OneShotDecay:
         Advance(decayFactorQ31_);
         break;
@@ -187,7 +187,7 @@ void Cmu800Envelope::AdvanceOneReferenceSample()
 
     case Stage::DecayToSustain:
         Advance(decayFactorQ31_);
-        if (levelQ31_ <= sustainLevelQ31_) {
+        if(levelQ31_ <= sustainLevelQ31_) {
             levelQ31_ = sustainLevelQ31_;
             stage_ = gateIsOn_ ? Stage::SustainHold : Stage::Release;
         }
@@ -206,7 +206,7 @@ std::int32_t Cmu800Envelope::GetVolumeQ15AndAdvance()
     // The measured factors are defined at 48 kHz.  Advance them on a virtual
     // 48 kHz clock so envelope times remain unchanged at any output rate.
     referenceClockAccumulator_ += 48000u;
-    while (referenceClockAccumulator_ >= sampleRate_) {
+    while(referenceClockAccumulator_ >= sampleRate_) {
         referenceClockAccumulator_ -= sampleRate_;
         AdvanceOneReferenceSample();
     }
@@ -216,7 +216,7 @@ std::int32_t Cmu800Envelope::GetVolumeQ15AndAdvance()
     // key-off tails noticeably longer than the reference.
     const std::uint32_t silentThreshold = stage_ == Stage::Release ?
         500000u : (1u << 12);
-    if (stage_ != Stage::SustainHold && levelQ31_ < silentThreshold) {
+    if(stage_ != Stage::SustainHold && levelQ31_ < silentThreshold) {
         levelQ31_ = 0;
         stage_ = Stage::Inactive;
     }
