@@ -150,9 +150,6 @@
     <ClCompile Include="..\src\vm\pc6001\joystick.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\pc6001\memory.cpp">
-      <Filter>Source Files\VM Driver Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\vm\pc6001\pc6001.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
@@ -161,6 +158,27 @@
     </ClCompile>
     <ClCompile Include="..\src\vm\pc6001\timer.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\pc6001\memory.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800tone.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\win32\osd_midi.cpp">
+      <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\midi.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,6 +298,21 @@
     </ClInclude>
     <ClInclude Include="..\src\res\resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800envelope.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800rhythm.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\Cmu800Tone.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\midi.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

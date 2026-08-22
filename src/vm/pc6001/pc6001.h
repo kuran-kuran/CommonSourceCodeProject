@@ -23,6 +23,8 @@
 #define CPU_CLOCKS		3993600
 #define HAS_AY_3_8910
 #define TIMER_PERIOD	(8192. / CPU_CLOCKS * 1000000)
+// mk2‚Æmk2SR‚ªmemory_draw.cpp‚ª–³‚­‚Äƒrƒ‹ƒh‚Å‚«‚È‚¢‚Ì‚Å‚¢‚Ü‚¢‚¿SUPPORT_CMU800‚ª‚¿‚á‚ñ‚ÆŒø‚¢‚Ä‚¢‚é‚Ì‚©‚í‚©‚ç‚È‚¢
+#define SUPPORT_CMU800
 #elif defined(_PC6001MK2)
 #define DEVICE_NAME		"NEC PC-6001mkII"
 #define CONFIG_NAME		"pc6001mk2"
@@ -81,6 +83,10 @@
 #define MC6847_ATTR_INV		0x01
 
 // device informations for win32
+#if defined(SUPPORT_CMU800)
+#define USE_OPTION_SWITCH
+#define USE_GENERAL_PARAM	1
+#endif
 #define USE_CART		1
 #if defined(_PC6601) || defined(_PC6601SR)
 #define USE_FLOPPY_DISK		4
@@ -97,15 +103,35 @@
 #define USE_SCANLINE
 #endif
 #if defined(_PC6001)
-#define USE_SOUND_VOLUME	4
+#define USE_SOUND_VOLUME	9
 #else
 #define USE_SOUND_VOLUME	5
 #endif
+#define USE_MIDI
 #define USE_JOYSTICK
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	3
 #define USE_DEBUGGER
 #define USE_STATE
+
+#define OPTION_SWITCH_CMU800				(1 << 0)
+#define OPTION_SWITCH_CMU800_MIDI			(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 7)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 8)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1	(1 << 9)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1	(1 << 10)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1		(1 << 11)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1		(1 << 12)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_INC_1		(1 << 13)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1		(1 << 14)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1		(1 << 15)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1		(1 << 16)
+#define OPTION_SWITCH_CMU800_MASK	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_CMU800_MIDI)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -116,6 +142,9 @@ static const _TCHAR *sound_device_caption[] = {
 	_T("PSG"),
 #if !defined(_PC6001)
 	_T("Voice"),
+#endif
+#if defined(SUPPORT_CMU800)
+	_T("CMU-800 Melody"), _T("CMU-800 Bass"), _T("CMU-800 Chord"), _T("CMU-800 Rhythm"), _T("CMU-800 Master"),
 #endif
 	_T("CMT (Signal)"), _T("Noise (FDD)"), _T("Noise (CMT)"),
 };
@@ -141,6 +170,8 @@ class YM2203;
 #else
 class AY_3_891X;
 #endif
+// CMU-800
+class CMU800;
 class Z80;
 
 class DATAREC;
@@ -157,6 +188,9 @@ class MEMORY;
 //class PSUB;
 class SUB;
 class TIMER;
+#ifdef SUPPORT_CMU800
+class CMU800;
+#endif
 
 class VM : public VM_TEMPLATE
 {
@@ -196,7 +230,7 @@ protected:
 	MCS48* cpu_sub;
 	SUB* sub;
 	DATAREC* drec;
-	
+
 	PC6031* pc6031;
 	I8255* pio_fdd;
 	I8255* pio_pc80s31k;
@@ -206,7 +240,13 @@ protected:
 	
 	bool support_sub_cpu;
 	bool support_pc80s31k;
-	
+
+	// CMU-800
+#ifdef SUPPORT_CMU800
+	CMU800* cmu800;
+	int option_switch;
+#endif
+
 public:
 	// ----------------------------------------
 	// initialize
