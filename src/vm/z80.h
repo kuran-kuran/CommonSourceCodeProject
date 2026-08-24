@@ -198,7 +198,7 @@ public:
 	{
 		d_io = device;
 	}
-    void set_context_intr(DEVICE* device)
+	void set_context_intr(DEVICE* device)
 	{
 		d_pic = device;
 	}

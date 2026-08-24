@@ -26,6 +26,9 @@ class I286;
 #if defined(HAS_SUB_V30)
 class I86;
 #endif
+#if defined(SUPPORT_32BIT_ADDRESS)
+class MEMBUS;
+#endif
 
 class CPUREG : public DEVICE
 {
@@ -38,6 +41,9 @@ private:
 #if defined(HAS_SUB_V30)
 	I86 *d_v30;
 	DEVICE *d_pio;
+#endif
+#if defined(SUPPORT_32BIT_ADDRESS)
+	MEMBUS *d_memory;
 #endif
 	bool nmi_enabled;
 	
@@ -77,6 +83,12 @@ public:
 		d_pio = device;
 	}
 	bool cpu_mode;
+#endif
+#if defined(SUPPORT_32BIT_ADDRESS)
+	void set_context_memory(MEMBUS* device)
+	{
+		d_memory = device;
+	}
 #endif
 };
 

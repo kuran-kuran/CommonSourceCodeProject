@@ -12,12 +12,25 @@
 #define EVENT_DISPLAY	0
 #define EVENT_HSYNC_S	1
 #define EVENT_HSYNC_E	2
+#ifdef HAS_SY6845E
+#define EVENT_UPDATE	3
+#endif
 
 void HD46505::initialize()
 {
 	// register events
 	register_frame_event(this);
 	register_vline_event(this);
+	
+#ifdef HAS_SY6845E
+	// update every 4 character clocks
+#ifdef CHARS_PER_LINE
+	update_clock = (int)((double)CPU_CLOCKS * 4.0 / (double)FRAMES_PER_SEC / (double)LINES_PER_FRAME / (double)CHARS_PER_LINE);
+#else
+	update_clock = (int)((double)CPU_CLOCKS * 4.0 / (double)FRAMES_PER_SEC / (double)LINES_PER_FRAME / 54.0);
+#endif
+	if(update_clock < 16) update_clock = 16; // temporary
+#endif
 }
 
 void HD46505::reset()
@@ -55,6 +68,11 @@ void HD46505::reset()
 	horiz_freq = 0;
 	next_horiz_freq = HD46505_HORIZ_FREQ;
 #endif
+#ifdef HAS_SY6845E
+	vram_addr = 0;
+	update_id = -1;
+	update_req = update_flag = false;
+#endif
 }
 
 void HD46505::write_io8(uint32_t addr, uint32_t data)
@@ -72,8 +90,32 @@ void HD46505::write_io8(uint32_t addr, uint32_t data)
 			}
 			regs[ch] = data;
 			regs_written[ch] = true;
+#ifdef HAS_SY6845E
+			if(ch == 8) {
+				if(!(regs[8] & 0x08)) {
+					update_req = update_flag = false;
+				}
+				update_transparent();
+			}
+		} else if(ch == 18) {
+			vram_addr = ((data & 0x3f) << 8) | (vram_addr & 0x00ff);
+			update_req = update_flag = false;
+			update_transparent();
+		} else if(ch == 19) {
+			vram_addr = ((data & 0xff) << 0) | (vram_addr & 0x3f00);
+			update_req = update_flag = false;
+			update_transparent();
+#endif
 		}
 	} else {
+#ifdef HAS_SY6845E
+		if(data == 31) {
+			// request update
+			update_req = ((regs[8] & 0x08) != 0);
+			update_flag = false;
+			update_transparent();
+		}
+#endif
 		ch = data;
 	}
 }
@@ -81,11 +123,47 @@ void HD46505::write_io8(uint32_t addr, uint32_t data)
 uint32_t HD46505::read_io8(uint32_t addr)
 {
 	if(addr & 1) {
+#ifdef HAS_SY6845E
+		if(ch == 18) {
+			return (vram_addr >> 8) & 0x3f;
+		} else if(ch == 19) {
+			return (vram_addr >> 0) & 0xff;
+		}
+#endif
 		return (12 <= ch && ch < 18) ? regs[ch] : 0xff;
 	} else {
+#ifdef HAS_SY6845E
+		return (vblank ? 0 : 0x20) | ((update_flag || !update_req) ? 0x80 : 0);
+#else
 		return ch;
+#endif
 	}
 }
+
+#ifdef HAS_SY6845E
+void HD46505::write_vram(uint8_t data)
+{
+	if(update_flag) {
+		vram_ptr[(vram_addr++) & (vram_size - 1)] = data;
+		vram_addr &= 0x3fff;
+		// request next update
+		update_req = ((regs[8] & 0x08) != 0);
+		update_flag = false;
+		update_transparent();
+	}
+}
+
+uint8_t HD46505::read_vram()
+{
+	if(update_flag) {
+		// request next update
+		update_req = ((regs[8] & 0x08) != 0);
+		update_flag = false;
+		update_transparent();
+	}
+	return vram_ptr[vram_addr & (vram_size - 1)];
+}
+#endif
 
 void HD46505::event_pre_frame()
 {
@@ -105,7 +183,9 @@ void HD46505::event_pre_frame()
 			vs_start = ((regs[7] & 0x7f) + 1) * ch_height;
 			vs_end = vs_start + ((regs[3] & 0xf0) ? (regs[3] >> 4) : 16);
 			
+#ifndef HD46505_DONT_UPDATE_TIMING
 			set_lines_per_frame(vt_total);
+#endif
 			
 			timing_changed = false;
 			disp_end_clock = 0;
@@ -123,7 +203,9 @@ void HD46505::event_pre_frame()
 		if(regs[8] & 1) {
 			frames_per_sec *= 2; // interlace mode
 		}
+#ifndef HD46505_DONT_UPDATE_TIMING
 		set_frames_per_sec(frames_per_sec);
+#endif
 	}
 #elif defined(HD46505_HORIZ_FREQ)
 	if(horiz_freq != next_horiz_freq) {
@@ -132,7 +214,9 @@ void HD46505::event_pre_frame()
 		if(regs[8] & 1) {
 			frames_per_sec *= 2; // interlace mode
 		}
+#ifndef HD46505_DONT_UPDATE_TIMING
 		set_frames_per_sec(frames_per_sec);
+#endif
 	}
 #endif
 }
@@ -155,6 +239,11 @@ void HD46505::event_frame()
 		disp_end_clock = (int)((double)cpu_clocks * (double)hz_disp / frames_per_sec / (double)vt_total / (double)hz_total);
 		hs_start_clock = (int)((double)cpu_clocks * (double)hs_start / frames_per_sec / (double)vt_total / (double)hz_total);
 		hs_end_clock = (int)((double)cpu_clocks * (double)hs_end / frames_per_sec / (double)vt_total / (double)hz_total);
+#ifdef HAS_SY6845E
+		// update every 4 character clocks
+		update_clock = (int)((double)cpu_clocks * 4.0 / frames_per_sec / (double)vt_total / (double)hz_total);
+		if(update_clock < 16) update_clock = 16; // temporary
+#endif
 	}
 }
 
@@ -176,7 +265,10 @@ void HD46505::event_vline(int v, int clock)
 	}
 	
 	// display
-	if(outputs_disp.count) {
+#ifndef HAS_SY6845E
+	if(outputs_disp.count)
+#endif
+	{
 		set_display(new_vblank);
 		if(new_vblank && hz_disp < hz_total) {
 			register_event_by_clock(this, EVENT_DISPLAY, disp_end_clock, false, NULL);
@@ -205,6 +297,12 @@ void HD46505::event_callback(int event_id, int err)
 		set_hsync(true);
 	} else if(event_id == EVENT_HSYNC_E) {
 		set_hsync(false);
+#ifdef HAS_SY6845E
+	} else if(event_id == EVENT_UPDATE) {
+		update_id = -1;
+		update_req = ((regs[8] & 0x08) != 0);
+		update_flag = true;
+#endif
 	}
 }
 
@@ -213,6 +311,9 @@ void HD46505::set_display(bool val)
 	if(display != val) {
 		write_signals(&outputs_disp, val ? 0xffffffff : 0);
 		display = val;
+#ifdef HAS_SY6845E
+		update_transparent();
+#endif
 	}
 }
 
@@ -240,7 +341,33 @@ void HD46505::set_hsync(bool val)
 	}
 }
 
-#define STATE_VERSION	4
+#ifdef HAS_SY6845E
+void HD46505::update_transparent()
+{
+	bool enable = false;
+	
+	if(regs[8] & 0x08) {
+		if(regs[8] & 0x80) {
+			enable = true;
+		} else {
+			enable = !display;
+		}
+	}
+	if(update_req && enable) {
+		if(update_id == -1 && !update_flag) {
+			register_event_by_clock(this, EVENT_UPDATE, update_clock, false, &update_id);
+		}
+	} else {
+		if(update_id != -1) {
+			cancel_event(this, update_id);
+			update_id = -1;
+		}
+//		update_flag = false;
+	}
+}
+#endif
+
+#define STATE_VERSION	5
 
 bool HD46505::process_state(FILEIO* state_fio, bool loading)
 {
@@ -280,6 +407,13 @@ bool HD46505::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(vblank);
 	state_fio->StateValue(vsync);
 	state_fio->StateValue(hsync);
+#ifdef HAS_SY6845E
+	state_fio->StateValue(vram_addr);
+	state_fio->StateValue(update_clock);
+	state_fio->StateValue(update_id);
+	state_fio->StateValue(update_req);
+	state_fio->StateValue(update_flag);
+#endif
 	
 	// post process
 	if(loading) {

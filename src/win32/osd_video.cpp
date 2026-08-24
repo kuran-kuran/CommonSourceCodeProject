@@ -378,7 +378,7 @@ void OSD::enum_capture_devs()
 	
 	// create the system device enum
 	if(SUCCEEDED(CoCreateInstance(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC, IID_ICreateDevEnum, (void **)&pDevEnum))) {
-		// create the video input device enu,
+		// create the video input device enum
 		if(SUCCEEDED(pDevEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &pClassEnum, 0)) && pClassEnum != NULL) {
 			ULONG cFetched;
 			IMoniker *pMoniker = NULL;

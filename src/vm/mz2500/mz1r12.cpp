@@ -1,6 +1,7 @@
 /*
 	SHARP MZ-80B Emulator 'EmuZ-80B'
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
+	SHARP MZ-2500 Emulator 'EmuZ-2500'
 
 	Author : Takeda.Toshiya
 	Date   : 2013.03.17-
@@ -16,10 +17,22 @@ void MZ1R12::initialize()
 	read_only = false;
 	
 	FILEIO* fio = new FILEIO();
-#ifndef _MZ80B
-	if(fio->Fopen(create_local_path(_T("MZ-1E18.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(sram, sizeof(sram), 1);
-		fio->Fclose();
+#ifdef _MZ2200
+	if(config.option_switch & OPTION_SWITCH_MZ1E18) {
+		if(fio->Fopen(create_local_path(_T("MZ1E18.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1E18.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(sram, sizeof(sram), 1);
+			fio->Fclose();
+		}
+		read_only = true;
+	} else
+#endif
+#ifdef SUPPORT_SDCARD
+	if(config.option_switch & OPTION_SWITCH_MZ2000SD) {
+		if(fio->Fopen(create_local_path(_T("MZ2000SD.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(sram, sizeof(sram), 1);
+			fio->Fclose();
+		}
 		read_only = true;
 	} else
 #endif

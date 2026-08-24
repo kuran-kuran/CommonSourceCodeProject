@@ -115,7 +115,8 @@ public:
 	bool write_debug_reg(const _TCHAR *reg, uint32_t data);
 	uint32_t read_debug_reg(const _TCHAR *reg);
 	bool get_debug_regs_info(_TCHAR *buffer, size_t buffer_len);
-	int debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len);
+	int debug_dasm(uint32_t pc, uint32_t eip, bool mode, _TCHAR *buffer, size_t buffer_len);
+	int debug_dasm(uint32_t pc, uint32_t eip, _TCHAR *buffer, size_t buffer_len);
 #endif
 	bool process_state(FILEIO* state_fio, bool loading);
 	

@@ -74,6 +74,9 @@
     <ClCompile Include="..\src\win32\osd_input.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\win32\osd_midi.cpp">
+      <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\win32\osd_screen.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
     </ClCompile>
@@ -82,6 +85,9 @@
     </ClCompile>
     <ClCompile Include="..\src\win32\winmain.cpp">
       <Filter>Source Files\OSD Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\datarec.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
@@ -102,6 +108,9 @@
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\mb8877.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\midi.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\mz1p17.cpp">
@@ -143,11 +152,29 @@
     <ClCompile Include="..\src\vm\mz2500\mz80b.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\vm\mz2500\pio3034.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\vm\mz2500\printer.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vm\mz2500\timer.cpp">
       <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp">
+      <Filter>Source Files\VM Driver Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vm\cmu800tone.cpp">
+      <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -168,6 +195,9 @@
     </ClInclude>
     <ClInclude Include="..\src\win32\osd.h">
       <Filter>Header Files\OSD Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\datarec.h">
       <Filter>Header Files\VM Common Header Files</Filter>
@@ -194,6 +224,9 @@
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\mb8877.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\midi.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vm\mz1p17.h">
@@ -241,6 +274,9 @@
     <ClInclude Include="..\src\vm\mz2500\mz80b.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\vm\mz2500\pio3034.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\vm\mz2500\printer.h">
       <Filter>Header Files\VM Driver Header Files</Filter>
     </ClInclude>
@@ -249,6 +285,21 @@
     </ClInclude>
     <ClInclude Include="..\src\res\resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz80k_sd.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\mz2500\mz2000sd.h">
+      <Filter>Header Files\VM Driver Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800envelope.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800rhythm.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vm\cmu800tone.h">
+      <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -269,5 +320,8 @@
     <ResourceCompile Include="..\src\res\mz80b.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.09.02 -
 
-	[ cmos memory ]
+	[ MZ-1R12 ]
 */
 
 #include "cmos.h"
@@ -20,12 +20,24 @@ void CMOS::initialize()
 	data_buffer = (uint8_t *)malloc(DATA_SIZE);
 	memset(data_buffer, 0, DATA_SIZE);
 	modified = false;
+	read_only = false;
 	
 	// load cmos image
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_READ_BINARY)) {
-		fio->Fread(data_buffer, DATA_SIZE, 1);
-		fio->Fclose();
+#ifdef USE_SDCARD
+	if(config.option_switch & OPTION_SWITCH_MZ1500SD) {
+		if(fio->Fopen(create_local_path(_T("MZ1500SD.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(data_buffer, DATA_SIZE, 1);
+			fio->Fclose();
+		}
+		read_only = true;
+	} else
+#endif
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_READ_BINARY)) {
+			fio->Fread(data_buffer, DATA_SIZE, 1);
+			fio->Fclose();
+		}
 	}
 	delete fio;
 }
@@ -33,7 +45,7 @@ void CMOS::initialize()
 void CMOS::release()
 {
 	// save cmos image
-	if(modified) {
+	if(modified && !read_only) {
 		FILEIO* fio = new FILEIO();
 		if(fio->Fopen(create_local_path(_T("CMOS.BIN")), FILEIO_WRITE_BINARY)) {
 			fio->Fwrite(data_buffer, DATA_SIZE, 1);
@@ -61,7 +73,7 @@ void CMOS::write_io8(uint32_t addr, uint32_t data)
 		data_addr = (data_addr & 0xff00) | data;
 		break;
 	case 0xfa:
-		if(data_buffer[data_addr & ADDR_MASK] != data) {
+		if(!read_only && data_buffer[data_addr & ADDR_MASK] != data) {
 			data_buffer[data_addr & ADDR_MASK] = data;
 			modified = true;
 		}

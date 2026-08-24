@@ -10,15 +10,9 @@
 
 #include "..\emu.h"
 
-#ifdef _UNITY_2020_3 // MedamaP
-#include "Unity2020_3/IUnityInterface.h"
-#include "Unity2020_3/IUnityGraphics.h"
-#include "Unity2020_3/IUnityGraphicsD3D11.h"
-#else
 #include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsD3D11.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,7 +115,6 @@ extern "C"
 	UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API EmulReset(void);
 
 	UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API EmuSendAudio(float data[], int sz, int channels);
-	UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API EmuOpenFloppyDisk(int drv, const _TCHAR* filePath, int bank);
 
 };
 

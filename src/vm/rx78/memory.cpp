@@ -54,6 +54,7 @@ void MEMORY::initialize()
 	}
 	rpage = wpage = 0;
 	inserted = false;
+	cart_size = 0;
 }
 
 void MEMORY::reset()
@@ -121,10 +122,14 @@ void MEMORY::open_cart(const _TCHAR* file_path)
 	FILEIO* fio = new FILEIO();
 	
 	if(fio->Fopen(file_path, FILEIO_READ_BINARY)) {
+		fio->Fseek(0, FILEIO_SEEK_END);
+		cart_size = fio->Ftell();
+		fio->Fseek(0, FILEIO_SEEK_SET);
 		memset(cart, 0xff, sizeof(cart));
 		fio->Fread(cart, sizeof(cart), 1);
 		fio->Fclose();
 		inserted = true;
+		update_bank();
 	}
 	delete fio;
 }
@@ -132,10 +137,22 @@ void MEMORY::open_cart(const _TCHAR* file_path)
 void MEMORY::close_cart()
 {
 	memset(cart, 0xff, sizeof(cart));
+	memset(ext, 0, sizeof(ext));
 	inserted = false;
+	cart_size = 0;
+	update_bank();
 }
 
-#define STATE_VERSION	1
+void MEMORY::update_bank()
+{
+	if(inserted && cart_size > 0x4000) {
+		SET_BANK(0x6000, 0x9fff, wdmy, cart + 0x4000);
+	} else {
+		SET_BANK(0x6000, 0x9fff, ext, ext);
+	}
+}
+
+#define STATE_VERSION	2
 
 bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 {
@@ -151,6 +168,9 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(rpage);
 	state_fio->StateValue(wpage);
 	state_fio->StateValue(inserted);
+	state_fio->StateValue(cart_size);
+	
+	update_bank();
 	return true;
 }
 

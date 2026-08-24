@@ -44,6 +44,7 @@ void KEYBOARD::initialize()
 {
 	key_stat = emu->get_key_buffer();
 	column = 0;
+	keyboard_type = 0;
 	register_frame_event(this);
 }
 
@@ -57,6 +58,12 @@ void KEYBOARD::write_signal(int id, uint32_t data, uint32_t mask)
 
 void KEYBOARD::event_frame()
 {
+#if defined(USE_KEYBOARD_TYPE)
+	if(keyboard_type != config.keyboard_type) {
+		keyboard_type = config.keyboard_type;
+		set_keycode_preset(keyboard_type);
+	}
+#endif
 	// update key status
 	memset(keys, 0xff, sizeof(keys));
 	for(int i = 0; i < MAX_COLUMN; i++) {
@@ -77,6 +84,54 @@ void KEYBOARD::create_keystat()
 	d_pio->write_signal(SIG_Z80PIO_PORT_B, val, 0xff);	// to z80pio port b
 }
 
+void KEYBOARD::set_keycode_preset(int type)
+{
+	switch(type)
+	{
+	case 0: // Default
+		emu->reset_keycode_conv();
+		break;
+	case 1: // Tenkey[/] to [00]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x6f, 0x6c);
+		break;
+	case 2: // Tenkey[1][2][3] to [0][00][.]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x61, 0x60);
+		emu->update_keycode_conv(0x62, 0x6c);
+		emu->update_keycode_conv(0x63, 0x6e);
+		emu->update_keycode_conv(0x60, 0);
+		emu->update_keycode_conv(0x6e, 0);
+		break;
+	case 3: // Tenkey[0] to [00]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x60, 0x6c);
+		break;
+	case 4: // Cursor key to [8][2][4][6]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x26, 0x68); // up
+		emu->update_keycode_conv(0x28, 0x62); // down
+		emu->update_keycode_conv(0x25, 0x64); // left
+		emu->update_keycode_conv(0x27, 0x66); // right
+		emu->update_keycode_conv(0x68, 0x26); // up
+		emu->update_keycode_conv(0x62, 0x28); // down
+		emu->update_keycode_conv(0x64, 0x25); // left
+		emu->update_keycode_conv(0x66, 0x27); // right
+		break;
+	case 5: // Cursor key to [5][00][1][3]
+		emu->reset_keycode_conv();
+		emu->update_keycode_conv(0x26, 0x65); // up
+		emu->update_keycode_conv(0x28, 0x6c); // down
+		emu->update_keycode_conv(0x25, 0x61); // left
+		emu->update_keycode_conv(0x27, 0x63); // right
+		emu->update_keycode_conv(0x65, 0x26); // up
+		emu->update_keycode_conv(0x6c, 0x28); // down
+		emu->update_keycode_conv(0x61, 0x25); // left
+		emu->update_keycode_conv(0x63, 0x27); // right
+		break;
+	}
+}
+
 #define STATE_VERSION	1
 
 bool KEYBOARD::process_state(FILEIO* state_fio, bool loading)
@@ -90,4 +145,3 @@ bool KEYBOARD::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(column);
 	return true;
 }
-

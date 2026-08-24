@@ -34,11 +34,7 @@
 	};
 #endif
 
-#if defined(__ANDROID__)
-#define MAX_HISTORY	32
-#else
 #define MAX_HISTORY	8
-#endif
 
 #ifdef USE_SHARED_DLL
 	#define USE_CART_TMP		8
@@ -51,6 +47,7 @@
 	#define USE_BINARY_FILE_TMP	8
 	#define USE_BUBBLE_TMP		16
 	#define MAX_VOLUME_TMP		32
+	#define USE_GENERAL_PARAM_TMP	1
 #else
 	#define USE_CART_TMP		USE_CART
 	#define USE_FLOPPY_DISK_TMP	USE_FLOPPY_DISK
@@ -64,6 +61,7 @@
 	#ifdef USE_SOUND_VOLUME
 		#define MAX_VOLUME_TMP	USE_SOUND_VOLUME
 	#endif
+	#define USE_GENERAL_PARAM_TMP	USE_GENERAL_PARAM
 #endif
 
 void DLL_PREFIX initialize_config();
@@ -81,6 +79,9 @@ typedef struct {
 	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_DIPSWITCH)
 		uint32_t dipswitch;
+	#endif
+	#if defined(USE_SHARED_DLL) || defined(USE_OPTION_SWITCH)
+		int option_switch;
 	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_DEVICE_TYPE)
 		int device_type;
@@ -164,12 +165,7 @@ typedef struct {
 		_TCHAR initial_bubble_casette_dir[_MAX_PATH];
 		_TCHAR recent_bubble_casette_path[USE_BUBBLE_TMP][MAX_HISTORY][_MAX_PATH];
 	#endif
-
-    // mouse
-#if defined(__ANDROID__) // Medamap
-    int mouse_sensitivity;
-#endif
-
+	
 	// screen
 	int window_mode;
 	int window_stretch_type;
@@ -181,28 +177,9 @@ typedef struct {
 	// filter
 	#if defined(USE_SHARED_DLL) || defined(USE_SCREEN_FILTER)
 		int filter_type;
-    #endif
-
-    #if defined(__ANDROID__) // Medamap
-        int shader_type;
-        int shader_dot;
-        int shader_superimpose;
-        int shader_color_blindness;
-    #endif
-
-    #if defined(__ANDROID__) // Medamap
-        int screen_top_margin;
-        int screen_bottom_margin;
-        int screen_vertical_system_iconsize;
-        int screen_horizontal_system_iconsize;
-        int screen_vertical_file_iconsize;
-        int screen_horizontal_file_iconsize;
-    #endif
+	#endif
 	
 	// sound
-    #if defined(__ANDROID__) // Medamap
-        bool sound_on;
-    #endif
 	int sound_frequency;
 	int sound_latency;
 	bool sound_strict_rendering;
@@ -241,6 +218,15 @@ typedef struct {
 	// printer
 	#if defined(USE_SHARED_DLL) || defined(USE_PRINTER)
 		_TCHAR printer_dll_path[_MAX_PATH];
+	#endif
+
+	#if defined(USE_SDCARD)
+		_TCHAR sdcard_path[_MAX_PATH];
+	#endif
+	
+	// misc
+	#if defined(USE_SHARED_DLL) || defined(USE_GENERAL_PARAM)
+		int general_param[USE_GENERAL_PARAM_TMP];
 	#endif
 	
 	// debug

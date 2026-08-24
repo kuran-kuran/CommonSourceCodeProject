@@ -45,10 +45,11 @@
 #define EAD	ea.d
 #define EA	ea.w.l
 
-/****************************************************************************/
-/* memory                                                                   */
-/****************************************************************************/
+/* memory interface */
 
+/****************************************************************************/
+/* Read a byte from given memory location                                   */
+/****************************************************************************/
 uint32_t MC6800::RM(uint32_t Addr)
 {
 #if defined(HAS_MC6801) || defined(HAS_HD6301)
@@ -61,6 +62,9 @@ uint32_t MC6800::RM(uint32_t Addr)
 	return d_mem->read_data8(Addr);
 }
 
+/****************************************************************************/
+/* Write a byte to given memory location                                    */
+/****************************************************************************/
 void MC6800::WM(uint32_t Addr, uint32_t Value)
 {
 #if defined(HAS_MC6801) || defined(HAS_HD6301)
@@ -85,19 +89,28 @@ void MC6800::WM16(uint32_t Addr, pair32_t *p)
 	WM((Addr + 1) & 0xffff, p->b.l);
 }
 
-//#define M_RDOP(Addr)		d_mem->read_data8(Addr)
-//#define M_RDOP_ARG(Addr)	d_mem->read_data8(Addr)
-#define M_RDOP(Addr)		RM(Addr)
-#define M_RDOP_ARG(Addr)	RM(Addr)
+/****************************************************************************/
+/* M6800_RDOP() is identical to M6800_RDMEM() except it is used for reading */
+/* opcodes. In case of system with memory mapped I/O, this function can be  */
+/* used to greatly speed up emulation                                       */
+/****************************************************************************/
+#define M_RDOP(Addr) RM(Addr)
+
+/****************************************************************************/
+/* M6800_RDOP_ARG() is identical to M6800_RDOP() but it's used for reading  */
+/* opcode arguments. This difference can be used to support systems that    */
+/* use different encoding mechanisms for opcodes and opcode arguments       */
+/****************************************************************************/
+#define M_RDOP_ARG(Addr) RM(Addr)
 
 /* macros to access memory */
-#define IMMBYTE(b)	b = M_RDOP_ARG(PCD); PC++
-#define IMMWORD(w)	w.b.h = M_RDOP_ARG(PCD); w.b.l = M_RDOP_ARG((PCD + 1) & 0xffff); PC += 2
+#define IMMBYTE(b)  b = M_RDOP_ARG(PCD); PC++
+#define IMMWORD(w)  w.d = (M_RDOP_ARG(PCD)<<8) | M_RDOP_ARG((PCD+1)&0xffff); PC+=2
 
-#define PUSHBYTE(b)	WM(SD, b); --S
-#define PUSHWORD(w)	WM(SD, w.b.l); --S; WM(SD, w.b.h); --S
-#define PULLBYTE(b)	S++; b = RM(SD)
-#define PULLWORD(w)	S++; w.b.h = RM(SD); S++; w.b.l = RM(SD)
+#define PUSHBYTE(b) WM(SD,b); --S
+#define PUSHWORD(w) WM(SD,w.b.l); --S; WM(SD,w.b.h); --S
+#define PULLBYTE(b) S++; b = RM(SD)
+#define PULLWORD(w) S++; w.d = RM(SD)<<8; S++; w.d |= RM(SD)
 
 /****************************************************************************/
 /* MC6801/HD6301 internal i/o port                                          */
@@ -352,7 +365,7 @@ void MC6800::mc6801_io_w(uint32_t offset, uint32_t data)
 			output_compare.b.h = data;
 			MODIFIED_counters;
 		}
-        tcsr &=~TCSR_OCF;
+		tcsr &=~TCSR_OCF;
 		break;
 	case 0x0c:
 		// output compare register (lsb)
@@ -360,7 +373,7 @@ void MC6800::mc6801_io_w(uint32_t offset, uint32_t data)
 			output_compare.b.l = data;
 			MODIFIED_counters;
 		}
-        tcsr &=~TCSR_OCF;
+		tcsr &=~TCSR_OCF;
 		break;
 	case 0x0f:
 		// port3 control/status register
@@ -438,186 +451,197 @@ void MC6800::increment_counter(int amount)
 #endif
 }
 
+/* CC masks                       HI NZVC
+                                7654 3210   */
+#define CLR_HNZVC   CC&=0xd0
+#define CLR_NZV     CC&=0xf1
+#define CLR_HNZC    CC&=0xd2
+#define CLR_NZVC    CC&=0xf0
+#define CLR_NZ		CC&=0xf3
+#define CLR_Z       CC&=0xfb
+#define CLR_NZC		CC&=0xf2
+#define CLR_ZC      CC&=0xfa
+#define CLR_C       CC&=0xfe
 
-#define CLR_HNZVC	CC &= 0xd0
-#define CLR_NZV		CC &= 0xf1
-#define CLR_HNZC	CC &= 0xd2
-#define CLR_NZVC	CC &= 0xf0
-#define CLR_NZ		CC &= 0xf3
-#define CLR_Z		CC &= 0xfb
-#define CLR_NZC		CC &= 0xf2
-#define CLR_ZC		CC &= 0xfa
-#define CLR_C		CC &= 0xfe
+/* macros for CC -- CC bits affected should be reset before calling */
+#define SET_Z(a)        if(!(a))SEZ
+#define SET_Z8(a)       SET_Z(uint8_t(a))
+#define SET_Z16(a)      SET_Z(uint16_t(a))
+#define SET_N8(a)       CC|=(((a)&0x80)>>4)
+#define SET_N16(a)      CC|=(((a)&0x8000)>>12)
+#define SET_H(a,b,r)    CC|=((((a)^(b)^(r))&0x10)<<1)
+#define SET_C8(a)       CC|=(((a)&0x100)>>8)
+#define SET_C16(a)      CC|=(((a)&0x10000)>>16)
+#define SET_V8(a,b,r)   CC|=((((a)^(b)^(r)^((r)>>1))&0x80)>>6)
+#define SET_V16(a,b,r)  CC|=((((a)^(b)^(r)^((r)>>1))&0x8000)>>14)
 
-#define SET_Z(a)	if(!(a)) SEZ
-#define SET_Z8(a)	SET_Z((uint8_t)(a))
-#define SET_Z16(a)	SET_Z((uint16_t)(a))
-#define SET_N8(a)	CC |= (((a) & 0x80) >> 4)
-#define SET_N16(a)	CC |= (((a) & 0x8000) >> 12)
-#define SET_H(a,b,r)	CC |= ((((a) ^ (b) ^ (r)) & 0x10) << 1)
-#define SET_C8(a)	CC |= (((a) & 0x100) >> 8)
-#define SET_C16(a)	CC |= (((a) & 0x10000) >> 16)
-#define SET_V8(a,b,r)	CC |= ((((a) ^ (b) ^ (r) ^ ((r) >> 1)) & 0x80) >> 6)
-#define SET_V16(a,b,r)	CC |= ((((a) ^ (b) ^ (r) ^ ((r) >> 1)) & 0x8000) >> 14)
-
-static const uint8_t flags8i[256] = {
-	/* increment */
-	0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x0a,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08
+const uint8_t flags8i[256]= /* increment */
+{
+0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x0a,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08
 };
 
-static const uint8_t flags8d[256] = {
-	/* decrement */
-	0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
-	0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08
+const uint8_t flags8d[256]= /* decrement */
+{
+0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,
+0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08
 };
 
-#define SET_FLAGS8I(a)		{CC |= flags8i[(a) & 0xff];}
-#define SET_FLAGS8D(a)		{CC |= flags8d[(a) & 0xff];}
+#define SET_FLAGS8I(a)      {CC|=flags8i[(a)&0xff];}
+#define SET_FLAGS8D(a)      {CC|=flags8d[(a)&0xff];}
 
 /* combos */
-#define SET_NZ8(a)		{SET_N8(a);  SET_Z8(a);}
-#define SET_NZ16(a)		{SET_N16(a); SET_Z16(a);}
-#define SET_FLAGS8(a,b,r)	{SET_N8(r);  SET_Z8(r);  SET_V8(a,b,r);  SET_C8(r); }
-#define SET_FLAGS16(a,b,r)	{SET_N16(r); SET_Z16(r); SET_V16(a,b,r); SET_C16(r);}
+#define SET_NZ8(a)          {SET_N8(a);SET_Z8(a);}
+#define SET_NZ16(a)         {SET_N16(a);SET_Z16(a);}
+#define SET_FLAGS8(a,b,r)   {SET_N8(r);SET_Z8(r);SET_V8(a,b,r);SET_C8(r);}
+#define SET_FLAGS16(a,b,r)  {SET_N16(r);SET_Z16(r);SET_V16(a,b,r);SET_C16(r);}
 
 /* for treating an uint8_t as a signed int16_t */
-#define SIGNED(b)	((int16_t)(b & 0x80 ? b | 0xff00 : b))
+#define SIGNED(b) (int16_t(b&0x80?b|0xff00:b))
 
 /* Macros for addressing modes */
-#define DIRECT		IMMBYTE(EAD)
-#define IMM8		EA = PC++
-#define IMM16		{EA = PC; PC += 2;}
-#define EXTENDED	IMMWORD(pEA)
-#define INDEXED		{EA = X + (uint8_t)M_RDOP_ARG(PCD); PC++;}
+#define DIRECT IMMBYTE(EAD)
+#define IMM8 EA=PC++
+#define IMM16 {EA=PC;PC+=2;}
+#define EXTENDED IMMWORD(pEA)
+#define INDEXED {EA=X+(uint8_t)M_RDOP_ARG(PCD);PC++;}
 
 /* macros to set status flags */
-#define SEC	CC |= 0x01
-#define CLC	CC &= 0xfe
-#define SEZ	CC |= 0x04
-#define CLZ	CC &= 0xfb
-#define SEN	CC |= 0x08
-#define CLN	CC &= 0xf7
-#define SEV	CC |= 0x02
-#define CLV	CC &= 0xfd
-#define SEH	CC |= 0x20
-#define CLH	CC &= 0xdf
-#define SEI	CC |= 0x10
-#define CLI	CC &= ~0x10
+#if defined(SEC)
+#undef SEC
+#endif
+#define SEC CC|=0x01
+#define CLC CC&=0xfe
+#define SEZ CC|=0x04
+#define CLZ CC&=0xfb
+#define SEN CC|=0x08
+#define CLN CC&=0xf7
+#define SEV CC|=0x02
+#define CLV CC&=0xfd
+#define SEH CC|=0x20
+#define CLH CC&=0xdf
+#define SEI CC|=0x10
+#define CLI CC&=~0x10
 
 /* macros for convenience */
-#define DIRBYTE(b)	{DIRECT;   b   = RM(EAD);  }
-#define DIRWORD(w)	{DIRECT;   w.d = RM16(EAD);}
-#define EXTBYTE(b)	{EXTENDED; b   = RM(EAD);  }
-#define EXTWORD(w)	{EXTENDED; w.d = RM16(EAD);}
+#define DIRBYTE(b) {DIRECT;b=RM(EAD);}
+#define DIRWORD(w) {DIRECT;w.d=RM16(EAD);}
+#define EXTBYTE(b) {EXTENDED;b=RM(EAD);}
+#define EXTWORD(w) {EXTENDED;w.d=RM16(EAD);}
 
-#define IDXBYTE(b)	{INDEXED;  b   = RM(EAD);  }
-#define IDXWORD(w)	{INDEXED;  w.d = RM16(EAD);}
+#define IDXBYTE(b) {INDEXED;b=RM(EAD);}
+#define IDXWORD(w) {INDEXED;w.d=RM16(EAD);}
 
 /* Macros for branch instructions */
-#define BRANCH(f)	{IMMBYTE(t); if(f) {PC += SIGNED(t);}}
-#define NXORV		((CC & 0x08) ^ ((CC & 0x02) << 2))
+#define BRANCH(f) {IMMBYTE(t);if(f){PC+=SIGNED(t);}}
+#define NXORV  ((CC&0x08)^((CC&0x02)<<2))
+#define NXORC  ((CC&0x08)^((CC&0x01)<<3))
 
-/* Note: don't use 0 cycles here for invalid opcodes so that we don't */
-/* hang in an infinite loop if we hit one */
-#define XX 5 // invalid opcode unknown cc
-static const uint8_t cycles[] = {
+// to prevent the possibility of MAME locking up, don't use 0 cycles here
+#define XX 4 // illegal opcode unknown cycle count
+
+static const uint8_t cycles[] =
+{
 #if defined(HAS_MC6800)
-	XX, 2,XX,XX,XX,XX, 2, 2, 4, 4, 2, 2, 2, 2, 2, 2,
-	 2, 2,XX,XX,XX,XX, 2, 2,XX, 2,XX, 2,XX,XX,XX,XX,
-	 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-	 4, 4, 4, 4, 4, 4, 4, 4,XX, 5,XX,10,XX,XX, 9,12,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 7,XX,XX, 7, 7,XX, 7, 7, 7, 7, 7,XX, 7, 7, 4, 7,
-	 6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
-	 2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2, 3, 8, 3, 4,
-	 3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3, 4, 6, 4, 5,
-	 5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 6, 8, 6, 7,
-	 4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 5, 9, 5, 6,
-	 2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2,XX,XX, 3, 4,
-	 3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3,XX,XX, 4, 5,
-	 5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5,XX,XX, 6, 7,
-	 4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4,XX,XX, 5, 6
+		/* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+	/*0*/ XX, 2,XX,XX,XX,XX, 2, 2, 4, 4, 2, 2, 2, 2, 2, 2,
+	/*1*/  2, 2,XX,XX,XX,XX, 2, 2,XX, 2,XX, 2,XX,XX,XX,XX,
+	/*2*/  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	/*3*/  4, 4, 4, 4, 4, 4, 4, 4,XX, 5,XX,10,XX,XX, 9,12,
+	/*4*/  2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
+	/*5*/  2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
+	/*6*/  7,XX,XX, 7, 7,XX, 7, 7, 7, 7, 7,XX, 7, 7, 4, 7,
+	/*7*/  6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
+	/*8*/  2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2, 3, 8, 3, 4,
+	/*9*/  3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3, 4, 6, 4, 5,
+	/*A*/  5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 6, 8, 6, 7,
+	/*B*/  4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 5, 9, 5, 6,
+	/*C*/  2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2,XX,XX, 3, 4,
+	/*D*/  3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3,XX,XX, 4, 5,
+	/*E*/  5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5,XX,XX, 6, 7,
+	/*F*/  4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4,XX,XX, 5, 6
 #elif defined(HAS_MC6801)
-	XX, 2,XX,XX, 3, 3, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2,
-	 2, 2,XX,XX,XX,XX, 2, 2,XX, 2,XX, 2,XX,XX,XX,XX,
-	 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	 3, 3, 4, 4, 3, 3, 3, 3, 5, 5, 3,10, 4,10, 9,12,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
-	 6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
-	 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 4, 6, 3, 3,
-	 3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 3, 3, 5, 5, 4, 4,
-	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 5, 5,
-	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 5, 5,
-	 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 3,XX, 3, 3,
-	 3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
-	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
-	 4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5
+		/* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+	/*0*/ XX, 2,XX,XX, 3, 3, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2,
+	/*1*/  2, 2,XX,XX,XX,XX, 2, 2,XX, 2,XX, 2,XX,XX,XX,XX,
+	/*2*/  3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	/*3*/  3, 3, 4, 4, 3, 3, 3, 3, 5, 5, 3,10, 4,10, 9,12,
+	/*4*/  2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
+	/*5*/  2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
+	/*6*/  6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
+	/*7*/  6,XX,XX, 6, 6,XX, 6, 6, 6, 6, 6,XX, 6, 6, 3, 6,
+	/*8*/  2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 4, 6, 3, 3,
+	/*9*/  3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 3, 3, 5, 5, 4, 4,
+	/*A*/  4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 5, 5,
+	/*B*/  4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 5, 5,
+	/*C*/  2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 3,XX, 3, 3,
+	/*D*/  3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+	/*E*/  4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	/*F*/  4, 4, 4, 6, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5
 #elif defined(HAS_HD6301)
-	XX, 1,XX,XX, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	 1, 1,XX,XX,XX,XX, 1, 1, 2, 2, 4, 1,XX,XX,XX,XX,
-	 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	 1, 1, 3, 3, 1, 1, 4, 4, 4, 5, 1,10, 5, 7, 9,12,
-	 1,XX,XX, 1, 1,XX, 1, 1, 1, 1, 1,XX, 1, 1,XX, 1,
-	 1,XX,XX, 1, 1,XX, 1, 1, 1, 1, 1,XX, 1, 1,XX, 1,
-	 6, 7, 7, 6, 6, 7, 6, 6, 6, 6, 6, 5, 6, 4, 3, 5,
-	 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 6, 4, 3, 5,
-	 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 5, 3, 3,
-	 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 5, 4, 4,
-	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
-	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 6, 5, 5,
-	 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 3,XX, 3, 3,
-	 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
-	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
-	 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5
+		/* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+	/*0*/ XX, 1,XX,XX, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	/*1*/  1, 1,XX,XX,XX,XX, 1, 1, 2, 2, 4, 1,XX,XX,XX,XX,
+	/*2*/  3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	/*3*/  1, 1, 3, 3, 1, 1, 4, 4, 4, 5, 1,10, 5, 7, 9,12,
+	/*4*/  1,XX,XX, 1, 1,XX, 1, 1, 1, 1, 1,XX, 1, 1,XX, 1,
+	/*5*/  1,XX,XX, 1, 1,XX, 1, 1, 1, 1, 1,XX, 1, 1,XX, 1,
+	/*6*/  6, 7, 7, 6, 6, 7, 6, 6, 6, 6, 6, 5, 6, 4, 3, 5,
+	/*7*/  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 6, 4, 3, 5,
+	/*8*/  2, 2, 2, 3, 2, 2, 2,XX, 2, 2, 2, 2, 3, 5, 3,XX,
+	/*9*/  3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 5, 4, 4,
+	/*A*/  4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	/*B*/  4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 6, 5, 5,
+	/*C*/  2, 2, 2, 3, 2, 2, 2,XX, 2, 2, 2, 2, 3,XX, 3,XX,
+	/*D*/  3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4,
+	/*E*/  4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+	/*F*/  4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5
 #elif defined(HAS_MB8861)
-	XX, 2,XX,XX,XX,XX, 2, 2, 4, 4, 2, 2, 2, 2, 2, 2,
-	 2, 2,XX,XX,XX,XX, 2, 2,XX, 2,XX, 2,XX,XX,XX,XX,
-	 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-	 4, 4, 4, 4, 4, 4, 4, 4,XX, 5,XX,10,XX,XX, 9,12,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 2,XX,XX, 2, 2,XX, 2, 2, 2, 2, 2,XX, 2, 2,XX, 2,
-	 7,XX,XX, 7, 7,XX, 7, 7, 7, 7, 7,XX, 7, 7, 4, 7,
-	 6, 8, 8, 6, 6, 8, 6, 6, 6, 6, 6, 7, 6, 6, 3, 6,
-	 2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2, 3, 8, 3, 4,
-	 3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3, 4, 6, 4, 5,
-	 5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 6, 8, 6, 7,
-	 4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 5, 9, 5, 6,
-	 2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2,XX,XX, 3, 4,
-	 3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3,XX,XX, 4, 5,
-	 5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 4,XX, 6, 7,
-	 4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 7,XX, 5, 6
+		/* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+	/*0*/ XX,XX, 2,XX,XX, 2,XX, 2, 4, 2, 4, 2, 2, 2, 2, 2,
+	/*1*/  2,XX, 2,XX,XX, 2,XX, 2,XX,XX, 2, 2,XX,XX,XX,XX,
+	/*2*/  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	/*3*/  4, 4, 4, 4, 4, 4, 4, 4,XX,XX, 5,10,XX, 9,XX,12,
+	/*4*/  2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2, 3, 3, 8, 4,
+	/*5*/  3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3, 4, 4, 6, 5,
+	/*6*/  5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 6, 6, 8, 7,
+	/*7*/  4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 5, 5, 9, 6,
+	/*8*/  2,XX,XX, 2, 2, 2,XX, 2, 2, 2, 2,XX, 2,XX, 2, 2,
+	/*9*/  2,XX,XX, 2, 2, 2,XX, 2, 2, 2, 2,XX, 2,XX, 2, 2,
+	/*A*/  7,XX,XX, 7, 7, 7,XX, 7, 7, 7, 7,XX, 7, 4, 7, 7,
+	/*B*/  6,XX, 6, 6, 6, 6,XX, 6, 6, 6, 6, 6, 6, 3, 6, 6,
+	/*C*/  2, 2, 2,XX, 2, 2, 2, 3, 2, 2, 2, 2,XX, 3,XX, 4,
+	/*D*/  3, 3, 3,XX, 3, 3, 3, 4, 3, 3, 3, 3,XX, 4,XX, 5,
+	/*E*/  5, 5, 5,XX, 5, 5, 5, 6, 5, 5, 5, 5, 5, 6,XX, 7,
+	/*F*/  4, 4, 4,XX, 4, 4, 4, 5, 4, 4, 4, 4, 4, 5,XX, 6
 #endif
 };
 #undef XX // invalid opcode unknown cc
@@ -1211,16 +1235,16 @@ void MC6800::enter_interrupt(uint16_t irq_vector)
 void MC6800::insn(uint8_t code)
 {
 	switch(code) {
-	case 0x00: illegal(); break;
+	case 0x00: illegl1(); break;
 	case 0x01: nop(); break;
-	case 0x02: illegal(); break;
-	case 0x03: illegal(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+	case 0x02: illegl1(); break;
+	case 0x03: illegl1(); break;
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x04: lsrd(); break;
 	case 0x05: asld(); break;
 #else
-	case 0x04: illegal(); break;
-	case 0x05: illegal(); break;
+	case 0x04: illegl1(); break;
+	case 0x05: illegl1(); break;
 #endif
 	case 0x06: tap(); break;
 	case 0x07: tpa(); break;
@@ -1238,29 +1262,29 @@ void MC6800::insn(uint8_t code)
 	case 0x12: undoc1(); break;
 	case 0x13: undoc2(); break;
 #else
-	case 0x12: illegal(); break;
-	case 0x13: illegal(); break;
+	case 0x12: illegl1(); break;
+	case 0x13: illegl1(); break;
 #endif
-	case 0x14: illegal(); break;
-	case 0x15: illegal(); break;
+	case 0x14: illegl1(); break;
+	case 0x15: illegl1(); break;
 	case 0x16: tab(); break;
 	case 0x17: tba(); break;
 #if defined(HAS_HD6301)
 	case 0x18: xgdx(); break;
 #else
-	case 0x18: illegal(); break;
+	case 0x18: illegl1(); break;
 #endif
 	case 0x19: daa(); break;
 #if defined(HAS_HD6301)
 	case 0x1a: slp(); break;
 #else
-	case 0x1a: illegal(); break;
+	case 0x1a: illegl1(); break;
 #endif
 	case 0x1b: aba(); break;
-	case 0x1c: illegal(); break;
-	case 0x1d: illegal(); break;
-	case 0x1e: illegal(); break;
-	case 0x1f: illegal(); break;
+	case 0x1c: illegl1(); break;
+	case 0x1d: illegl1(); break;
+	case 0x1e: illegl1(); break;
+	case 0x1f: illegl1(); break;
 	case 0x20: bra(); break;
 	case 0x21: brn(); break;
 	case 0x22: bhi(); break;
@@ -1285,73 +1309,78 @@ void MC6800::insn(uint8_t code)
 	case 0x35: txs(); break;
 	case 0x36: psha(); break;
 	case 0x37: pshb(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x38: pulx(); break;
 #else
-	case 0x38: illegal(); break;
+	case 0x38: illegl1(); break;
 #endif
 	case 0x39: rts(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x3a: abx(); break;
 #else
-	case 0x3a: illegal(); break;
+	case 0x3a: illegl1(); break;
 #endif
 	case 0x3b: rti(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x3c: pshx(); break;
 	case 0x3d: mul(); break;
 #else
-	case 0x3c: illegal(); break;
-	case 0x3d: illegal(); break;
+	case 0x3c: illegl1(); break;
+	case 0x3d: illegl1(); break;
 #endif
 	case 0x3e: wai(); break;
 	case 0x3f: swi(); break;
 	case 0x40: nega(); break;
-	case 0x41: illegal(); break;
-	case 0x42: illegal(); break;
+	case 0x41: illegl1(); break;
+	case 0x42: illegl1(); break;
 	case 0x43: coma(); break;
 	case 0x44: lsra(); break;
-	case 0x45: illegal(); break;
+	case 0x45: illegl1(); break;
 	case 0x46: rora(); break;
 	case 0x47: asra(); break;
 	case 0x48: asla(); break;
 	case 0x49: rola(); break;
 	case 0x4a: deca(); break;
-	case 0x4b: illegal(); break;
+	case 0x4b: illegl1(); break;
 	case 0x4c: inca(); break;
 	case 0x4d: tsta(); break;
-	case 0x4e: illegal(); break;
+	case 0x4e: illegl1(); break;
 	case 0x4f: clra(); break;
 	case 0x50: negb(); break;
-	case 0x51: illegal(); break;
-	case 0x52: illegal(); break;
+	case 0x51: illegl1(); break;
+	case 0x52: illegl1(); break;
 	case 0x53: comb(); break;
 	case 0x54: lsrb(); break;
-	case 0x55: illegal(); break;
+	case 0x55: illegl1(); break;
 	case 0x56: rorb(); break;
 	case 0x57: asrb(); break;
 	case 0x58: aslb(); break;
 	case 0x59: rolb(); break;
 	case 0x5a: decb(); break;
-	case 0x5b: illegal(); break;
+	case 0x5b: illegl1(); break;
 	case 0x5c: incb(); break;
 	case 0x5d: tstb(); break;
-	case 0x5e: illegal(); break;
+	case 0x5e: illegl1(); break;
 	case 0x5f: clrb(); break;
 	case 0x60: neg_ix(); break;
 #if defined(HAS_HD6301)
 	case 0x61: aim_ix(); break;
 	case 0x62: oim_ix(); break;
+#elif defined(HAS_MC6801)
+	case 0x61: illegl1(); break;
+	case 0x62: illegl1(); break;
 #else
-	case 0x61: illegal(); break;
-	case 0x62: illegal(); break;
+	case 0x61: illegl2(); break;
+	case 0x62: illegl2(); break;
 #endif
 	case 0x63: com_ix(); break;
 	case 0x64: lsr_ix(); break;
 #if defined(HAS_HD6301)
 	case 0x65: eim_ix(); break;
+#elif defined(HAS_MC6801)
+	case 0x65: illegl1(); break;
 #else
-	case 0x65: illegal(); break;
+	case 0x65: illegl2(); break;
 #endif
 	case 0x66: ror_ix(); break;
 	case 0x67: asr_ix(); break;
@@ -1360,8 +1389,10 @@ void MC6800::insn(uint8_t code)
 	case 0x6a: dec_ix(); break;
 #if defined(HAS_HD6301)
 	case 0x6b: tim_ix(); break;
+#elif defined(HAS_MC6801)
+	case 0x6b: illegl1(); break;
 #else
-	case 0x6b: illegal(); break;
+	case 0x6b: illegl2(); break;
 #endif
 	case 0x6c: inc_ix(); break;
 	case 0x6d: tst_ix(); break;
@@ -1374,9 +1405,12 @@ void MC6800::insn(uint8_t code)
 #elif defined(HAS_MB8861)
 	case 0x71: nim_ix(); break;
 	case 0x72: oim_ix_mb8861(); break;
+#elif defined(HAS_MC6801)
+	case 0x71: illegl1(); break;
+	case 0x72: illegl1(); break;
 #else
-	case 0x71: illegal(); break;
-	case 0x72: illegal(); break;
+	case 0x71: illegl3(); break;
+	case 0x72: illegl3(); break;
 #endif
 	case 0x73: com_ex(); break;
 	case 0x74: lsr_ex(); break;
@@ -1384,8 +1418,10 @@ void MC6800::insn(uint8_t code)
 	case 0x75: eim_di(); break;
 #elif defined(HAS_MB8861)
 	case 0x75: xim_ix(); break;
+#elif defined(HAS_MC6801)
+	case 0x75: illegl1(); break;
 #else
-	case 0x75: illegal(); break;
+	case 0x75: illegl3(); break;
 #endif
 	case 0x76: ror_ex(); break;
 	case 0x77: asr_ex(); break;
@@ -1396,8 +1432,10 @@ void MC6800::insn(uint8_t code)
 	case 0x7b: tim_di(); break;
 #elif defined(HAS_MB8861)
 	case 0x7b: tmm_ix(); break;
+#elif defined(HAS_MC6801)
+	case 0x7b: illegl1(); break;
 #else
-	case 0x7b: illegal(); break;
+	case 0x7b: illegl3(); break;
 #endif
 	case 0x7c: inc_ex(); break;
 	case 0x7d: tst_ex(); break;
@@ -1406,34 +1444,42 @@ void MC6800::insn(uint8_t code)
 	case 0x80: suba_im(); break;
 	case 0x81: cmpa_im(); break;
 	case 0x82: sbca_im(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x83: subd_im(); break;
 #else
-	case 0x83: illegal(); break;
+	case 0x83: illegl2(); break;
 #endif
 	case 0x84: anda_im(); break;
 	case 0x85: bita_im(); break;
 	case 0x86: lda_im(); break;
+#if defined(HAS_HD6301)
+	case 0x87: illegl1(); break;
+#else
 	case 0x87: sta_im(); break;
+#endif
 	case 0x88: eora_im(); break;
 	case 0x89: adca_im(); break;
 	case 0x8a: ora_im(); break;
 	case 0x8b: adda_im(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
-	case 0x8c: cpx_im (); break;
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
+	case 0x8c: cpx_im(); break;
 #else
 	case 0x8c: cmpx_im(); break;
 #endif
 	case 0x8d: bsr(); break;
 	case 0x8e: lds_im(); break;
+#if defined(HAS_HD6301)
+	case 0x8f: illegl1(); break;
+#else
 	case 0x8f: sts_im(); break;
+#endif
 	case 0x90: suba_di(); break;
 	case 0x91: cmpa_di(); break;
 	case 0x92: sbca_di(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0x93: subd_di(); break;
 #else
-	case 0x93: illegal(); break;
+	case 0x93: illegl2(); break;
 #endif
 	case 0x94: anda_di(); break;
 	case 0x95: bita_di(); break;
@@ -1443,8 +1489,8 @@ void MC6800::insn(uint8_t code)
 	case 0x99: adca_di(); break;
 	case 0x9a: ora_di(); break;
 	case 0x9b: adda_di(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
-	case 0x9c: cpx_di (); break;
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
+	case 0x9c: cpx_di(); break;
 #else
 	case 0x9c: cmpx_di(); break;
 #endif
@@ -1454,10 +1500,10 @@ void MC6800::insn(uint8_t code)
 	case 0xa0: suba_ix(); break;
 	case 0xa1: cmpa_ix(); break;
 	case 0xa2: sbca_ix(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xa3: subd_ix(); break;
 #else
-	case 0xa3: illegal(); break;
+	case 0xa3: illegl2(); break;
 #endif
 	case 0xa4: anda_ix(); break;
 	case 0xa5: bita_ix(); break;
@@ -1467,8 +1513,8 @@ void MC6800::insn(uint8_t code)
 	case 0xa9: adca_ix(); break;
 	case 0xaa: ora_ix(); break;
 	case 0xab: adda_ix(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
-	case 0xac: cpx_ix (); break;
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
+	case 0xac: cpx_ix(); break;
 #else
 	case 0xac: cmpx_ix(); break;
 #endif
@@ -1478,10 +1524,10 @@ void MC6800::insn(uint8_t code)
 	case 0xb0: suba_ex(); break;
 	case 0xb1: cmpa_ex(); break;
 	case 0xb2: sbca_ex(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xb3: subd_ex(); break;
 #else
-	case 0xb3: illegal(); break;
+	case 0xb3: illegl3(); break;
 #endif
 	case 0xb4: anda_ex(); break;
 	case 0xb5: bita_ex(); break;
@@ -1491,8 +1537,8 @@ void MC6800::insn(uint8_t code)
 	case 0xb9: adca_ex(); break;
 	case 0xba: ora_ex(); break;
 	case 0xbb: adda_ex(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
-	case 0xbc: cpx_ex (); break;
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
+	case 0xbc: cpx_ex(); break;
 #else
 	case 0xbc: cmpx_ex(); break;
 #endif
@@ -1502,35 +1548,46 @@ void MC6800::insn(uint8_t code)
 	case 0xc0: subb_im(); break;
 	case 0xc1: cmpb_im(); break;
 	case 0xc2: sbcb_im(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xc3: addd_im(); break;
 #else
-	case 0xc3: illegal(); break;
+	case 0xc3: illegl2(); break;
 #endif
 	case 0xc4: andb_im(); break;
 	case 0xc5: bitb_im(); break;
 	case 0xc6: ldb_im(); break;
+#if defined(HAS_HD6301)
+	case 0xc7: illegl1(); break;
+#else
 	case 0xc7: stb_im(); break;
+#endif
 	case 0xc8: eorb_im(); break;
 	case 0xc9: adcb_im(); break;
 	case 0xca: orb_im(); break;
 	case 0xcb: addb_im(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301)
+	case 0xcc: ldd_im(); break;
+	case 0xcd: illegl1(); break;
+#elif defined(HAS_MC6801)
 	case 0xcc: ldd_im(); break;
 	case 0xcd: std_im(); break;
 #else
-	case 0xcc: illegal(); break;
-	case 0xcd: illegal(); break;
+	case 0xcc: illegl3(); break;
+	case 0xcd: illegl3(); break;
 #endif
 	case 0xce: ldx_im(); break;
+#if defined(HAS_HD6301)
+	case 0xcf: illegl1(); break;
+#else
 	case 0xcf: stx_im(); break;
+#endif
 	case 0xd0: subb_di(); break;
 	case 0xd1: cmpb_di(); break;
 	case 0xd2: sbcb_di(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xd3: addd_di(); break;
 #else
-	case 0xd3: illegal(); break;
+	case 0xd3: illegl2(); break;
 #endif
 	case 0xd4: andb_di(); break;
 	case 0xd5: bitb_di(); break;
@@ -1540,22 +1597,22 @@ void MC6800::insn(uint8_t code)
 	case 0xd9: adcb_di(); break;
 	case 0xda: orb_di(); break;
 	case 0xdb: addb_di(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xdc: ldd_di(); break;
 	case 0xdd: std_di(); break;
 #else
-	case 0xdc: illegal(); break;
-	case 0xdd: illegal(); break;
+	case 0xdc: illegl2(); break;
+	case 0xdd: illegl2(); break;
 #endif
 	case 0xde: ldx_di(); break;
 	case 0xdf: stx_di(); break;
 	case 0xe0: subb_ix(); break;
 	case 0xe1: cmpb_ix(); break;
 	case 0xe2: sbcb_ix(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xe3: addd_ix(); break;
 #else
-	case 0xe3: illegal(); break;
+	case 0xe3: illegl2(); break;
 #endif
 	case 0xe4: andb_ix(); break;
 	case 0xe5: bitb_ix(); break;
@@ -1565,25 +1622,25 @@ void MC6800::insn(uint8_t code)
 	case 0xe9: adcb_ix(); break;
 	case 0xea: orb_ix(); break;
 	case 0xeb: addb_ix(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xec: ldd_ix(); break;
 	case 0xed: std_ix(); break;
 #elif defined(HAS_MB8861)
 	case 0xec: adx_im(); break;
-	case 0xed: illegal(); break;
+	case 0xed: illegl1(); break;
 #else
-	case 0xec: illegal(); break;
-	case 0xed: illegal(); break;
+	case 0xec: illegl2(); break;
+	case 0xed: illegl2(); break;
 #endif
 	case 0xee: ldx_ix(); break;
 	case 0xef: stx_ix(); break;
 	case 0xf0: subb_ex(); break;
 	case 0xf1: cmpb_ex(); break;
 	case 0xf2: sbcb_ex(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xf3: addd_ex(); break;
 #else
-	case 0xf3: illegal(); break;
+	case 0xf3: illegl3(); break;
 #endif
 	case 0xf4: andb_ex(); break;
 	case 0xf5: bitb_ex(); break;
@@ -1593,15 +1650,15 @@ void MC6800::insn(uint8_t code)
 	case 0xf9: adcb_ex(); break;
 	case 0xfa: orb_ex(); break;
 	case 0xfb: addb_ex(); break;
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	case 0xfc: ldd_ex(); break;
 	case 0xfd: std_ex(); break;
 #elif defined(HAS_MB8861)
 	case 0xfc: adx_ex(); break;
-	case 0xfd: illegal(); break;
+	case 0xfd: illegl1(); break;
 #else
-	case 0xfc: illegal(); break;
-	case 0xfd: illegal(); break;
+	case 0xfc: illegl3(); break;
+	case 0xfd: illegl3(); break;
 #endif
 	case 0xfe: ldx_ex(); break;
 	case 0xff: stx_ex(); break;
@@ -1621,17 +1678,32 @@ void MC6800::insn(uint8_t code)
 }
 
 /* $00 ILLEGAL */
-void MC6800::illegal()
+void MC6800::illegl1()
 {
 #ifdef HAS_HD6301
+//	logerror("m6800: illegal opcode: address %04X, op %02X\n",PC-1,(int) M_RDOP_ARG(PC-1)&0xFF);
+	PC--;
 	TAKE_TRAP;
+#else
+//	logerror("m6800: illegal 1-byte opcode: address %04X, op %02X\n",PC-1,(int) M_RDOP_ARG(PC-1)&0xFF);
 #endif
+}
+
+void MC6800::illegl2()
+{
+//	logerror("m6800: illegal 2-byte opcode: address %04X, op %02X\n",PC-1,(int) M_RDOP_ARG(PC-1)&0xFF);
+	PC++;
+}
+
+void MC6800::illegl3()
+{
+//	logerror("m6800: illegal 3-byte opcode: address %04X, op %02X\n",PC-1,(int) M_RDOP_ARG(PC-1)&0xFF);
+	PC += 2;
 }
 
 /* $01 NOP */
 void MC6800::nop()
 {
-	
 }
 
 /* $02 ILLEGAL */
@@ -1642,12 +1714,10 @@ void MC6800::nop()
 void MC6800::lsrd()
 {
 	uint16_t t;
-	CLR_NZC;
-	t = D;
-	CC |= (t & 0x0001);
-	t >>= 1;
-	SET_Z16(t);
-	D = t;
+	CLR_NZVC; t = D; CC|=(t&0x0001);
+	t>>=1; SET_Z16(t);
+	if (NXORC) SEV;
+	D=t;
 }
 
 /* $05 ASLD inherent ?**** */
@@ -1655,41 +1725,39 @@ void MC6800::asld()
 {
 	int r;
 	uint16_t t;
-	t = D;
-	r = t << 1;
-	CLR_NZVC;
-	SET_FLAGS16(t, t, r);
-	D = r;
+	t = D; r=t<<1;
+	CLR_NZVC; SET_FLAGS16(t,t,r);
+	D=r;
 }
 
 /* $06 TAP inherent ##### */
 void MC6800::tap()
 {
-	CC = A;
-//	ONE_MORE_INSN();
+	CC=A;
+
+	// TAP temporarily sets the I flag and blocks IRQ until the next opcode
+	// (if the next opcode is TAP, IRQ is blocked again)
 	one_more_insn = true;
 }
 
 /* $07 TPA inherent ----- */
 void MC6800::tpa()
 {
-	A = CC;
+	A=CC;
 }
 
 /* $08 INX inherent --*-- */
 void MC6800::inx()
 {
 	++X;
-	CLR_Z;
-	SET_Z16(X);
+	CLR_Z; SET_Z16(X);
 }
 
 /* $09 DEX inherent --*-- */
 void MC6800::dex()
 {
 	--X;
-	CLR_Z;
-	SET_Z16(X);
+	CLR_Z; SET_Z16(X);
 }
 
 /* $0a CLV */
@@ -1719,48 +1787,47 @@ void MC6800::sec()
 /* $0e CLI */
 void MC6800::cli()
 {
+	uint8_t i = CC & 0x10;
 	CLI;
-//	ONE_MORE_INSN();
-	one_more_insn = true;
+
+	// pending IRQ won't be triggered until next machine cycle
+	if (i) one_more_insn = true;
 }
 
 /* $0f SEI */
 void MC6800::sei()
 {
 	SEI;
-//	ONE_MORE_INSN();
-	one_more_insn = true;
+//	one_more_insn = true;
 }
 
 /* $10 SBA inherent -**** */
 void MC6800::sba()
 {
 	uint16_t t;
-	t = A - B;
-	CLR_NZVC;
-	SET_FLAGS8(A, B, t);
-	A = (uint8_t)t;
+	t=A-B;
+	CLR_NZVC; SET_FLAGS8(A,B,t);
+	A=t;
 }
 
 /* $11 CBA inherent -**** */
 void MC6800::cba()
 {
 	uint16_t t;
-	t = A - B;
-	CLR_NZVC;
-	SET_FLAGS8(A, B, t);
+	t=A-B;
+	CLR_NZVC; SET_FLAGS8(A,B,t);
 }
 
 /* $12 ILLEGAL */
 void MC6800::undoc1()
 {
-	X += RM(S + 1);
+	X += RM( S + 1 );
 }
 
 /* $13 ILLEGAL */
 void MC6800::undoc2()
 {
-	X += RM(S + 1);
+	X += RM( S + 1 );
 }
 
 /* $14 ILLEGAL */
@@ -1771,16 +1838,14 @@ void MC6800::undoc2()
 void MC6800::tab()
 {
 	B=A;
-	CLR_NZV;
-	SET_NZ8(B);
+	CLR_NZV; SET_NZ8(B);
 }
 
 /* $17 TBA inherent -**0- */
 void MC6800::tba()
 {
-	A = B;
-	CLR_NZV;
-	SET_NZ8(A);
+	A=B;
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* $18 XGDX inherent ----- */ /* HD6301 only */
@@ -1788,7 +1853,7 @@ void MC6800::xgdx()
 {
 	uint16_t t = X;
 	X = D;
-	D = t;
+	D=t;
 }
 
 /* $19 DAA inherent (A) -**0* */
@@ -1796,22 +1861,14 @@ void MC6800::daa()
 {
 	uint8_t msn, lsn;
 	uint16_t t, cf = 0;
-	msn = A & 0xf0;
-	lsn = A & 0x0f;
-	if(lsn > 0x09 || CC & 0x20) {
-		cf |= 0x06;
-	}
-	if(msn > 0x80 && lsn > 0x09) {
-		cf |= 0x60;
-	}
-	if(msn > 0x90 || (CC & 0x01)) {
-		cf |= 0x60;
-	}
+	msn=A & 0xf0; lsn=A & 0x0f;
+	if (lsn>0x09 || CC&0x20) cf |= 0x06;
+	if (msn>0x80 && lsn>0x09) cf |= 0x60;
+	if (msn>0x90 || CC&0x01) cf |= 0x60;
 	t = cf + A;
-	CLR_NZV; /* keep carry from previous operation */
-	SET_NZ8((uint8_t)t);
-	SET_C8(t);
-	A = (uint8_t)t;
+	CLR_NZV; // keep carry from previous operation
+	SET_NZ8((uint8_t)t); SET_C8(t);
+	A = t;
 }
 
 /* $1a ILLEGAL */
@@ -1819,7 +1876,7 @@ void MC6800::daa()
 /* $1a SLP */ /* HD6301 only */
 void MC6800::slp()
 {
-	/* wait for next IRQ (same as waiting of wai) */
+	// wait for next IRQ (same as waiting of WAI)
 	wai_state |= HD6301_SLP;
 }
 
@@ -1827,11 +1884,9 @@ void MC6800::slp()
 void MC6800::aba()
 {
 	uint16_t t;
-	t = A + B;
-	CLR_HNZVC;
-	SET_FLAGS8(A, B, t);
-	SET_H(A, B, t);
-	A = (uint8_t)t;
+	t=A+B;
+	CLR_HNZVC; SET_FLAGS8(A,B,t); SET_H(A,B,t);
+	A=t;
 }
 
 /* $1c ILLEGAL */
@@ -1846,85 +1901,84 @@ void MC6800::aba()
 void MC6800::bra()
 {
 	uint8_t t;
-	IMMBYTE(t);
-	PC += SIGNED(t);
+	BRANCH(1);
 }
 
 /* $21 BRN relative ----- */
 void MC6800::brn()
 {
 	uint8_t t;
-	IMMBYTE(t);
+	BRANCH(0);
 }
 
 /* $22 BHI relative ----- */
 void MC6800::bhi()
 {
 	uint8_t t;
-	BRANCH(!(CC & 0x05));
+	BRANCH(!(CC&0x05));
 }
 
 /* $23 BLS relative ----- */
 void MC6800::bls()
 {
 	uint8_t t;
-	BRANCH(CC & 0x05);
+	BRANCH(CC&0x05);
 }
 
 /* $24 BCC relative ----- */
 void MC6800::bcc()
 {
 	uint8_t t;
-	BRANCH(!(CC & 0x01));
+	BRANCH(!(CC&0x01));
 }
 
 /* $25 BCS relative ----- */
 void MC6800::bcs()
 {
 	uint8_t t;
-	BRANCH(CC & 0x01);
+	BRANCH(CC&0x01);
 }
 
 /* $26 BNE relative ----- */
 void MC6800::bne()
 {
 	uint8_t t;
-	BRANCH(!(CC & 0x04));
+	BRANCH(!(CC&0x04));
 }
 
 /* $27 BEQ relative ----- */
 void MC6800::beq()
 {
 	uint8_t t;
-	BRANCH(CC & 0x04);
+	BRANCH(CC&0x04);
 }
 
 /* $28 BVC relative ----- */
 void MC6800::bvc()
 {
 	uint8_t t;
-	BRANCH(!(CC & 0x02));
+	BRANCH(!(CC&0x02));
 }
 
 /* $29 BVS relative ----- */
 void MC6800::bvs()
 {
 	uint8_t t;
-	BRANCH(CC & 0x02);
+	BRANCH(CC&0x02);
 }
 
 /* $2a BPL relative ----- */
 void MC6800::bpl()
 {
 	uint8_t t;
-	BRANCH(!(CC & 0x08));
+	BRANCH(!(CC&0x08));
 }
 
 /* $2b BMI relative ----- */
 void MC6800::bmi()
 {
 	uint8_t t;
-	BRANCH(CC & 0x08);
+	BRANCH(CC&0x08);
 }
 
 /* $2c BGE relative ----- */
@@ -1945,20 +1999,20 @@ void MC6800::blt()
 void MC6800::bgt()
 {
 	uint8_t t;
-	BRANCH(!(NXORV||CC & 0x04));
+	BRANCH(!(NXORV||CC&0x04));
 }
 
 /* $2f BLE relative ----- */
 void MC6800::ble()
 {
 	uint8_t t;
-	BRANCH(NXORV||CC & 0x04);
+	BRANCH(NXORV||CC&0x04);
 }
 
 /* $30 TSX inherent ----- */
 void MC6800::tsx()
 {
-	X = (S + 1);
+	X = ( S + 1 );
 }
 
 /* $31 INS inherent ----- */
@@ -1970,13 +2024,13 @@ void MC6800::ins()
 /* $32 PULA inherent ----- */
 void MC6800::pula()
 {
-	PULLBYTE(A);
+	PULLBYTE(pD.b.h);
 }
 
 /* $33 PULB inherent ----- */
 void MC6800::pulb()
 {
-	PULLBYTE(B);
+	PULLBYTE(pD.b.l);
 }
 
 /* $34 DES inherent ----- */
@@ -1988,19 +2042,19 @@ void MC6800::des()
 /* $35 TXS inherent ----- */
 void MC6800::txs()
 {
-	S = (X - 1);
+	S = ( X - 1 );
 }
 
 /* $36 PSHA inherent ----- */
 void MC6800::psha()
 {
-	PUSHBYTE(A);
+	PUSHBYTE(pD.b.h);
 }
 
 /* $37 PSHB inherent ----- */
 void MC6800::pshb()
 {
-	PUSHBYTE(B);
+	PUSHBYTE(pD.b.l);
 }
 
 /* $38 PULX inherent ----- */
@@ -2041,19 +2095,17 @@ void MC6800::pshx()
 void MC6800::mul()
 {
 	uint16_t t;
-	t = A*B;
+	t=A*B;
 	CLR_C;
-	if(t & 0x80) SEC;
-	D = t;
+	if (t & 0x80) SEC;
+	D=t;
 }
 
 /* $3e WAI inherent ----- */
 void MC6800::wai()
 {
-	/*
-	 * WAI stacks the entire machine state on the
-	 * hardware stack, then waits for an interrupt.
-	 */
+	// WAI stacks the entire machine state on the hardware stack,
+	// then waits for an interrupt.
 	wai_state |= MC6800_WAI;
 	PUSHWORD(pPC);
 	PUSHWORD(pX);
@@ -2078,10 +2130,9 @@ void MC6800::swi()
 void MC6800::nega()
 {
 	uint16_t r;
-	r = -A;
-	CLR_NZVC;
-	SET_FLAGS8(0, A, r);
-	A = (uint8_t)r;
+	r=-A;
+	CLR_NZVC; SET_FLAGS8(0,A,r);
+	A=r;
 }
 
 /* $41 ILLEGAL */
@@ -2092,18 +2143,15 @@ void MC6800::nega()
 void MC6800::coma()
 {
 	A = ~A;
-	CLR_NZV;
-	SET_NZ8(A);
-	SEC;
+	CLR_NZV; SET_NZ8(A); SEC;
 }
 
 /* $44 LSRA inherent -0*-* */
 void MC6800::lsra()
 {
-	CLR_NZC;
-	CC |= (A & 0x01);
-	A >>= 1;
-	SET_Z8(A);
+	CLR_NZVC; CC|=(A&0x01);
+	A>>=1; SET_Z8(A);
+	if (NXORC) SEV;
 }
 
 /* $45 ILLEGAL */
@@ -2112,52 +2160,45 @@ void MC6800::lsra()
 void MC6800::rora()
 {
 	uint8_t r;
-	r = (CC & 0x01) << 7;
-	CLR_NZC;
-	CC |= (A & 0x01);
-	r |= A >> 1;
-	SET_NZ8(r);
-	A = r;
+	r=(CC&0x01)<<7;
+	CLR_NZVC; CC|=(A&0x01);
+	r |= A>>1; SET_NZ8(r);
+	if (NXORC) SEV;
+	A=r;
 }
 
 /* $47 ASRA inherent ?**-* */
 void MC6800::asra()
 {
-	CLR_NZC;
-	CC |= (A & 0x01);
-	A >>= 1;
-	A |= ((A & 0x40) << 1);
+	CLR_NZVC; CC|=(A&0x01);
+	A>>=1; A|=((A&0x40)<<1);
 	SET_NZ8(A);
+	if (NXORC) SEV;
 }
 
 /* $48 ASLA inherent ?**** */
 void MC6800::asla()
 {
 	uint16_t r;
-	r = A << 1;
-	CLR_NZVC;
-	SET_FLAGS8(A, A, r);
-	A = (uint8_t)r;
+	r=A<<1;
+	CLR_NZVC; SET_FLAGS8(A,A,r);
+	A=r;
 }
 
 /* $49 ROLA inherent -**** */
 void MC6800::rola()
 {
-	uint16_t t, r;
-	t = A;
-	r = CC & 0x01;
-	r |= t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	A = (uint8_t)r;
+	uint16_t t,r;
+	t = A; r = CC&0x01; r |= t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	A=r;
 }
 
 /* $4a DECA inherent -***- */
 void MC6800::deca()
 {
 	--A;
-	CLR_NZV;
-	SET_FLAGS8D(A);
+	CLR_NZV; SET_FLAGS8D(A);
 }
 
 /* $4b ILLEGAL */
@@ -2166,15 +2207,13 @@ void MC6800::deca()
 void MC6800::inca()
 {
 	++A;
-	CLR_NZV;
-	SET_FLAGS8I(A);
+	CLR_NZV; SET_FLAGS8I(A);
 }
 
 /* $4d TSTA inherent -**0- */
 void MC6800::tsta()
 {
-	CLR_NZVC;
-	SET_NZ8(A);
+	CLR_NZVC; SET_NZ8(A);
 }
 
 /* $4e ILLEGAL */
@@ -2182,19 +2221,17 @@ void MC6800::tsta()
 /* $4f CLRA inherent -0100 */
 void MC6800::clra()
 {
-	A = 0;
-	CLR_NZVC;
-	SEZ;
+	A=0;
+	CLR_NZVC; SEZ;
 }
 
 /* $50 NEGB inherent ?**** */
 void MC6800::negb()
 {
 	uint16_t r;
-	r = -B;
-	CLR_NZVC;
-	SET_FLAGS8(0, B, r);
-	B = (uint8_t)r;
+	r=-B;
+	CLR_NZVC; SET_FLAGS8(0,B,r);
+	B=r;
 }
 
 /* $51 ILLEGAL */
@@ -2205,18 +2242,15 @@ void MC6800::negb()
 void MC6800::comb()
 {
 	B = ~B;
-	CLR_NZV;
-	SET_NZ8(B);
-	SEC;
+	CLR_NZV; SET_NZ8(B); SEC;
 }
 
 /* $54 LSRB inherent -0*-* */
 void MC6800::lsrb()
 {
-	CLR_NZC;
-	CC |= (B & 0x01);
-	B >>= 1;
-	SET_Z8(B);
+	CLR_NZVC; CC|=(B&0x01);
+	B>>=1; SET_Z8(B);
+	if (NXORC) SEV;
 }
 
 /* $55 ILLEGAL */
@@ -2225,52 +2259,45 @@ void MC6800::lsrb()
 void MC6800::rorb()
 {
 	uint8_t r;
-	r = (CC & 0x01) << 7;
-	CLR_NZC;
-	CC |= (B & 0x01);
-	r |= B >> 1;
-	SET_NZ8(r);
-	B = r;
+	r=(CC&0x01)<<7;
+	CLR_NZVC; CC|=(B&0x01);
+	r |= B>>1; SET_NZ8(r);
+	if (NXORC) SEV;
+	B=r;
 }
 
 /* $57 ASRB inherent ?**-* */
 void MC6800::asrb()
 {
-	CLR_NZC;
-	CC |= (B & 0x01);
-	B >>= 1;
-	B |= ((B & 0x40) << 1);
+	CLR_NZVC; CC|=(B&0x01);
+	B>>=1; B|=((B&0x40)<<1);
 	SET_NZ8(B);
+	if (NXORC) SEV;
 }
 
 /* $58 ASLB inherent ?**** */
 void MC6800::aslb()
 {
 	uint16_t r;
-	r = B << 1;
-	CLR_NZVC;
-	SET_FLAGS8(B, B, r);
-	B = (uint8_t)r;
+	r=B<<1;
+	CLR_NZVC; SET_FLAGS8(B,B,r);
+	B=r;
 }
 
 /* $59 ROLB inherent -**** */
 void MC6800::rolb()
 {
-	uint16_t t, r;
-	t = B;
-	r = CC & 0x01;
-	r |= t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	B = (uint8_t)r;
+	uint16_t t,r;
+	t = B; r = CC&0x01; r |= t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	B=r;
 }
 
 /* $5a DECB inherent -***- */
 void MC6800::decb()
 {
 	--B;
-	CLR_NZV;
-	SET_FLAGS8D(B);
+	CLR_NZV; SET_FLAGS8D(B);
 }
 
 /* $5b ILLEGAL */
@@ -2279,15 +2306,13 @@ void MC6800::decb()
 void MC6800::incb()
 {
 	++B;
-	CLR_NZV;
-	SET_FLAGS8I(B);
+	CLR_NZV; SET_FLAGS8I(B);
 }
 
 /* $5d TSTB inherent -**0- */
 void MC6800::tstb()
 {
-	CLR_NZVC;
-	SET_NZ8(B);
+	CLR_NZVC; SET_NZ8(B);
 }
 
 /* $5e ILLEGAL */
@@ -2296,19 +2321,16 @@ void MC6800::tstb()
 void MC6800::clrb()
 {
 	B=0;
-	CLR_NZVC;
-	SEZ;
+	CLR_NZVC; SEZ;
 }
 
 /* $60 NEG indexed ?**** */
 void MC6800::neg_ix()
 {
-	uint16_t r, t;
-	IDXBYTE(t);
-	r = -t;
-	CLR_NZVC;
-	SET_FLAGS8(0, t, r);
-	WM(EAD, r);
+	uint16_t r,t;
+	IDXBYTE(t); r=-t;
+	CLR_NZVC; SET_FLAGS8(0,t,r);
+	WM(EAD,r);
 }
 
 /* $61 AIM --**0- */ /* HD6301 only */
@@ -2318,9 +2340,8 @@ void MC6800::aim_ix()
 	IMMBYTE(t);
 	IDXBYTE(r);
 	r &= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $62 OIM --**0- */ /* HD6301 only */
@@ -2330,33 +2351,27 @@ void MC6800::oim_ix()
 	IMMBYTE(t);
 	IDXBYTE(r);
 	r |= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $63 COM indexed -**01 */
 void MC6800::com_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	t = ~t;
-	CLR_NZV;
-	SET_NZ8(t);
-	SEC;
-	WM(EAD, t);
+	IDXBYTE(t); t = ~t;
+	CLR_NZV; SET_NZ8(t); SEC;
+	WM(EAD,t);
 }
 
 /* $64 LSR indexed -0*-* */
 void MC6800::lsr_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	CLR_NZC;
-	CC |= (t & 0x01);
-	t >>= 1;
-	SET_Z8(t);
-	WM(EAD, t);
+	IDXBYTE(t); CLR_NZVC; CC|=(t&0x01);
+	t>>=1; SET_Z8(t);
+	if (NXORC) SEV;
+	WM(EAD,t);
 }
 
 /* $65 EIM --**0- */ /* HD6301 only */
@@ -2366,69 +2381,57 @@ void MC6800::eim_ix()
 	IMMBYTE(t);
 	IDXBYTE(r);
 	r ^= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $66 ROR indexed -**-* */
 void MC6800::ror_ix()
 {
-	uint8_t t, r;
-	IDXBYTE(t);
-	r = (CC & 0x01) << 7;
-	CLR_NZC;
-	CC |= (t & 0x01);
-	r |= t >> 1;
-	SET_NZ8(r);
-	WM(EAD, r);
+	uint8_t t,r;
+	IDXBYTE(t); r=(CC&0x01)<<7;
+	CLR_NZVC; CC|=(t&0x01);
+	r |= t>>1; SET_NZ8(r);
+	if (NXORC) SEV;
+	WM(EAD,r);
 }
 
 /* $67 ASR indexed ?**-* */
 void MC6800::asr_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	CLR_NZC;
-	CC |= (t & 0x01);
-	t >>= 1;
-	t |= ((t & 0x40) << 1);
+	IDXBYTE(t); CLR_NZVC; CC|=(t&0x01);
+	t>>=1; t|=((t&0x40)<<1);
 	SET_NZ8(t);
-	WM(EAD, t);
+	if (NXORC) SEV;
+	WM(EAD,t);
 }
 
 /* $68 ASL indexed ?**** */
 void MC6800::asl_ix()
 {
-	uint16_t t, r;
-	IDXBYTE(t);
-	r = t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	WM(EAD, r);
+	uint16_t t,r;
+	IDXBYTE(t); r=t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	WM(EAD,r);
 }
 
 /* $69 ROL indexed -**** */
 void MC6800::rol_ix()
 {
-	uint16_t t, r;
-	IDXBYTE(t);
-	r = CC & 0x01;
-	r |= t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	WM(EAD, r);
+	uint16_t t,r;
+	IDXBYTE(t); r = CC&0x01; r |= t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	WM(EAD,r);
 }
 
 /* $6a DEC indexed -***- */
 void MC6800::dec_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	--t;
-	CLR_NZV;
-	SET_FLAGS8D(t);
-	WM(EAD, t);
+	IDXBYTE(t); --t;
+	CLR_NZV; SET_FLAGS8D(t);
+	WM(EAD,t);
 }
 
 /* $6b TIM --**0- */ /* HD6301 only */
@@ -2438,55 +2441,45 @@ void MC6800::tim_ix()
 	IMMBYTE(t);
 	IDXBYTE(r);
 	r &= t;
-	CLR_NZV;
-	SET_NZ8(r);
+	CLR_NZV; SET_NZ8(r);
 }
 
 /* $6c INC indexed -***- */
 void MC6800::inc_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	++t;
-	CLR_NZV;
-	SET_FLAGS8I(t);
-	WM(EAD, t);
+	IDXBYTE(t); ++t;
+	CLR_NZV; SET_FLAGS8I(t);
+	WM(EAD,t);
 }
 
 /* $6d TST indexed -**0- */
 void MC6800::tst_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	CLR_NZVC;
-	SET_NZ8(t);
+	IDXBYTE(t); CLR_NZVC; SET_NZ8(t);
 }
 
 /* $6e JMP indexed ----- */
 void MC6800::jmp_ix()
 {
-	INDEXED;
-	PC = EA;
+	INDEXED; PC=EA;
 }
 
 /* $6f CLR indexed -0100 */
 void MC6800::clr_ix()
 {
-	INDEXED;
-	WM(EAD, 0);
-	CLR_NZVC;
-	SEZ;
+	INDEXED; RM(EAD); WM(EAD,0);
+	CLR_NZVC; SEZ;
 }
 
 /* $70 NEG extended ?**** */
 void MC6800::neg_ex()
 {
-	uint16_t r, t;
-	EXTBYTE(t);
-	r = -t;
-	CLR_NZVC;
-	SET_FLAGS8(0, t, r);
-	WM(EAD, r);
+	uint16_t r,t;
+	EXTBYTE(t); r=-t;
+	CLR_NZVC; SET_FLAGS8(0,t,r);
+	WM(EAD,r);
 }
 
 /* $71 AIM --**0- */ /* HD6301 only */
@@ -2496,9 +2489,8 @@ void MC6800::aim_di()
 	IMMBYTE(t);
 	DIRBYTE(r);
 	r &= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $71 NIM --**0- */ /* MB8861 only */
@@ -2524,9 +2516,8 @@ void MC6800::oim_di()
 	IMMBYTE(t);
 	DIRBYTE(r);
 	r |= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $72 OIM --**0- */ /* MB8861 only */
@@ -2549,12 +2540,9 @@ void MC6800::oim_ix_mb8861()
 void MC6800::com_ex()
 {
 	uint8_t t;
-	EXTBYTE(t);
-	t = ~t;
-	CLR_NZV;
-	SET_NZ8(t);
-	SEC;
-	WM(EAD, t);
+	EXTBYTE(t); t = ~t;
+	CLR_NZV; SET_NZ8(t); SEC;
+	WM(EAD,t);
 }
 
 /* $74 LSR extended -0*-* */
@@ -2562,11 +2550,12 @@ void MC6800::lsr_ex()
 {
 	uint8_t t;
 	EXTBYTE(t);
-	CLR_NZC;
-	CC |= (t & 0x01);
-	t >>= 1;
+	CLR_NZVC;
+	CC|=(t&0x01);
+	t>>=1;
 	SET_Z8(t);
-	WM(EAD, t);
+	if (NXORC) SEV;
+	WM(EAD,t);
 }
 
 /* $75 EIM --**0- */ /* HD6301 only */
@@ -2576,9 +2565,8 @@ void MC6800::eim_di()
 	IMMBYTE(t);
 	DIRBYTE(r);
 	r ^= t;
-	CLR_NZV;
-	SET_NZ8(r);
-	WM(EAD, r);
+	CLR_NZV; SET_NZ8(r);
+	WM(EAD,r);
 }
 
 /* $75 XIM --**-- */ /* MB8861 only */
@@ -2600,61 +2588,50 @@ void MC6800::xim_ix()
 /* $76 ROR extended -**-* */
 void MC6800::ror_ex()
 {
-	uint8_t t, r;
-	EXTBYTE(t);
-	r = (CC & 0x01) << 7;
-	CLR_NZC;
-	CC |= (t & 0x01);
-	r |= t >> 1;
-	SET_NZ8(r);
-	WM(EAD, r);
+	uint8_t t,r;
+	EXTBYTE(t); r=(CC&0x01)<<7;
+	CLR_NZVC; CC|=(t&0x01);
+	r |= t>>1; SET_NZ8(r);
+	if (NXORC) SEV;
+	WM(EAD,r);
 }
 
 /* $77 ASR extended ?**-* */
 void MC6800::asr_ex()
 {
 	uint8_t t;
-	EXTBYTE(t);
-	CLR_NZC;
-	CC |= (t & 0x01);
-	t >>= 1;
-	t |= ((t & 0x40) << 1);
+	EXTBYTE(t); CLR_NZVC; CC|=(t&0x01);
+	t>>=1; t|=((t&0x40)<<1);
 	SET_NZ8(t);
-	WM(EAD, t);
+	if (NXORC) SEV;
+	WM(EAD,t);
 }
 
 /* $78 ASL extended ?**** */
 void MC6800::asl_ex()
 {
-	uint16_t t, r;
-	EXTBYTE(t);
-	r = t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	WM(EAD, r);
+	uint16_t t,r;
+	EXTBYTE(t); r=t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	WM(EAD,r);
 }
 
 /* $79 ROL extended -**** */
 void MC6800::rol_ex()
 {
-	uint16_t t, r;
-	EXTBYTE(t);
-	r = CC & 0x01;
-	r |= t << 1;
-	CLR_NZVC;
-	SET_FLAGS8(t, t, r);
-	WM(EAD, r);
+	uint16_t t,r;
+	EXTBYTE(t); r = CC&0x01; r |= t<<1;
+	CLR_NZVC; SET_FLAGS8(t,t,r);
+	WM(EAD,r);
 }
 
 /* $7a DEC extended -***- */
 void MC6800::dec_ex()
 {
 	uint8_t t;
-	EXTBYTE(t);
-	--t;
-	CLR_NZV;
-	SET_FLAGS8D(t);
-	WM(EAD, t);
+	EXTBYTE(t); --t;
+	CLR_NZV; SET_FLAGS8D(t);
+	WM(EAD,t);
 }
 
 /* $7b TIM --**0- */ /* HD6301 only */
@@ -2664,8 +2641,7 @@ void MC6800::tim_di()
 	IMMBYTE(t);
 	DIRBYTE(r);
 	r &= t;
-	CLR_NZV;
-	SET_NZ8(r);
+	CLR_NZV; SET_NZ8(r);
 }
 
 /* $7b TMM --***- */ /* MB8861 only */
@@ -2689,80 +2665,67 @@ void MC6800::tmm_ix()
 void MC6800::inc_ex()
 {
 	uint8_t t;
-	EXTBYTE(t);
-	++t;
-	CLR_NZV;
-	SET_FLAGS8I(t);
-	WM(EAD, t);
+	EXTBYTE(t); ++t;
+	CLR_NZV; SET_FLAGS8I(t);
+	WM(EAD,t);
 }
 
 /* $7d TST extended -**0- */
 void MC6800::tst_ex()
 {
 	uint8_t t;
-	EXTBYTE(t);
-	CLR_NZVC;
-	SET_NZ8(t);
+	EXTBYTE(t); CLR_NZVC; SET_NZ8(t);
 }
 
 /* $7e JMP extended ----- */
 void MC6800::jmp_ex()
 {
-	EXTENDED;
-	PC = EA;
+	EXTENDED; PC=EA;
 }
 
 /* $7f CLR extended -0100 */
 void MC6800::clr_ex()
 {
-	EXTENDED;
-	WM(EAD, 0);
-	CLR_NZVC;
-	SEZ;
+	EXTENDED; RM(EAD); WM(EAD,0);
+	CLR_NZVC; SEZ;
 }
 
 /* $80 SUBA immediate ?**** */
 void MC6800::suba_im()
 {
-	uint16_t t, r;
-	IMMBYTE(t);
-	r = A - t;
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	uint16_t    t,r;
+	IMMBYTE(t); r = A-t;
+	CLR_NZVC; SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $81 CMPA immediate ?**** */
 void MC6800::cmpa_im()
 {
-	uint16_t t, r;
-	IMMBYTE(t);
-	r = A - t;
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
+	uint16_t    t,r;
+	IMMBYTE(t); r = A-t;
+	CLR_NZVC; SET_FLAGS8(A,t,r);
 }
 
 /* $82 SBCA immediate ?**** */
 void MC6800::sbca_im()
 {
-	uint16_t t, r;
-	IMMBYTE(t);
-	r = A - t - (CC & 0x01);
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	uint16_t    t,r;
+	IMMBYTE(t); r = A-t-(CC&0x01);
+	CLR_NZVC; SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $83 SUBD immediate -**** */
 void MC6800::subd_im()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IMMWORD(b);
 	d = D;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -2770,107 +2733,90 @@ void MC6800::subd_im()
 void MC6800::anda_im()
 {
 	uint8_t t;
-	IMMBYTE(t);
-	A &= t;
-	CLR_NZV;
-	SET_NZ8(A);
+	IMMBYTE(t); A &= t;
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* $85 BITA immediate -**0- */
 void MC6800::bita_im()
 {
-	uint8_t t, r;
-	IMMBYTE(t);
-	r = A & t;
-	CLR_NZV;
-	SET_NZ8(r);
+	uint8_t t,r;
+	IMMBYTE(t); r = A&t;
+	CLR_NZV; SET_NZ8(r);
 }
 
 /* $86 LDA immediate -**0- */
 void MC6800::lda_im()
 {
 	IMMBYTE(A);
-	CLR_NZV;
-	SET_NZ8(A);
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* is this a legal instruction? */
 /* $87 STA immediate -**0- */
 void MC6800::sta_im()
 {
-	CLR_NZV;
-	SET_NZ8(A);
-	IMM8;
-	WM(EAD, A);
+	CLR_NZV; SET_NZ8(A);
+	IMM8; WM(EAD,A);
 }
 
 /* $88 EORA immediate -**0- */
 void MC6800::eora_im()
 {
 	uint8_t t;
-	IMMBYTE(t);
-	A ^= t;
-	CLR_NZV;
-	SET_NZ8(A);
+	IMMBYTE(t); A ^= t;
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* $89 ADCA immediate ***** */
 void MC6800::adca_im()
 {
-	uint16_t t, r;
-	IMMBYTE(t);
-	r = A + t + (CC & 0x01);
-	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	uint16_t t,r;
+	IMMBYTE(t); r = A+t+(CC&0x01);
+	CLR_HNZVC; SET_FLAGS8(A,t,r); SET_H(A,t,r);
+	A = r;
 }
 
 /* $8a ORA immediate -**0- */
 void MC6800::ora_im()
 {
 	uint8_t t;
-	IMMBYTE(t);
-	A |= t;
-	CLR_NZV;
-	SET_NZ8(A);
+	IMMBYTE(t); A |= t;
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* $8b ADDA immediate ***** */
 void MC6800::adda_im()
 {
-	uint16_t t, r;
-	IMMBYTE(t);
-	r = A + t;
-	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	uint16_t t,r;
+	IMMBYTE(t); r = A+t;
+	CLR_HNZVC; SET_FLAGS8(A,t,r); SET_H(A,t,r);
+	A = r;
 }
 
 /* $8c CMPX immediate -***- */
 void MC6800::cmpx_im()
 {
-	uint32_t r, d;
-	pair32_t b;
+	pair32_t r,d,b;
 	IMMWORD(b);
-	d = X;
-	r = d - b.d;
+	d.d = X;
+	r.w.l = d.b.h - b.b.h;
 	CLR_NZV;
-	SET_NZ16(r);
-	SET_V16(d, b.d, r);
+	SET_N8(r.b.l);
+	SET_V8(d.b.h, b.b.h, r.w.l);
+	r.d = d.d - b.d;
+	SET_Z16(r.d);
 }
 
 /* $8c CPX immediate -**** (6801) */
 void MC6800::cpx_im()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IMMWORD(b);
 	d = X;
 	r = d - b.d;
-	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	CLR_NZVC; SET_FLAGS16(d,b.d,r);
 }
 
 
@@ -2897,72 +2843,62 @@ void MC6800::sts_im()
 	CLR_NZV;
 	SET_NZ16(S);
 	IMM16;
-	WM16(EAD, &pS);
+	WM16(EAD,&pS);
 }
 
 /* $90 SUBA direct ?**** */
 void MC6800::suba_di()
 {
-	uint16_t t, r;
-	DIRBYTE(t);
-	r = A - t;
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	uint16_t    t,r;
+	DIRBYTE(t); r = A-t;
+	CLR_NZVC; SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $91 CMPA direct ?**** */
 void MC6800::cmpa_di()
 {
-	uint16_t t, r;
-	DIRBYTE(t);
-	r = A - t;
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
+	uint16_t    t,r;
+	DIRBYTE(t); r = A-t;
+	CLR_NZVC; SET_FLAGS8(A,t,r);
 }
 
 /* $92 SBCA direct ?**** */
 void MC6800::sbca_di()
 {
-	uint16_t t, r;
-	DIRBYTE(t);
-	r = A - t - (CC & 0x01);
-	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	uint16_t    t,r;
+	DIRBYTE(t); r = A-t-(CC&0x01);
+	CLR_NZVC; SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $93 SUBD direct -**** */
 void MC6800::subd_di()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	DIRWORD(b);
 	d = D;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
-	D = r;
+	SET_FLAGS16(d,b.d,r);
+	D=r;
 }
 
 /* $94 ANDA direct -**0- */
 void MC6800::anda_di()
 {
 	uint8_t t;
-	DIRBYTE(t);
-	A &= t;
-	CLR_NZV;
-	SET_NZ8(A);
+	DIRBYTE(t); A &= t;
+	CLR_NZV; SET_NZ8(A);
 }
 
 /* $95 BITA direct -**0- */
 void MC6800::bita_di()
 {
-	uint8_t t, r;
-	DIRBYTE(t);
-	r = A & t;
-	CLR_NZV;
-	SET_NZ8(r);
+	uint8_t t,r;
+	DIRBYTE(t); r = A&t;
+	CLR_NZV; SET_NZ8(r);
 }
 
 /* $96 LDA direct -**0- */
@@ -2979,7 +2915,7 @@ void MC6800::sta_di()
 	CLR_NZV;
 	SET_NZ8(A);
 	DIRECT;
-	WM(EAD, A);
+	WM(EAD,A);
 }
 
 /* $98 EORA direct -**0- */
@@ -2995,13 +2931,13 @@ void MC6800::eora_di()
 /* $99 ADCA direct ***** */
 void MC6800::adca_di()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	DIRBYTE(t);
-	r = A + t + (CC & 0x01);
+	r = A+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $9a ORA direct -**0- */
@@ -3017,38 +2953,39 @@ void MC6800::ora_di()
 /* $9b ADDA direct ***** */
 void MC6800::adda_di()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	DIRBYTE(t);
 	r = A + t;
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $9c CMPX direct -***- */
 void MC6800::cmpx_di()
 {
-	uint32_t r, d;
-	pair32_t b;
+	pair32_t r,d,b;
 	DIRWORD(b);
-	d = X;
-	r = d - b.d;
+	d.d = X;
+	r.w.l = d.b.h - b.b.h;
 	CLR_NZV;
-	SET_NZ16(r);
-	SET_V16(d, b.d, r);
+	SET_N8(r.b.l);
+	SET_V8(d.b.h, b.b.h, r.w.l);
+	r.d = d.d - b.d;
+	SET_Z16(r.d);
 }
 
 /* $9c CPX direct -**** (6801) */
 void MC6800::cpx_di()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	DIRWORD(b);
 	d = X;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 }
 
 /* $9d JSR direct ----- */
@@ -3073,51 +3010,51 @@ void MC6800::sts_di()
 	CLR_NZV;
 	SET_NZ16(S);
 	DIRECT;
-	WM16(EAD, &pS);
+	WM16(EAD,&pS);
 }
 
 /* $a0 SUBA indexed ?**** */
 void MC6800::suba_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
 	r = A - t;
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $a1 CMPA indexed ?**** */
 void MC6800::cmpa_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
 	r = A - t;
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
+	SET_FLAGS8(A,t,r);
 }
 
 /* $a2 SBCA indexed ?**** */
 void MC6800::sbca_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
-	r = A - t - (CC & 0x01);
+	r = A - t - (CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $a3 SUBD indexed -**** */
 void MC6800::subd_ix()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IDXWORD(b);
 	d = D;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -3125,8 +3062,7 @@ void MC6800::subd_ix()
 void MC6800::anda_ix()
 {
 	uint8_t t;
-	IDXBYTE(t);
-	A &= t;
+	IDXBYTE(t); A &= t;
 	CLR_NZV;
 	SET_NZ8(A);
 }
@@ -3134,9 +3070,8 @@ void MC6800::anda_ix()
 /* $a5 BITA indexed -**0- */
 void MC6800::bita_ix()
 {
-	uint8_t t, r;
-	IDXBYTE(t);
-	r = A & t;
+	uint8_t t,r;
+	IDXBYTE(t); r = A&t;
 	CLR_NZV;
 	SET_NZ8(r);
 }
@@ -3155,7 +3090,7 @@ void MC6800::sta_ix()
 	CLR_NZV;
 	SET_NZ8(A);
 	INDEXED;
-	WM(EAD, A);
+	WM(EAD,A);
 }
 
 /* $a8 EORA indexed -**0- */
@@ -3171,13 +3106,13 @@ void MC6800::eora_ix()
 /* $a9 ADCA indexed ***** */
 void MC6800::adca_ix()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IDXBYTE(t);
-	r = A + t + (CC & 0x01);
+	r = A + t + (CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $aa ORA indexed -**0- */
@@ -3193,38 +3128,39 @@ void MC6800::ora_ix()
 /* $ab ADDA indexed ***** */
 void MC6800::adda_ix()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IDXBYTE(t);
-	r = A + t;
+	r = A+t;
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $ac CMPX indexed -***- */
 void MC6800::cmpx_ix()
 {
-	uint32_t r, d;
-	pair32_t b;
+	pair32_t r,d,b;
 	IDXWORD(b);
-	d = X;
-	r = d - b.d;
+	d.d = X;
+	r.w.l = d.b.h - b.b.h;
 	CLR_NZV;
-	SET_NZ16(r);
-	SET_V16(d, b.d, r);
+	SET_N8(r.b.l);
+	SET_V8(d.b.h, b.b.h, r.w.l);
+	r.d = d.d - b.d;
+	SET_Z16(r.d);
 }
 
 /* $ac CPX indexed -**** (6801)*/
 void MC6800::cpx_ix()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IDXWORD(b);
 	d = X;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 }
 
 /* $ad JSR indexed ----- */
@@ -3249,52 +3185,52 @@ void MC6800::sts_ix()
 	CLR_NZV;
 	SET_NZ16(S);
 	INDEXED;
-	WM16(EAD, &pS);
+	WM16(EAD,&pS);
 }
 
 /* $b0 SUBA extended ?**** */
 void MC6800::suba_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
 	r = A - t;
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $b1 CMPA extended ?**** */
 void MC6800::cmpa_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
-	r = A - t;
+	r = A-t;
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
+	SET_FLAGS8(A,t,r);
 }
 
 /* $b2 SBCA extended ?**** */
 void MC6800::sbca_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
-	r = A - t - (CC & 0x01);
+	r = A-t-(CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	A = r;
 }
 
 /* $b3 SUBD extended -**** */
 void MC6800::subd_ex()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	EXTWORD(b);
 	d = D;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
-	D = r;
+	SET_FLAGS16(d,b.d,r);
+	D=r;
 }
 
 /* $b4 ANDA extended -**0- */
@@ -3310,9 +3246,9 @@ void MC6800::anda_ex()
 /* $b5 BITA extended -**0- */
 void MC6800::bita_ex()
 {
-	uint8_t t, r;
+	uint8_t t,r;
 	EXTBYTE(t);
-	r = A & t;
+	r = A&t;
 	CLR_NZV;
 	SET_NZ8(r);
 }
@@ -3331,7 +3267,7 @@ void MC6800::sta_ex()
 	CLR_NZV;
 	SET_NZ8(A);
 	EXTENDED;
-	WM(EAD, A);
+	WM(EAD,A);
 }
 
 /* $b8 EORA extended -**0- */
@@ -3347,13 +3283,13 @@ void MC6800::eora_ex()
 /* $b9 ADCA extended ***** */
 void MC6800::adca_ex()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	EXTBYTE(t);
-	r = A + t + (CC & 0x01);
+	r = A+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $ba ORA extended -**0- */
@@ -3369,38 +3305,39 @@ void MC6800::ora_ex()
 /* $bb ADDA extended ***** */
 void MC6800::adda_ex()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	EXTBYTE(t);
-	r = A + t;
+	r = A+t;
 	CLR_HNZVC;
-	SET_FLAGS8(A, t, r);
-	SET_H(A, t, r);
-	A = (uint8_t)r;
+	SET_FLAGS8(A,t,r);
+	SET_H(A,t,r);
+	A = r;
 }
 
 /* $bc CMPX extended -***- */
 void MC6800::cmpx_ex()
 {
-	uint32_t r, d;
-	pair32_t b;
+	pair32_t r,d,b;
 	EXTWORD(b);
-	d = X;
-	r = d - b.d;
+	d.d = X;
+	r.w.l = d.b.h - b.b.h;
 	CLR_NZV;
-	SET_NZ16(r);
-	SET_V16(d, b.d, r);
+	SET_N8(r.b.l);
+	SET_V8(d.b.h, b.b.h, r.w.l);
+	r.d = d.d - b.d;
+	SET_Z16(r.d);
 }
 
 /* $bc CPX extended -**** (6801) */
 void MC6800::cpx_ex()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	EXTWORD(b);
 	d = X;
 	r = d - b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 }
 
 /* $bd JSR extended ----- */
@@ -3425,51 +3362,51 @@ void MC6800::sts_ex()
 	CLR_NZV;
 	SET_NZ16(S);
 	EXTENDED;
-	WM16(EAD, &pS);
+	WM16(EAD,&pS);
 }
 
 /* $c0 SUBB immediate ?**** */
 void MC6800::subb_im()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IMMBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $c1 CMPB immediate ?**** */
 void MC6800::cmpb_im()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IMMBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
+	SET_FLAGS8(B,t,r);
 }
 
 /* $c2 SBCB immediate ?**** */
 void MC6800::sbcb_im()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IMMBYTE(t);
-	r = B - t - (CC & 0x01);
+	r = B-t-(CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $c3 ADDD immediate -**** */
 void MC6800::addd_im()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IMMWORD(b);
 	d = D;
 	r = d + b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -3486,9 +3423,9 @@ void MC6800::andb_im()
 /* $c5 BITB immediate -**0- */
 void MC6800::bitb_im()
 {
-	uint8_t t, r;
+	uint8_t t,r;
 	IMMBYTE(t);
-	r = B & t;
+	r = B&t;
 	CLR_NZV;
 	SET_NZ8(r);
 }
@@ -3508,7 +3445,7 @@ void MC6800::stb_im()
 	CLR_NZV;
 	SET_NZ8(B);
 	IMM8;
-	WM(EAD, B);
+	WM(EAD,B);
 }
 
 /* $c8 EORB immediate -**0- */
@@ -3524,13 +3461,13 @@ void MC6800::eorb_im()
 /* $c9 ADCB immediate ***** */
 void MC6800::adcb_im()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IMMBYTE(t);
-	r = B + t + (CC & 0x01);
+	r = B+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $ca ORB immediate -**0- */
@@ -3546,13 +3483,13 @@ void MC6800::orb_im()
 /* $cb ADDB immediate ***** */
 void MC6800::addb_im()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IMMBYTE(t);
-	r = B + t;
+	r = B+t;
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $CC LDD immediate -**0- */
@@ -3570,7 +3507,7 @@ void MC6800::std_im()
 	IMM16;
 	CLR_NZV;
 	SET_NZ16(D);
-	WM16(EAD, &pD);
+	WM16(EAD,&pD);
 }
 
 /* $ce LDX immediate -**0- */
@@ -3587,51 +3524,51 @@ void MC6800::stx_im()
 	CLR_NZV;
 	SET_NZ16(X);
 	IMM16;
-	WM16(EAD, &pX);
+	WM16(EAD,&pX);
 }
 
 /* $d0 SUBB direct ?**** */
 void MC6800::subb_di()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	DIRBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $d1 CMPB direct ?**** */
 void MC6800::cmpb_di()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	DIRBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
+	SET_FLAGS8(B,t,r);
 }
 
 /* $d2 SBCB direct ?**** */
 void MC6800::sbcb_di()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	DIRBYTE(t);
-	r = B - t - (CC & 0x01);
+	r = B-t-(CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $d3 ADDD direct -**** */
 void MC6800::addd_di()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	DIRWORD(b);
 	d = D;
 	r = d + b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -3648,9 +3585,9 @@ void MC6800::andb_di()
 /* $d5 BITB direct -**0- */
 void MC6800::bitb_di()
 {
-	uint8_t t, r;
+	uint8_t t,r;
 	DIRBYTE(t);
-	r = B & t;
+	r = B&t;
 	CLR_NZV;
 	SET_NZ8(r);
 }
@@ -3669,7 +3606,7 @@ void MC6800::stb_di()
 	CLR_NZV;
 	SET_NZ8(B);
 	DIRECT;
-	WM(EAD, B);
+	WM(EAD,B);
 }
 
 /* $d8 EORB direct -**0- */
@@ -3685,13 +3622,13 @@ void MC6800::eorb_di()
 /* $d9 ADCB direct ***** */
 void MC6800::adcb_di()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	DIRBYTE(t);
-	r = B + t + (CC & 0x01);
+	r = B+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $da ORB direct -**0- */
@@ -3707,13 +3644,13 @@ void MC6800::orb_di()
 /* $db ADDB direct ***** */
 void MC6800::addb_di()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	DIRBYTE(t);
-	r = B + t;
+	r = B+t;
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $dc LDD direct -**0- */
@@ -3730,7 +3667,7 @@ void MC6800::std_di()
 	DIRECT;
 	CLR_NZV;
 	SET_NZ16(D);
-	WM16(EAD, &pD);
+	WM16(EAD,&pD);
 }
 
 /* $de LDX direct -**0- */
@@ -3747,51 +3684,51 @@ void MC6800::stx_di()
 	CLR_NZV;
 	SET_NZ16(X);
 	DIRECT;
-	WM16(EAD, &pX);
+	WM16(EAD,&pX);
 }
 
 /* $e0 SUBB indexed ?**** */
 void MC6800::subb_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $e1 CMPB indexed ?**** */
 void MC6800::cmpb_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
+	SET_FLAGS8(B,t,r);
 }
 
 /* $e2 SBCB indexed ?**** */
 void MC6800::sbcb_ix()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	IDXBYTE(t);
-	r = B - t - (CC & 0x01);
+	r = B-t-(CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $e3 ADDD indexed -**** */
 void MC6800::addd_ix()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	IDXWORD(b);
 	d = D;
 	r = d + b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -3808,9 +3745,9 @@ void MC6800::andb_ix()
 /* $e5 BITB indexed -**0- */
 void MC6800::bitb_ix()
 {
-	uint8_t t, r;
+	uint8_t t,r;
 	IDXBYTE(t);
-	r = B & t;
+	r = B&t;
 	CLR_NZV;
 	SET_NZ8(r);
 }
@@ -3829,7 +3766,7 @@ void MC6800::stb_ix()
 	CLR_NZV;
 	SET_NZ8(B);
 	INDEXED;
-	WM(EAD, B);
+	WM(EAD,B);
 }
 
 /* $e8 EORB indexed -**0- */
@@ -3845,13 +3782,13 @@ void MC6800::eorb_ix()
 /* $e9 ADCB indexed ***** */
 void MC6800::adcb_ix()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IDXBYTE(t);
-	r = B + t + (CC & 0x01);
+	r = B+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $ea ORB indexed -**0- */
@@ -3867,13 +3804,13 @@ void MC6800::orb_ix()
 /* $eb ADDB indexed ***** */
 void MC6800::addb_ix()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	IDXBYTE(t);
-	r = B + t;
+	r = B+t;
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $ec LDD indexed -**0- */
@@ -3887,12 +3824,12 @@ void MC6800::ldd_ix()
 /* $ec ADX immediate -**** */ /* MB8861 only */
 void MC6800::adx_im()
 {
-	uint32_t r, d, t;
+	uint16_t t,r;
 	IMMBYTE(t);
-	d = X;
-	r = d + t;
-	CLR_NZVC;
-	SET_FLAGS16(d, t, r);
+	r = X+t;
+	CLR_HNZVC;
+	SET_FLAGS8(X,t,r);
+	SET_H(X,t,r);
 	X = r;
 }
 
@@ -3902,7 +3839,7 @@ void MC6800::std_ix()
 	INDEXED;
 	CLR_NZV;
 	SET_NZ16(D);
-	WM16(EAD, &pD);
+	WM16(EAD,&pD);
 }
 
 /* $ee LDX indexed -**0- */
@@ -3919,51 +3856,51 @@ void MC6800::stx_ix()
 	CLR_NZV;
 	SET_NZ16(X);
 	INDEXED;
-	WM16(EAD, &pX);
+	WM16(EAD,&pX);
 }
 
 /* $f0 SUBB extended ?**** */
 void MC6800::subb_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $f1 CMPB extended ?**** */
 void MC6800::cmpb_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
-	r = B - t;
+	r = B-t;
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
+	SET_FLAGS8(B,t,r);
 }
 
 /* $f2 SBCB extended ?**** */
 void MC6800::sbcb_ex()
 {
-	uint16_t t, r;
+	uint16_t    t,r;
 	EXTBYTE(t);
-	r = B - t - (CC & 0x01);
+	r = B-t-(CC&0x01);
 	CLR_NZVC;
-	SET_FLAGS8(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	B = r;
 }
 
 /* $f3 ADDD extended -**** */
 void MC6800::addd_ex()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	EXTWORD(b);
 	d = D;
 	r = d + b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	D = r;
 }
 
@@ -3980,7 +3917,7 @@ void MC6800::andb_ex()
 /* $f5 BITB extended -**0- */
 void MC6800::bitb_ex()
 {
-	uint8_t t, r;
+	uint8_t t,r;
 	EXTBYTE(t);
 	r = B & t;
 	CLR_NZV;
@@ -4001,7 +3938,7 @@ void MC6800::stb_ex()
 	CLR_NZV;
 	SET_NZ8(B);
 	EXTENDED;
-	WM(EAD, B);
+	WM(EAD,B);
 }
 
 /* $f8 EORB extended -**0- */
@@ -4017,13 +3954,13 @@ void MC6800::eorb_ex()
 /* $f9 ADCB extended ***** */
 void MC6800::adcb_ex()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	EXTBYTE(t);
-	r = B + t + (CC & 0x01);
+	r = B+t+(CC&0x01);
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $fa ORB extended -**0- */
@@ -4039,13 +3976,13 @@ void MC6800::orb_ex()
 /* $fb ADDB extended ***** */
 void MC6800::addb_ex()
 {
-	uint16_t t, r;
+	uint16_t t,r;
 	EXTBYTE(t);
-	r = B + t;
+	r = B+t;
 	CLR_HNZVC;
-	SET_FLAGS8(B, t, r);
-	SET_H(B, t, r);
-	B = (uint8_t)r;
+	SET_FLAGS8(B,t,r);
+	SET_H(B,t,r);
+	B = r;
 }
 
 /* $fc LDD extended -**0- */
@@ -4059,13 +3996,13 @@ void MC6800::ldd_ex()
 /* $fc ADX immediate -**** */ /* MB8861 only */
 void MC6800::adx_ex()
 {
-	uint32_t r, d;
+	uint32_t r,d;
 	pair32_t b;
 	EXTWORD(b);
 	d = X;
 	r = d + b.d;
 	CLR_NZVC;
-	SET_FLAGS16(d, b.d, r);
+	SET_FLAGS16(d,b.d,r);
 	X = r;
 }
 
@@ -4075,7 +4012,7 @@ void MC6800::std_ex()
 	EXTENDED;
 	CLR_NZV;
 	SET_NZ16(D);
-	WM16(EAD, &pD);
+	WM16(EAD,&pD);
 }
 
 /* $fe LDX extended -**0- */
@@ -4092,7 +4029,7 @@ void MC6800::stx_ex()
 	CLR_NZV;
 	SET_NZ16(X);
 	EXTENDED;
-	WM16(EAD, &pX);
+	WM16(EAD,&pX);
 }
 
 #define STATE_VERSION	2
@@ -4118,7 +4055,7 @@ bool MC6800::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(total_icount);
 #endif
 	state_fio->StateValue(icount);
-#if defined(HAS_MC6801) || defined(HAS_HD6301)
+#if defined(HAS_HD6301) || defined(HAS_MC6801)
 	for(int i = 0; i < 4; i++) {
 		state_fio->StateValue(port[i].wreg);
 		state_fio->StateValue(port[i].rreg);

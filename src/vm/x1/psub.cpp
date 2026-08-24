@@ -15,16 +15,11 @@
 #include "../i8255.h"
 #include "../../fifo.h"
 
-#define TVKEY_HACK_CH12_TO_COM
-//#define TVKEY_WIN_DEBUG
-//#define TVKEY_ANDROID_DEBUG
-
 //#define DEBUG_COMMAND
 
 #define EVENT_1SEC	0
 #define EVENT_DRIVE	1
 #define EVENT_REPEAT	2
-#define EVENT_REMOTE_SEND 3
 
 #define CMT_EJECT	0x00
 #define CMT_STOP	0x01
@@ -34,37 +29,6 @@
 #define CMT_APSS_PLUS	0x05
 #define CMT_APSS_MINUS	0x06
 #define CMT_REC		0x0a
-
-enum{
-	SHARP_REMOTE_NOP = 0,
-	SHARP_REMOTE_VOL_UP,
-	SHARP_REMOTE_VOL_DN,
-	SHARP_REMOTE_VOL_NOR,
-	SHARP_REMOTE_CH_CALL_T,		// CZ-855D , toggle ON/OFF
-	SHARP_REMOTE_TV,
-	SHARP_REMOTE_VOL_MUTE,		// toggle ON/OFF
-	SHARP_REMOTE_UNK_07,		// unknown , Ch.4 select
-	SHARP_REMOTE_COM_TV,		// toggle
-	SHARP_REMOTE_CH_CALL_N,		// CZ-800D , toggle ON/OFF
-	SHARP_REMOTE_SIMPOSE,		// SI contrast normal
-	SHARP_REMOTE_CH_UP,
-	SHARP_REMOTE_CH_DN,
-	SHARP_REMOTE_UNK_0D,		// un-checked
-	SHARP_REMOTE_POWER_ON_OFF,	// toggle ON/OFF
-	SHARP_REMOTE_SI_CDN,		// SI contrast down
-	SHARP_REMOTE_CH1,
-	SHARP_REMOTE_CH2,
-	SHARP_REMOTE_CH3,
-	SHARP_REMOTE_CH4,
-	SHARP_REMOTE_CH5,
-	SHARP_REMOTE_CH6,
-	SHARP_REMOTE_CH7,
-	SHARP_REMOTE_CH8,
-	SHARP_REMOTE_CH9,
-	SHARP_REMOTE_CH10,
-	SHARP_REMOTE_CH11,
-	SHARP_REMOTE_CH12
-};
 
 // TODO: XFER = 0xe8 ???
 
@@ -253,10 +217,6 @@ void PSUB::reset()
 	key_caps_locked = key_kana_locked = false;
 	key_register_id = -1;
 	
-	// TV remote control
-	time_remote_send_id = -1;
-	remote_codes = 0x00000000;
-
 	// interrupt
 	iei = true;
 	intr = false;
@@ -322,13 +282,11 @@ void PSUB::event_callback(int event_id, int err)
 	if(event_id == EVENT_1SEC) {
 		if(cur_time.initialized) {
 			cur_time.increment();
-		}
-		else {
+		} else {
 			get_host_time(&cur_time);	// resync
 			cur_time.initialized = true;
 		}
-	}
-	else if (event_id == EVENT_DRIVE) {
+	} else if(event_id == EVENT_DRIVE) {
 		// drive sub cpu
 		static const int cmdlen_tbl[] = {
 			0, 1, 0, 0, 1, 0, 1, 0, 0, 3, 0, 3, 0
@@ -341,12 +299,6 @@ void PSUB::event_callback(int event_id, int err)
 			key_buf->clear();
 		}
 #endif
-		// still remote code sending
-		if (time_remote_send_id != -1)
-		{
-			return;
-		}
-
 		if(ibf) {
 			// sub cpu received data from main cpu
 			if(cmdlen) {
@@ -356,8 +308,7 @@ void PSUB::event_callback(int event_id, int err)
 				this->out_debug_log(_T(" %2x"), inbuf);
 #endif
 				cmdlen--;
-			}
-			else {
+			} else {
 				// this is new command
 				mode = inbuf;
 #ifdef DEBUG_COMMAND
@@ -366,8 +317,7 @@ void PSUB::event_callback(int event_id, int err)
 				if(0xd0 <= mode && mode <= 0xd7) {
 					cmdlen = 6;
 					datap = &databuf[mode - 0xd0][0]; // receive buffer
-				}
-				else if (0xe3 <= mode && mode <= 0xef) {
+				} else if(0xe3 <= mode && mode <= 0xef) {
 					cmdlen = cmdlen_tbl[mode - 0xe3];
 					datap = &databuf[mode - 0xd0][0]; // receive buffer
 				}
@@ -396,8 +346,7 @@ void PSUB::event_callback(int event_id, int err)
 				outbuf = *datap++;
 				set_obf(false);
 				datalen--;
-			}
-			else if (!key_buf->empty() && databuf[0x14][0] && !intr && iei) {
+			} else if(!key_buf->empty() && databuf[0x14][0] && !intr && iei) {
 				// key buffer is not empty and interrupt is not disabled,
 				// so sub cpu sends vector and raise irq
 				outbuf = databuf[0x14][0];
@@ -410,207 +359,10 @@ void PSUB::event_callback(int event_id, int err)
 				process_cmd();
 			}
 		}
-	}
-	else if (event_id == EVENT_REPEAT) {
+	} else if(event_id == EVENT_REPEAT) {
 		key_register_id = -1;
 		key_down(key_prev, true);
 	}
-	else if (event_id == EVENT_REMOTE_SEND) {
-		time_remote_send_id = -1;
-		// send next pending code
-		if(remote_codes!=0)
-			tv_remocon_code_send();
-	}
-}
-
-/*
-send remote control code to display TV
-*/
-void PSUB::tv_remocon_code_send()
-{
-	uint8_t remote_code;
-	int sendtime_usec;
-
-	// empty code , or sending now
-	if ( (remote_codes==0) || (time_remote_send_id != -1) )
-		return;
-
-	// next pending code
-	remote_code = remote_codes & 0xff;
-
-#ifdef TVKEY_ANDROID_DEBUG
-    LOGI("REMOTE_CODE : %02X", remote_code);
-#endif
-#ifdef TVKEY_WIN_DEBUG
-	char msgbuf[1024];
-	sprintf(msgbuf, "REMOTE_CODE : %02X\nインタフェース準備おっけー\nMZ-2531はまた後で", remote_code);
-	MessageBoxA(NULL, (LPCSTR)msgbuf, "remote control", MB_OK);
-#endif
-	// remote code send time
-	sendtime_usec = 3 * (750 + 750);	// start bit x3 ,  same twice
-	sendtime_usec += 9 * (750 + 1750);	// (DATA+end bit) positive & negative
-	sendtime_usec += (35 + 30) * 1000;	// interval
-	// catch  finish send end time
-	register_event(this, EVENT_REMOTE_SEND, sendtime_usec, false, &time_remote_send_id);
-
-#if 0
-	// 本来は DISPLAY クラスで送信して、DISPLAY クラスで処理すべき
-	// dipplay ->write_signal(SIG_REMOE_RECEIVE, remote_code, 1);
-#else
-#ifdef USE_TV_CONTROL
-	switch (remote_code)
-	{
-	case SHARP_REMOTE_TV:
-		emu->special_display_mode = 1;	// TV
-		break;
-	case SHARP_REMOTE_COM_TV:
-		if (emu->special_display_mode == 0)
-			emu->special_display_mode = 1;	// COM->TV
-		else if (emu->special_display_mode == 1)
-			emu->special_display_mode = 0;	// TV->COM
-		break;
-	case SHARP_REMOTE_SIMPOSE:
-		emu->special_display_mode = 2;	// SI contrast normal
-		break;
-	case SHARP_REMOTE_SI_CDN:
-		emu->special_display_mode = 3;	// SI contrast down
-		break;
-	}
-#endif
-#endif
-	// remove sended byte in pending codes
-	remote_codes >>= 8;
-}
-
-/*
-*/
-void PSUB::tv_control(uint8_t tvctrl_code)
-{
-	bool is_power_on;
-	uint8_t rc_buf[4];
-	int  rc_cnt;
-	
-	// no-code
-	if (tvctrl_code == 0)
-		return;
-
-	// get current TV power on state
-	is_power_on = true; //emu->is_tv_power_on() ? true : false;
-
-	// initialzie remote control codes
-	rc_cnt = 0;
-	rc_buf[0] =rc_buf[1] =rc_buf[2] =rc_buf[3] = 0x00;
-
-	// with power on command
-	if (tvctrl_code & 0x80 && !is_power_on)
-	{
-		rc_buf[rc_cnt++] = SHARP_REMOTE_POWER_ON_OFF;
-	}
-	// decode TVCTRL to REMOTE code
-	tvctrl_code &= 0x1f;
-	switch (tvctrl_code)
-	{
-	case 0x0D: // Power Off
-		if (is_power_on)
-			rc_buf[rc_cnt++] = SHARP_REMOTE_POWER_ON_OFF;
-		break;
-	case 0x1C: // TV
-		rc_buf[rc_cnt++] = SHARP_REMOTE_TV;
-		break;
-	case 0x1D: // COMPUTER
-		rc_buf[rc_cnt++] = SHARP_REMOTE_TV;
-		rc_buf[rc_cnt++] = SHARP_REMOTE_COM_TV;
-		break;
-	case 0x1E: // Superimpose Contrast Down
-		rc_buf[rc_cnt++] = SHARP_REMOTE_TV;
-		rc_buf[rc_cnt++] = SHARP_REMOTE_SI_CDN;
-		break;
-	case 0x1F: // Superimpose Contrast Normal
-		rc_buf[rc_cnt++] = SHARP_REMOTE_TV;
-		rc_buf[rc_cnt++] = SHARP_REMOTE_SI_CDN;
-		rc_buf[rc_cnt++] = SHARP_REMOTE_SIMPOSE;
-		break;
-	default:
-		// TV_CTRL == REMOCON_CODE
-		rc_buf[rc_cnt++] = tvctrl_code;
-	}
-	// send remote control code
-	if (rc_cnt > 0)
-	{
-		// setup pending remote codes
- 		remote_codes = 
-			(uint32_t)(rc_buf[3]<<24) |
-			(uint32_t)(rc_buf[2] <<16) |
-			(uint32_t)(rc_buf[1] <<  8) | rc_buf[0];
-		// send 1st remote code
-		tv_remocon_code_send();
-	}
-}
-
-uint8_t PSUB::get_tvctrl_code(uint16_t x1_keycode, int win_code)
-{
-	uint8_t tv_code;
-
-	tv_code = 0;
-	if ((x1_keycode & 0x0082) == 0x00) // TENKEY,SHIFT ON
-	{
-		if (win_code == 0x26 || win_code == 0x28) // VK_UP,VK_DOWN
-		{
-			tv_code = 0x01 + (win_code - 0x26) / 2;	// VOL_UP , VOL_DN
-		}
-		else if ((x1_keycode & 0x0020) == 0x20) // not REPEAT
-		{
-			switch (win_code)
-			{
-			//case 0xAD:	//	VK_VOLUME_MUTE
-			//case 0xAE:		// VK_VOLUME_DOWN
-			//case 0xAF:		// VK_VOLUME_UP
-			case 0x6c: // VK_SEPARATOR
-				tv_code = 0x03;	// VOL_NORMAL
-				break;
-			case 0x60:	 // VK_NUMPAD0
-				tv_code = 0x06;	// VOL_MUTE
-				break;
-			case 0x25: // VK_LEFT
-				tv_code = 0x0B; // Ch.UP
-				break;
-			case 0x27: // VK_RIGHT
-				tv_code = 0x0C; // Ch.DN
-				break;
-			case 0x6f: // VK_DIVIDE
-				tv_code = 0x0F + 10;	// Ch.10
-				break;
-			case 0x6a: // VK_MULTIPLY
-				tv_code = 0x0F + 11;	// Ch.11
-				break;
-			case 0x6d: // VK_SUBTRACT
-#ifdef TVKEY_HACK_CH12_TO_COM
-				tv_code = 0x1D;	// COMPUTER
-#else
-				tv_code = 0x0F + 12;	// Ch.12
-#endif
-				break;
-			case 0x6b: // VK_ADD
-				tv_code = 0x1E;	// Superimpose Contrastdown
-				break;
-#ifdef TVKEY_HACK_CH12_TO_COM
-#else
-			case 0xXX: // VK_EQUAL : do not assigned
-				tv_code = 0x1C;	// TV
-				break;
-			case 0xXX: // VK_PERIOD : do not assigned
-				tv_code = 0x1D;	// COMPUTER
-				break;
-#endif
-			default:
-				if (win_code >= 0x61 && win_code <= 0x69) // Ch.1-Ch.9
-				{
-					tv_code = 0x10 + (win_code - 0x61);
-				}
-			}
-		}
-	}
-	return tv_code;
 }
 
 // shift, ctrl, graph, caps, kana
@@ -637,15 +389,8 @@ void PSUB::key_down(int code, bool repeat)
 		break;
 	}
 	uint16_t lh = get_key(code, repeat);
-	uint8_t tvctrl_code = get_tvctrl_code(lh, code);
-
 	if(lh & 0xff00) {
-		if (tvctrl_code > 0)
-		{
-			tv_control(tvctrl_code);
-		} else {
-    		lh &= ~0x40;
-		}
+		lh &= ~0x40;
 		if(!databuf[0x14][0]) {
 			key_buf->clear();
 		}
@@ -859,7 +604,6 @@ void PSUB::process_cmd()
 	case 0xe7:
 		// TV controll
 		databuf[0x18][0] = databuf[0x17][0];
-		tv_control(databuf[0x17][0]);
 		break;
 	case 0xe8:
 		// TV controll read
@@ -1035,8 +779,7 @@ uint16_t PSUB::get_key(int code, bool repeat)
 	if(repeat) {
 		l &= ~0x20;	// repeat
 	}
-	if( (0x60 <= code && code <= 0x74) || (0x25 <= code && code <= 0x28) )
-	{
+	if(0x60 <= code && code <= 0x74) {
 		l &= ~0x80;	// function or numpad
 	}
 	if(key_kana_locked) {
@@ -1119,9 +862,6 @@ bool PSUB::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(key_caps_locked);
 	state_fio->StateValue(key_kana_locked);
 	state_fio->StateValue(key_register_id);
-	state_fio->StateValue(time_register_id);
-	state_fio->StateValue(time_remote_send_id);
-	state_fio->StateValue(remote_codes);
 	state_fio->StateValue(play);
 	state_fio->StateValue(rec);
 	state_fio->StateValue(eot);

@@ -199,16 +199,16 @@ BEGIN
         END
         POPUP "Floppy Drive"
         BEGIN
-            MENUITEM "5inch FD",                    ID_VM_DIPSWITCH6
-            MENUITEM "8inch FD",                    ID_VM_DIPSWITCH7
+            MENUITEM "5inch FD",                    ID_VM_OPTION_SWITCH6
+            MENUITEM "8inch FD",                    ID_VM_OPTION_SWITCH7
         END
         POPUP "Sound"
         BEGIN
             MENUITEM "OPN",                         ID_VM_SOUND_TYPE0
             MENUITEM "OPN+OPN",                     ID_VM_SOUND_TYPE1
             MENUITEM SEPARATOR
-            MENUITEM "GSX-8800",                    ID_VM_DIPSWITCH2
-            MENUITEM "PCG-8100",                    ID_VM_DIPSWITCH3
+            MENUITEM "GSX-8800",                    ID_VM_OPTION_SWITCH2
+            MENUITEM "PCG-8100",                    ID_VM_OPTION_SWITCH3
             MENUITEM SEPARATOR
             MENUITEM "Play FDD Noise",              ID_VM_SOUND_NOISE_FDD
             MENUITEM "Play CMT Noise",              ID_VM_SOUND_NOISE_CMT, GRAYED
@@ -228,7 +228,7 @@ BEGIN
         END
         POPUP "Special Features"
         BEGIN
-            MENUITEM "M88 DiskDrv",                 ID_VM_DIPSWITCH8
+            MENUITEM "M88 DiskDrv",                 ID_VM_OPTION_SWITCH8
             MENUITEM "QUASIS88 Pesudo CMT",         ID_VM_DIPSWITCH9
         END
     END

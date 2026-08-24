@@ -205,11 +205,7 @@ void MC6809_BASE::initialize()
 		__USE_DEBUGGER = false;
 	#endif
 #else
-#if defined(__ANDROID__)
-	__USE_DEBUGGER = false;
-#else
 	__USE_DEBUGGER = osd->check_feature(_T("USE_DEBUGGER"));
-#endif
 #endif
 
 	insns_count = 0;

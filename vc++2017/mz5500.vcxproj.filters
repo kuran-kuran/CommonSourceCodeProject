@@ -144,9 +144,6 @@
     <ClCompile Include="..\src\vm\upd765a.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vm\v30_dasm.cpp">
-      <Filter>Source Files\VM Common Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\vm\z80ctc.cpp">
       <Filter>Source Files\VM Common Source Files</Filter>
     </ClCompile>
@@ -260,9 +257,6 @@
     <ClInclude Include="..\src\vm\upd765a.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vm\v30_dasm.h">
-      <Filter>Header Files\VM Common Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\vm\vm.h">
       <Filter>Header Files\VM Common Header Files</Filter>
     </ClInclude>
@@ -336,5 +330,8 @@
     <ResourceCompile Include="..\src\res\mz5500.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
 </Project>

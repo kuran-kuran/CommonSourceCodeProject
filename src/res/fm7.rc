@@ -182,9 +182,9 @@ BEGIN
         POPUP "Option"
         BEGIN
             MENUITEM "Cycle Steal (Hack)",      ID_VM_DIPSWITCH0
-            MENUITEM "Kanji ROM",               ID_VM_DIPSWITCH5
-            MENUITEM "320KB FDD",               ID_VM_DIPSWITCH6
-            MENUITEM "1MB FDD",                 ID_VM_DIPSWITCH7
+            MENUITEM "Kanji ROM",               ID_VM_OPTION_SWITCH5
+            MENUITEM "320KB FDD",               ID_VM_OPTION_SWITCH6
+            MENUITEM "1MB FDD",                 ID_VM_OPTION_SWITCH7
         END
         POPUP "Mouse"
         BEGIN

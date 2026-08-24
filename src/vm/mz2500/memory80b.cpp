@@ -58,11 +58,41 @@ void MEMORY::initialize()
 	memset(ipl, 0xff, sizeof(ipl));
 	
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
+#if defined(_MZ80B)
+	if(fio->Fopen(create_local_path(_T("IPL80B.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
-	if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
+#else
+	if(fio->Fopen(create_local_path(_T("IPL2000.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+	else if(fio->Fopen(create_local_path(_T("IPL2200.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#endif
+	else if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#if defined(_MZ80B)
+	if(fio->Fopen(create_local_path(_T("FONT80B.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#else
+	if(fio->Fopen(create_local_path(_T("FONT2000.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+	else if(fio->Fopen(create_local_path(_T("FONT2200.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#endif
+	else if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(font, sizeof(font), 1);
 		fio->Fclose();
 	}
@@ -261,7 +291,8 @@ void MEMORY::update_vram_map()
 			SET_BANK(0xc000, 0xffff, ram + 0xc000, ram + 0xc000, false);
 		}
 		if(vram_sel == 0xc0) {
-			SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
+			SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
+			SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
 		}
 	}
 #else
@@ -273,10 +304,12 @@ void MEMORY::update_vram_map()
 		SET_BANK(0xd000, 0xffff, ram + 0xd000, ram + 0xd000, false);
 	}
 	if(vram_sel == 0x80) {
-		SET_BANK(0xd000, 0xdfff, tvram, tvram, true);
+		SET_BANK(0xd000, 0xd7ff, tvram, tvram, true);
+		SET_BANK(0xd800, 0xdfff, tvram, tvram, true);
 		SET_BANK(0xe000, 0xffff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	} else if(vram_sel == 0xc0) {
-		SET_BANK(0x5000, 0x5fff, tvram, tvram, true);
+		SET_BANK(0x5000, 0x57ff, tvram, tvram, true);
+		SET_BANK(0x5800, 0x5fff, tvram, tvram, true);
 		SET_BANK(0x6000, 0x7fff, vram + 0x4000 * (vram_page & 1), vram + 0x4000 * (vram_page & 1), true);
 	}
 #endif
@@ -622,7 +655,7 @@ void MEMORY::draw_screen()
 #endif
 }
 
-#define STATE_VERSION	3
+#define STATE_VERSION	4
 
 bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 {

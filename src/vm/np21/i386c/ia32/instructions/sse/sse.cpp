@@ -25,16 +25,10 @@
 
 //#include "compiler.h"
 
-#if defined(__ANDROID__) // Medamap
-#include <cmath>
-#endif
-
 #include <math.h>
 #include <float.h>
 
-#if !defined(__ANDROID__) // Medamap
 #define isnan(x) (_isnan(x))
-#endif
 
 #include "../../cpu.h"
 #include "../../ia32.mcr"
@@ -43,7 +37,7 @@
 
 #if defined(USE_SSE) && defined(USE_FPU)
 
-#define CPU_SSEWORKCLOCK	CPU_WORKCLOCK(8)
+#define CPU_SSEWORKCLOCK	CPU_WORKCLOCK(2)
 
 static INLINE void
 SSE_check_NM_EXCEPTION(){
@@ -151,7 +145,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_P(float **data1, float **data2, float 
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -177,7 +171,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_S(float **data1, float **data2, float 
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -203,7 +197,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_P_MMX2XMM(float **data1, SINT32 **data
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -225,7 +219,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_S_MMX2XMM(float **data1, SINT32 **data
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -247,7 +241,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_P_XMM2MMX(SINT32 **data1, float **data
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (SINT32*)(&(FPU_STAT.reg[idx]));
@@ -269,7 +263,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_S_XMM2MMX(SINT32 **data1, float **data
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (SINT32*)(&(FPU_STAT.reg[idx]));
@@ -291,12 +285,12 @@ static INLINE void SSE_PART_GETDATA1DATA2_S_REG2XMM(float **data1, SINT32 **data
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
 	if ((op) >= 0xc0) {
-		*data2 = (SINT32*)reg32_b20[(op)];
+		*data2 = (SINT32*)CPU_REG32_B20(op);
 	} else {
 		UINT32 maddr;
 		maddr = calc_ea_dst((op));
@@ -311,10 +305,10 @@ static INLINE void SSE_PART_GETDATA1DATA2_S_XMM2REG(SINT32 **data1, float **data
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
-	*data1 = (SINT32*)reg32_b53[(op)];
+	*data1 = (SINT32*)CPU_REG32_B53(op);
 	if ((op) >= 0xc0) {
 		*data2 = (float*)(&(FPU_STAT.xmm_reg[sub]));
 	} else {
@@ -334,7 +328,7 @@ static INLINE void SSE_PART_GETDATA1DATA2_P_MMX2MMX_SB(SINT8 **data1, SINT8 **da
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	*data1 = (SINT8*)(&(FPU_STAT.reg[idx]));
@@ -420,7 +414,7 @@ void SSE_CMPPS(void)
 
 	data1ui32 = (UINT32*)data1;
 
-	GET_PCBYTE((idx));
+	GET_MODRM_PCBYTE((idx));
 	switch(idx){
 		case 0: // CMPEQPS
 			for(i=0;i<4;i++){
@@ -439,11 +433,7 @@ void SSE_CMPPS(void)
 			break;
 		case 3: // CMPUNORDPS
 			for(i=0;i<4;i++){
-#if defined(__ANDROID__) // Medamap
-                data1ui32[i] = (std::isnan(data1[i]) || std::isnan(data2[i]) ? 0xffffffff : 0x00000000);
-#else
-                data1ui32[i] = (isnan(data1[i]) || isnan(data2[i]) ? 0xffffffff : 0x00000000);
-#endif
+				data1ui32[i] = (isnan(data1[i]) || isnan(data2[i]) ? 0xffffffff : 0x00000000);
 			}
 			break;
 		case 4: // CMPNEQPS
@@ -463,11 +453,7 @@ void SSE_CMPPS(void)
 			break;
 		case 7: // CMPORDPS
 			for(i=0;i<4;i++){
-#if defined(__ANDROID__) // Medamap
-                data1ui32[i] = (!std::isnan(data1[i]) && !std::isnan(data2[i]) ? 0xffffffff : 0x00000000);
-#else
 				data1ui32[i] = (!isnan(data1[i]) && !isnan(data2[i]) ? 0xffffffff : 0x00000000);
-#endif
 			}
 			break;
 	}
@@ -483,7 +469,7 @@ void SSE_CMPSS(void)
 
 	data1ui32 = (UINT32*)data1;
 
-	GET_PCBYTE((idx));
+	GET_MODRM_PCBYTE((idx));
 	switch(idx){
 		case 0: // CMPEQSS
 			data1ui32[0] = (data1[0] == data2[0] ? 0xffffffff : 0x00000000);
@@ -495,11 +481,7 @@ void SSE_CMPSS(void)
 			data1ui32[0] = (data1[0] <= data2[0] ? 0xffffffff : 0x00000000);
 			break;
 		case 3: // CMPUNORDSS
-#if defined(__ANDROID__) // Medamap
-            data1ui32[0] = (std::isnan(data1[0]) || std::isnan(data2[0]) ? 0xffffffff : 0x00000000);
-#else
 			data1ui32[0] = (isnan(data1[0]) || isnan(data2[0]) ? 0xffffffff : 0x00000000);
-#endif
 			break;
 		case 4: // CMPNEQSS
 			data1ui32[0] = (data1[0] != data2[0] ? 0xffffffff : 0x00000000);
@@ -511,11 +493,7 @@ void SSE_CMPSS(void)
 			data1ui32[0] = (data1[0] > data2[0] ? 0xffffffff : 0x00000000);
 			break;
 		case 7: // CMPORDSS
-#if defined(__ANDROID__) // Medamap
-            data1ui32[0] = (!std::isnan(data1[0]) && !std::isnan(data2[0]) ? 0xffffffff : 0x00000000);
-#else
 			data1ui32[0] = (!isnan(data1[0]) && !isnan(data2[0]) ? 0xffffffff : 0x00000000);
-#endif
 			break;
 	}
 }
@@ -526,11 +504,7 @@ void SSE_COMISS(void)
 	
 	SSE_PART_GETDATA1DATA2_S(&data1, &data2, data2buf);
 
-#if defined(__ANDROID__) // Medamap
-    if(std::isnan(data1[0]) || std::isnan(data2[0])){
-#else
 	if(isnan(data1[0]) || isnan(data2[0])){
-#endif
 		CPU_FLAGL = (CPU_FLAGL & ~Z_FLAG) | Z_FLAG;
 		CPU_FLAGL = (CPU_FLAGL & ~P_FLAG) | P_FLAG;
 		CPU_FLAGL = (CPU_FLAGL & ~C_FLAG) | C_FLAG;
@@ -642,11 +616,7 @@ void SSE_MAXPS(void)
 	
 	SSE_PART_GETDATA1DATA2_P(&data1, &data2, data2buf);
 	for(i=0;i<4;i++){
-#if defined(__ANDROID__) // Medamap
-        if(std::isnan(data1[i]) || std::isnan(data2[i])){
-#else
 		if(isnan(data1[i]) || isnan(data2[i])){
-#endif
 			data1[i] = data2[i];
 		}else{
 			data1[i] = (data1[i] > data2[i] ? data1[i] : data2[i]);
@@ -659,11 +629,7 @@ void SSE_MAXSS(void)
 	float *data1, *data2;
 	
 	SSE_PART_GETDATA1DATA2_S(&data1, &data2, data2buf);
-#if defined(__ANDROID__) // Medamap
-    if(std::isnan(data1[0]) || std::isnan(data2[0])){
-#else
 	if(isnan(data1[0]) || isnan(data2[0])){
-#endif
 		data1[0] = data2[0];
 	}else{
 		data1[0] = (data1[0] > data2[0] ? data1[0] : data2[0]);
@@ -677,11 +643,7 @@ void SSE_MINPS(void)
 	
 	SSE_PART_GETDATA1DATA2_P(&data1, &data2, data2buf);
 	for(i=0;i<4;i++){
-#if defined(__ANDROID__) // Medamap
-        if(std::isnan(data1[i]) || std::isnan(data2[i])){
-#else
 		if(isnan(data1[i]) || isnan(data2[i])){
-#endif
 			data1[i] = data2[i];
 		}else{
 			data1[i] = (data1[i] < data2[i] ? data1[i] : data2[i]);
@@ -694,11 +656,7 @@ void SSE_MINSS(void)
 	float *data1, *data2;
 	
 	SSE_PART_GETDATA1DATA2_S(&data1, &data2, data2buf);
-#if defined(__ANDROID__) // Medamap
-    if(std::isnan(data1[0]) || std::isnan(data2[0])){
-#else
 	if(isnan(data1[0]) || isnan(data2[0])){
-#endif
 		data1[0] = data2[0];
 	}else{
 		data1[0] = (data1[0] < data2[0] ? data1[0] : data2[0]);
@@ -715,7 +673,7 @@ void SSE_MOVAPSmem2xmm(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -744,7 +702,7 @@ void SSE_MOVAPSxmm2mem(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -778,7 +736,7 @@ void SSE_MOVHPSmem2xmm(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -805,7 +763,7 @@ void SSE_MOVHPSxmm2mem(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -834,7 +792,7 @@ void SSE_MOVLPSmem2xmm(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -861,7 +819,7 @@ void SSE_MOVLPSxmm2mem(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -884,10 +842,10 @@ void SSE_MOVMSKPS(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
-	data1 = reg32_b53[(op)];
+	data1 = CPU_REG32_B53(op);
 	if ((op) >= 0xc0) {
 		data2 = (UINT32*)(&(FPU_STAT.xmm_reg[sub]));
 	} else {
@@ -908,7 +866,7 @@ void SSE_MOVSSmem2xmm(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -932,7 +890,7 @@ void SSE_MOVSSxmm2mem(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -1031,7 +989,7 @@ void SSE_SHUFPS(void)
 	
 	SSE_PART_GETDATA1DATA2_P(&data1, &data2, data2buf);
 
-	GET_PCBYTE((imm8));
+	GET_MODRM_PCBYTE((imm8));
 
 	for(i=0;i<2;i++){
 		data1buf[i] = data1[imm8 & 0x3];
@@ -1168,16 +1126,16 @@ void SSE_PEXTRW(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
-	data1 = (UINT32*)reg32_b53[(op)];
+	data1 = (UINT32*)CPU_REG32_B53(op);
 	if ((op) >= 0xc0) {
 		data2 = (UINT16*)(&(FPU_STAT.reg[sub]));
 	} else {
 		EXCEPTION(UD_EXCEPTION, 0);
 	}
-	GET_PCBYTE((imm8));
+	GET_MODRM_PCBYTE((imm8));
 	*data1 = (UINT32)data2[imm8 & 0x3];
 }
 void SSE_PINSRW(void)
@@ -1191,18 +1149,18 @@ void SSE_PINSRW(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (UINT16*)(&(FPU_STAT.reg[idx]));
 	if ((op) >= 0xc0) {
-		data2 = (UINT16)((*reg32_b20[(op)]) & 0xffff);
+		data2 = (UINT16)((*CPU_REG32_B20(op)) & 0xffff);
 	} else {
 		UINT32 maddr;
 		maddr = calc_ea_dst((op));
 		data2 = cpu_vmemoryread_w(CPU_INST_SEGREG_INDEX, maddr+ 0);
 	}
-	GET_PCBYTE((imm8));
+	GET_MODRM_PCBYTE((imm8));
 	data1[imm8 & 0x3] = data2;
 }
 void SSE_PMAXSW(void)
@@ -1259,10 +1217,10 @@ void SSE_PMOVMSKB(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
-	data1 = (UINT32*)reg32_b53[(op)];
+	data1 = (UINT32*)CPU_REG32_B53(op);
 	if ((op) >= 0xc0) {
 		data2 = (UINT8*)(&(FPU_STAT.reg[sub]));
 	} else {
@@ -1288,7 +1246,7 @@ void SSE_PMULHUW(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (UINT16*)(&(FPU_STAT.reg[idx]));
@@ -1332,7 +1290,7 @@ void SSE_PSHUFW(void)
 	int i;
 	
 	SSE_PART_GETDATA1DATA2_P_MMX2MMX_UW(&data1, &data2, data2buf);
-	GET_PCBYTE((imm8));
+	GET_MODRM_PCBYTE((imm8));
 	for(i=0;i<4;i++){
 		data1[i] = data2[imm8 & 0x3];
 		imm8 = imm8 >> 2;
@@ -1377,7 +1335,7 @@ void SSE_MOVNTPS(void)
 	SSE_check_NM_EXCEPTION();
 	SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (float*)(&(FPU_STAT.xmm_reg[idx]));
@@ -1409,7 +1367,7 @@ void SSE_MOVNTQ(void)
 	SSE_setTag();
 	MMX_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	data1 = (UINT32*)(&(FPU_STAT.reg[idx]));
@@ -1435,7 +1393,7 @@ void SSE_PREFETCHTx(void)
 	//SSE_check_NM_EXCEPTION();
 	//SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	if ((op) >= 0xc0) {
@@ -1472,7 +1430,7 @@ void SSE_NOPPREFETCH(void)
 	//SSE_check_NM_EXCEPTION();
 	//SSE_setTag();
 	CPU_SSEWORKCLOCK;
-	GET_PCBYTE((op));
+	GET_MODRM_PCBYTE((op));
 	idx = (op >> 3) & 7;
 	sub = (op & 7);
 	if ((op) >= 0xc0) {

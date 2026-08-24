@@ -721,6 +721,25 @@ void OSD::key_up_native(int code)
 	}
 }
 
+void OSD::reset_keycode_conv()
+{
+	FILEIO* fio = new FILEIO();
+	if(fio->Fopen(create_local_path(_T("keycode.cfg")), FILEIO_READ_BINARY)) {
+		fio->Fread(keycode_conv, sizeof(keycode_conv), 1);
+		fio->Fclose();
+	} else {
+		for(int i = 0; i < 256; i++) {
+			keycode_conv[i] = i;
+		}
+	}
+	delete fio;
+}
+
+void OSD::update_keycode_conv(int index, uint8_t code)
+{
+	keycode_conv[index] = code;
+}
+
 #ifdef USE_MOUSE
 void OSD::enable_mouse()
 {

@@ -54,6 +54,7 @@
 #define INLINE inline
 #endif
 
+#define S64(v) INT64(v)
 #define U64(v) UINT64(v)
 
 #define fatalerror(...) exit(1)
@@ -100,21 +101,25 @@ enum
 
 /*****************************************************************************/
 /* src/emu/dimemory.h */
+/* src/emu/divtlb.h */
 
 // Translation intentions
-const int TRANSLATE_TYPE_MASK       = 0x03;     // read write or fetch
-const int TRANSLATE_USER_MASK       = 0x04;     // user mode or fully privileged
-const int TRANSLATE_DEBUG_MASK      = 0x08;     // debug mode (no side effects)
+enum
+{
+	TR_READ  = 0,	// translate for read
+	TR_WRITE = 1,	// translate for write
+	TR_FETCH = 2	// translate for instruction fetch
+};
 
-const int TRANSLATE_READ            = 0;        // translate for read
-const int TRANSLATE_WRITE           = 1;        // translate for write
-const int TRANSLATE_FETCH           = 2;        // translate for instruction fetch
-const int TRANSLATE_READ_USER       = (TRANSLATE_READ | TRANSLATE_USER_MASK);
-const int TRANSLATE_WRITE_USER      = (TRANSLATE_WRITE | TRANSLATE_USER_MASK);
-const int TRANSLATE_FETCH_USER      = (TRANSLATE_FETCH | TRANSLATE_USER_MASK);
-const int TRANSLATE_READ_DEBUG      = (TRANSLATE_READ | TRANSLATE_DEBUG_MASK);
-const int TRANSLATE_WRITE_DEBUG     = (TRANSLATE_WRITE | TRANSLATE_DEBUG_MASK);
-const int TRANSLATE_FETCH_DEBUG     = (TRANSLATE_FETCH | TRANSLATE_DEBUG_MASK);
+enum
+{
+	TR_UREAD  = 4,	// TR_USER | TR_READ
+	TR_UWRITE = 5,	// TR_USER | TR_WRITE
+	TR_UFETCH = 6,	// TR_USER | TR_FETCH
+
+	TR_TYPE   = 3,	// read write or fetch
+	TR_USER   = 4	// user mode or fully privileged
+};
 
 /*****************************************************************************/
 /* src/emu/emucore.h */
@@ -205,12 +210,56 @@ static CPU_TRANSLATE(i386);
 
 #include "mame/lib/softfloat/softfloat.c"
 #include "mame/lib/softfloat/fsincos.c"
+#include "mame/lib/softfloat/fpatan.c"
+#include "mame/lib/softfloat/f2xm1.c"
+#include "mame/lib/softfloat/fyl2x.c"
 #include "mame/emu/cpu/vtlb.c"
 #include "mame/emu/cpu/i386/i386.c"
 
 void I386::initialize()
 {
-	opaque = CPU_INIT_CALL(CPU_MODEL);
+	switch(device_model) {
+	case INTEL_80386:
+		opaque = CPU_INIT_CALL(i386);
+		set_device_name(_T("80386 CPU"));
+		break;
+	case INTEL_I486DX:
+		opaque = CPU_INIT_CALL(i486);
+		set_device_name(_T("80486DX CPU"));
+		break;
+	case INTEL_PENTIUM:
+		opaque = CPU_INIT_CALL(pentium);
+		set_device_name(_T("Pentium CPU"));
+		break;
+	case INTEL_MMX_PENTIUM:
+		opaque = CPU_INIT_CALL(pentium_mmx);
+		set_device_name(_T("MMX Pentium CPU"));
+		break;
+	case INTEL_PENTIUM_PRO:
+		opaque = CPU_INIT_CALL(pentium_pro);
+		set_device_name(_T("Pentium Pro CPU"));
+		break;
+	case INTEL_PENTIUM_II:
+		opaque = CPU_INIT_CALL(pentium2);
+		set_device_name(_T("Pentium II CPU"));
+		break;
+	case INTEL_PENTIUM_III:
+		opaque = CPU_INIT_CALL(pentium3);
+		set_device_name(_T("Pentium III CPU"));
+		break;
+	case INTEL_PENTIUM_4:
+		opaque = CPU_INIT_CALL(pentium4);
+		set_device_name(_T("Pentium 4 CPU"));
+		break;
+	case CYRIX_MEDIA_GX:
+		opaque = CPU_INIT_CALL(mediagx);
+		set_device_name(_T("MediaGX CPU"));
+		break;
+	default:
+		opaque = CPU_INIT_CALL(i386);
+		set_device_name(_T("80386 CPU"));
+		break;
+	}
 	
 	i386_state *cpustate = (i386_state *)opaque;
 	cpustate->pic = d_pic;
@@ -295,10 +344,24 @@ uint32_t I386::get_pc()
 uint32_t I386::get_next_pc()
 {
 	i386_state *cpustate = (i386_state *)opaque;
-	return cpustate->pc;
+	uint32_t addr = cpustate->pc;
+	translate_address(cpustate, cpustate->CPL, TR_FETCH, &addr, NULL);
+	return addr;
 }
 
 #ifdef USE_DEBUGGER
+uint32_t I386::get_eip()
+{
+	i386_state *cpustate = (i386_state *)opaque;
+	return cpustate->prev_eip;
+}
+
+uint32_t I386::get_next_eip()
+{
+	i386_state *cpustate = (i386_state *)opaque;
+	return cpustate->eip;
+}
+
 void I386::write_debug_data8(uint32_t addr, uint32_t data)
 {
 	int wait;
@@ -409,6 +472,24 @@ bool I386::write_debug_reg(const _TCHAR *reg, uint32_t data)
 		REG8(DL) = data;
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		REG8(DH) = data;
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		cpustate->CF = (data != 0);
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		cpustate->PF = (data != 0);
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		cpustate->AF = (data != 0);
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		cpustate->ZF = (data != 0);
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		cpustate->SF = (data != 0);
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		cpustate->TF = (data != 0);
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		cpustate->IF = (data != 0);
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		cpustate->DF = (data != 0);
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		cpustate->OF = (data != 0);
 	} else {
 		return false;
 	}
@@ -452,6 +533,24 @@ uint32_t I386::read_debug_reg(const _TCHAR *reg)
 		return REG8(DL);
 	} else if(_tcsicmp(reg, _T("DH")) == 0) {
 		return REG8(DH);
+	} else if(_tcsicmp(reg, _T("CF")) == 0) {
+		return (cpustate->CF != 0);
+	} else if(_tcsicmp(reg, _T("PF")) == 0) {
+		return (cpustate->PF != 0);
+	} else if(_tcsicmp(reg, _T("AF")) == 0) {
+		return (cpustate->AF != 0);
+	} else if(_tcsicmp(reg, _T("ZF")) == 0) {
+		return (cpustate->ZF != 0);
+	} else if(_tcsicmp(reg, _T("SF")) == 0) {
+		return (cpustate->SF != 0);
+	} else if(_tcsicmp(reg, _T("TF")) == 0) {
+		return (cpustate->TF != 0);
+	} else if(_tcsicmp(reg, _T("IF")) == 0) {
+		return (cpustate->IF != 0);
+	} else if(_tcsicmp(reg, _T("DF")) == 0) {
+		return (cpustate->DF != 0);
+	} else if(_tcsicmp(reg, _T("OF")) == 0) {
+		return (cpustate->OF != 0);
 	}
 	return 0;
 }
@@ -473,21 +572,23 @@ bool I386::get_debug_regs_info(_TCHAR *buffer, size_t buffer_len)
 	return true;
 }
 
-int I386::debug_dasm(uint32_t pc, _TCHAR *buffer, size_t buffer_len)
+int I386::debug_dasm(uint32_t pc, uint32_t eip, bool mode, _TCHAR *buffer, size_t buffer_len)
 {
 	i386_state *cpustate = (i386_state *)opaque;
-	UINT64 eip = pc - cpustate->sreg[CS].base;
 	UINT8 oprom[16];
 	
 	for(int i = 0; i < 16; i++) {
 		int wait;
 		oprom[i] = d_mem->read_data8w((pc + i) & cpustate->a20_mask, &wait);
 	}
-	if(cpustate->operand_size) {
-		return i386_dasm(oprom, eip, true,  buffer, buffer_len);
-	} else {
-		return i386_dasm(oprom, eip, false, buffer, buffer_len);
-	}
+	return i386_dasm(oprom, eip, mode, buffer, buffer_len);
+}
+
+int I386::debug_dasm(uint32_t pc, uint32_t eip, _TCHAR *buffer, size_t buffer_len)
+{
+	i386_state *cpustate = (i386_state *)opaque;
+	
+	return debug_dasm(pc, eip, (cpustate->operand_size != 0),  buffer, buffer_len);
 }
 #endif
 
@@ -518,7 +619,7 @@ int I386::get_shutdown_flag()
 	return cpustate->shutdown;
 }
 
-#define STATE_VERSION	4
+#define STATE_VERSION	5
 
 void process_state_SREG(I386_SREG* val, FILEIO* state_fio)
 {
@@ -629,6 +730,7 @@ bool I386::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(cpustate->VIP);
 	state_fio->StateValue(cpustate->ID);
 	state_fio->StateValue(cpustate->CPL);
+	state_fio->StateValue(cpustate->auto_clear_RF);
 	state_fio->StateValue(cpustate->performed_intersegment_jump);
 	state_fio->StateValue(cpustate->delayed_interrupt_enable);
 	state_fio->StateArray(cpustate->cr, sizeof(cpustate->cr), 1);
@@ -695,6 +797,8 @@ bool I386::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(cpustate->opcode_bytes, sizeof(cpustate->opcode_bytes), 1);
 	state_fio->StateValue(cpustate->opcode_pc);
 	state_fio->StateValue(cpustate->opcode_bytes_length);
+	state_fio->StateArray(cpustate->opcode_addrs, sizeof(cpustate->opcode_addrs), 1);
+	state_fio->StateValue(cpustate->opcode_addrs_index);
 #endif
 	
 #ifdef USE_DEBUGGER

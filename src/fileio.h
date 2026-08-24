@@ -42,7 +42,15 @@ private:
 	FILE* fp;
 	_TCHAR path[_MAX_PATH];
 	int open_mode;
-	
+	_TCHAR search_path[_MAX_PATH];
+	_TCHAR find_file[_MAX_PATH];
+#if defined(_WIN32)
+    HANDLE search_handle;
+    WIN32_FIND_DATA win32fd;
+#else
+	DIR *dir;
+#endif
+
 public:
 	FILEIO();
 	~FILEIO();
@@ -149,7 +157,16 @@ public:
 	int Fseek(long offset, int origin);
 	long Ftell();
 	void Fflush();
-	
+
+	bool FindFirst(const _TCHAR *path);
+	bool FindNext();
+	bool FindRrewind();
+	void FindClose();
+	const _TCHAR* FindFile()
+	{
+		return find_file;
+	}
+
 	bool StateCheckUint32(uint32_t val);
 	bool StateCheckInt32(int32_t val);
 	bool StateCheckBuffer(const _TCHAR *buffer, size_t size, size_t count);

@@ -50,6 +50,18 @@
 #if defined(_MZ1500)
 #define MZ1P17_SW1_4_ON
 #endif
+#if defined(_MZ700) && defined(_PAL)
+#define SUPPORT_SFD700
+#define SUPPORT_80COLUMN
+#endif
+#if defined(_MZ700) || defined(_MZ1500)
+#define SUPPORT_JOYSTICK
+#define SUPPORT_CMU800
+#endif
+#if defined(SUPPORT_80COLUMN)
+#define HAS_SY6845E
+#define HD46505_DONT_UPDATE_TIMING
+#endif
 
 // device informations for win32
 #if defined(_MZ700)
@@ -57,6 +69,7 @@
 #elif defined(_MZ800)
 #define USE_BOOT_MODE		2
 #endif
+#define USE_OPTION_SWITCH
 #define USE_TAPE		1
 #define USE_FLOPPY_DISK		2
 #define USE_QUICK_DISK		1
@@ -66,11 +79,13 @@
 #if defined(_MZ700) || defined(_MZ1500)
 #define USE_AUTO_KEY_NUMPAD
 #define USE_VM_AUTO_KEY_TABLE
+#endif
+#if defined(SUPPORT_JOYSTICK)
 #define USE_JOYSTICK
 #define USE_JOYSTICK_TYPE	3
 #define USE_JOY_BUTTON_CAPTIONS
 #endif
-#if defined(_MZ800)
+#if defined(_MZ800) || defined(SUPPORT_80COLUMN)
 #define USE_MONITOR_TYPE	2
 #endif
 #define USE_SCREEN_FILTER
@@ -82,12 +97,61 @@
 #elif defined(_MZ1500)
 #define USE_SOUND_VOLUME	7
 #endif
+#if defined(SUPPORT_CMU800)
+#define USE_GENERAL_PARAM	6
+#define USE_MIDI
+#endif
 #if defined(_MZ1500)
 #define USE_PRINTER
 #define USE_PRINTER_TYPE	4
+#define USE_SDCARD
 #endif
 #define USE_DEBUGGER
 #define USE_STATE
+
+#if defined(SUPPORT_CMU800)
+#define OPTION_SWITCH_CMU800				(1 << 0)
+#define OPTION_SWITCH_CMU800_MIDI			(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 7)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 8)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1	(1 << 9)
+#define OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1	(1 << 10)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1		(1 << 11)
+#define OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1		(1 << 12)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_INC_1		(1 << 13)
+#define OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1		(1 << 14)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1		(1 << 15)
+#define OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1		(1 << 16)
+#define OPTION_SWITCH_CMU800_MASK	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_CMU800_MIDI)
+#endif
+#define OPTION_SWITCH_MZ1E05	(1 << 17)
+#define OPTION_SWITCH_MZ1E14	(1 << 18)
+#define OPTION_SWITCH_MZ1R12	(1 << 19)
+#define OPTION_SWITCH_MZ1R18	(1 << 20)
+#define OPTION_SWITCH_MZ1R23	(1 << 21)
+#define OPTION_SWITCH_MZ1R24	(1 << 22)
+#define OPTION_SWITCH_PIO3034	(1 << 23)
+#define OPTION_SWITCH_SFD700	(1 << 24)
+#define OPTION_SWITCH_80COLUMN	(1 << 25)
+#define OPTION_SWITCH_MZ1500SD	(1 << 26)
+
+#if defined(_MZ700)
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E14 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034)
+#elif defined(_MZ800)
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1E14 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034)
+#elif defined(_MZ1500)
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1R18 | OPTION_SWITCH_MZ1R23 | OPTION_SWITCH_MZ1R24 | OPTION_SWITCH_PIO3034 | OPTION_SWITCH_MZ1500SD)
+#endif
+
+#if defined(_MZ700)
+#define DIPSWITCH_PCG700	(1 << 0)
+#define DIPSWITCH_DEFAULT	DIPSWITCH_PCG700
+#endif
 
 #if defined(_MZ700) || defined(_MZ1500)
 static const int vm_auto_key_table_base[][2] = {
@@ -170,7 +234,9 @@ static const _TCHAR *sound_device_caption[] = {
 #elif defined(_MZ1500)
 	_T("PSG #1"), _T("PSG #2"),
 #endif
-	_T("Beep"), _T("CMT (Signal)"), _T("Noise (CMT)"), _T("Noise (FDD)"), _T("Noise (QD)"),
+	_T("Beep"),
+	_T("CMU-800 Melody"), _T("CMU-800 Bass"), _T("CMU-800 Chord"), _T("CMU-800 Rhythm"), _T("CMU-800 Master"),
+	_T("CMT (Signal)"), _T("Noise (CMT)"), _T("Noise (FDD)"), _T("Noise (QD)"),
 };
 #endif
 
@@ -216,10 +282,18 @@ class SN76489AN;
 class Z80PIO;
 #if defined(_MZ1500)
 class PSG;
+class MZ1500_SD;
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+
+#if defined(SUPPORT_JOYSTICK)
 class JOYSTICK;
+#endif
+#if defined(SUPPORT_CMU800)
+class CMU800;
+#endif
+#if defined(SUPPORT_80COLUMN)
+class HD46505;
 #endif
 
 class VM : public VM_TEMPLATE
@@ -235,19 +309,11 @@ protected:
 	I8253* pit;
 	I8255* pio;
 	IO* io;
-	MB8877* fdc;
 	PCM1BIT* pcm;
 	Z80* cpu;
-	Z80SIO* sio_qd;	// QD
 	
-	CMOS* cmos;
-	EMM* emm;
-	FLOPPY* floppy;
-	KANJI* kanji;
 	KEYBOARD* keyboard;
 	MEMORY* memory;
-	RAMFILE* ramfile;
-	QUICKDISK* qd;
 	
 #if defined(_MZ800) || defined(_MZ1500)
 	AND* and_snd;
@@ -260,6 +326,7 @@ protected:
 	NOT* not_strobe;
 	SN76489AN* psg_l;
 	SN76489AN* psg_r;
+	MZ1500_SD* mz1500sd;
 #endif
 	Z80PIO* pio_int;
 	Z80SIO* sio_rs;	// RS-232C
@@ -268,13 +335,38 @@ protected:
 	PSG* psg;
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	JOYSTICK* joystick;
 #endif
 	
-#if defined(_MZ700)
-	int dipswitch;
-#elif defined(_MZ800)
+#if defined(SUPPORT_CMU800)
+	// CMU-800
+	CMU800* cmu800;
+	bool ctrl;
+#endif	
+	// MZ-1E05 / K&P SFD-700
+	MB8877* fdc;
+	FLOPPY* floppy;
+	// MZ-1E14
+	Z80SIO* sio_qd;	// QD
+	QUICKDISK* qd;
+	// MZ-1R12
+	CMOS* cmos;
+	// MZ-1R18
+	RAMFILE* ramfile;
+	// MZ-1R23
+	KANJI* kanji;
+	// PIO-3034
+	EMM* emm;
+	// K&P 80-Zeichenkarte
+#if defined(SUPPORT_80COLUMN)
+	HD46505* crtc;
+#endif
+	
+#if defined(_MZ700) || defined(_MZ1500)
+	int option_switch;
+#endif
+#if defined(_MZ800)
 	int boot_mode;
 #endif
 	
@@ -291,6 +383,9 @@ public:
 	// ----------------------------------------
 	
 	// drive virtual machine
+#if defined(SUPPORT_SFD700) && defined(SUPPORT_80COLUMN)
+	const _TCHAR *device_name();
+#endif
 	void reset();
 	void run();
 	double get_frame_rate()
@@ -333,14 +428,19 @@ public:
 	void close_quick_disk(int drv);
 	bool is_quick_disk_inserted(int drv);
 	uint32_t is_quick_disk_accessed();
+	bool is_quick_disk_connected(int drv);
 	void open_floppy_disk(int drv, const _TCHAR* file_path, int bank);
 	void close_floppy_disk(int drv);
 	bool is_floppy_disk_inserted(int drv);
 	void is_floppy_disk_protected(int drv, bool value);
 	bool is_floppy_disk_protected(int drv);
 	uint32_t is_floppy_disk_accessed();
+	bool is_floppy_disk_connected(int drv);
 	bool is_frame_skippable();
-	
+
+	void key_down(int code, bool repeat);
+	void key_up(int code);
+
 	void update_config();
 	bool process_state(FILEIO* state_fio, bool loading);
 	

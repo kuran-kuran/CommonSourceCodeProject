@@ -50,6 +50,9 @@ void initialize_config()
 	#if defined(USE_DIPSWITCH) && defined(DIPSWITCH_DEFAULT)
 		config.dipswitch = DIPSWITCH_DEFAULT;
 	#endif
+	#if defined(USE_OPTION_SWITCH) && defined(OPTION_SWITCH_DEFAULT)
+		config.option_switch = OPTION_SWITCH_DEFAULT;
+	#endif
 	#if defined(USE_DEVICE_TYPE) && defined(DEVICE_TYPE_DEFAULT)
 		config.device_type = DEVICE_TYPE_DEFAULT;
 	#endif
@@ -109,39 +112,21 @@ void initialize_config()
 	// sound
 	#ifdef SOUND_RATE_DEFAULT
 		config.sound_frequency = SOUND_RATE_DEFAULT;
-    #else
-        #if defined(__ANDROID__)
-            config.sound_frequency = 4;	// 22KHz
-        #else
-            config.sound_frequency = 6;	// 48KHz
-        #endif
+	#else
+		config.sound_frequency = 6;	// 48KHz
 	#endif
-        #if defined(__ANDROID__)
-            config.sound_on = true;
-            config.sound_latency = 1;	// 100msec
-            config.sound_strict_rendering = true;
-        #else
-            config.sound_latency = 1;	// 100msec
-        	config.sound_strict_rendering = true;
-        #endif
+	config.sound_latency = 1;	// 100msec
+	config.sound_strict_rendering = true;
 	#ifdef USE_FLOPPY_DISK
-        #if defined(__ANDROID__)
-            config.sound_noise_fdd = false;
-        #else
-            config.sound_noise_fdd = true;
-        #endif
+		config.sound_noise_fdd = true;
 	#endif
 	#ifdef USE_QUICK_DISK
 		config.sound_noise_qd = true;
 	#endif
 	#ifdef USE_TAPE
-        #if defined(__ANDROID__)
-            config.sound_noise_cmt = false;
-            //config.sound_play_tape = false;  // Medamap no member sound_play_tape
-        #else
-            config.sound_noise_cmt = true;
-            //config.sound_play_tape = true;   // Medamap No member sound_play_tape
-        #endif
+		config.sound_noise_cmt = true;
+		config.sound_tape_signal = true;
+		config.sound_tape_voice = true;
 	#endif
 	
 	// input
@@ -181,11 +166,7 @@ void load_config(const _TCHAR* config_path)
 {
 	// initial settings
 	initialize_config();
-
-#if defined(__ANDROID__) // Medamap
-    MyLoadPrivateProfile(config_path);
-#endif
-
+	
 	// control
 	#ifdef USE_BOOT_MODE
 		config.boot_mode = MyGetPrivateProfileInt(_T("Control"), _T("BootMode"), config.boot_mode, config_path);
@@ -195,6 +176,9 @@ void load_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		config.dipswitch = MyGetPrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
+	#endif
+	#ifdef USE_OPTION_SWITCH
+		config.option_switch = MyGetPrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		config.device_type = MyGetPrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
@@ -317,12 +301,7 @@ void load_config(const _TCHAR* config_path)
 			}
 		}
 	#endif
-
-    // mouse
-#if defined(__ANDROID__)
-    config.mouse_sensitivity = MyGetPrivateProfileInt(_T("Mouse"), _T("MouseSensitivity"), 5, config_path);
-#endif
-
+	
 	// screen
 	#ifndef ONE_BOARD_MICRO_COMPUTER
 		config.window_mode = MyGetPrivateProfileInt(_T("Screen"), _T("WindowMode"), config.window_mode, config_path);
@@ -337,24 +316,8 @@ void load_config(const _TCHAR* config_path)
 	#ifdef USE_SCREEN_FILTER
 		config.filter_type = MyGetPrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
 	#endif
-
-    #if defined(__ANDROID__)
-        config.shader_type = MyGetPrivateProfileInt(_T("Screen"), _T("ShaderType"), config.shader_type, config_path);
-        config.shader_dot = MyGetPrivateProfileInt(_T("Screen"), _T("ShaderDot"), config.shader_dot, config_path);
-        config.shader_superimpose = MyGetPrivateProfileInt(_T("Screen"), _T("ShaderSuperImpose"), config.shader_superimpose, config_path);
-        config.shader_color_blindness = MyGetPrivateProfileInt(_T("Screen"), _T("ShaderColorBlindness"), config.shader_color_blindness, config_path);
-        config.screen_top_margin = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenTopMargin"), config.screen_top_margin, config_path);
-        config.screen_bottom_margin = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenBottomMargin"), config.screen_bottom_margin, config_path);
-        config.screen_vertical_system_iconsize = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenVerticalSystemIconSize"), 6, config_path);
-        config.screen_horizontal_system_iconsize = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenHorizontalSystemIconSize"), 6, config_path);
-        config.screen_vertical_file_iconsize = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenVerticalIconFileSize"), 6, config_path);
-        config.screen_horizontal_file_iconsize = MyGetPrivateProfileInt(_T("Screen"), _T("ScreenHorizontalIconFileSize"), 6, config_path);
-    #endif
-
+	
 	// sound
-#if defined(__ANDROID__) // Medamap
-    config.sound_on = MyGetPrivateProfileInt(_T("Sound"), _T("SoundOn"), config.sound_on, config_path);
-#endif
 	config.sound_frequency = MyGetPrivateProfileInt(_T("Sound"), _T("Frequency"), config.sound_frequency, config_path);
 	config.sound_latency = MyGetPrivateProfileInt(_T("Sound"), _T("Latency"), config.sound_latency, config_path);
 	config.sound_strict_rendering = MyGetPrivateProfileBool(_T("Sound"), _T("StrictRendering"), config.sound_strict_rendering, config_path);
@@ -374,7 +337,7 @@ void load_config(const _TCHAR* config_path)
 			int tmp_l = MyGetPrivateProfileInt(_T("Sound"), create_string(_T("VolumeLeft%d"), i + 1), config.sound_volume_l[i], config_path);
 			int tmp_r = MyGetPrivateProfileInt(_T("Sound"), create_string(_T("VolumeRight%d"), i + 1), config.sound_volume_r[i], config_path);
 			#ifdef _USE_QT
-				// Note: when using balance , levels are -40ÔøΩ}20db to 0ÔøΩ}20db.
+				// Note: when using balance , levels are -40Å}20db to 0Å}20db.
 				config.sound_volume_l[i] = max(-60, min(20, tmp_l));
 				config.sound_volume_r[i] = max(-60, min(20, tmp_r));
 			#else
@@ -419,6 +382,13 @@ void load_config(const _TCHAR* config_path)
 		MyGetPrivateProfileString(_T("Printer"), _T("PrinterDll"), _T("printer.dll"), config.printer_dll_path, _MAX_PATH, config_path);
 	#endif
 	
+	// misc
+	#if defined(USE_GENERAL_PARAM)
+		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
+			config.general_param[i] = MyGetPrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
+		}
+	#endif
+	
 	// win32
 	#ifdef _WIN32
 		config.use_telnet = MyGetPrivateProfileBool(_T("Win32"), _T("UseTelnet"), config.use_telnet, config_path);
@@ -447,6 +417,11 @@ void load_config(const _TCHAR* config_path)
 		if(config.rendering_type < 0) config.rendering_type = 0;
 		if(config.rendering_type >= CONFIG_RENDER_TYPE_END) config.rendering_type = CONFIG_RENDER_TYPE_END - 1;
 	#endif
+
+	// sd card
+	#ifdef USE_SDCARD
+		MyGetPrivateProfileString(_T("SDCard"), _T("SDCardPath"), create_local_path(_T("")), config.sdcard_path, _MAX_PATH, config_path);
+	#endif
 }
 
 void save_config(const _TCHAR* config_path)
@@ -460,6 +435,9 @@ void save_config(const _TCHAR* config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		MyWritePrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
+	#endif
+	#ifdef USE_OPTION_SWITCH
+		MyWritePrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		MyWritePrivateProfileInt(_T("Control"), _T("DeviceType"), config.device_type, config_path);
@@ -582,12 +560,7 @@ void save_config(const _TCHAR* config_path)
 			}
 		}
 	#endif
-
-    // mouse
-#if defined(__ANDROID__)
-        MyWritePrivateProfileInt(_T("Mouse"), _T("MouseSensitivity"), config.mouse_sensitivity, config_path);
-#endif
-
+	
 	// screen
 	#ifndef ONE_BOARD_MICRO_COMPUTER
 		MyWritePrivateProfileInt(_T("Screen"), _T("WindowMode"), config.window_mode, config_path);
@@ -601,25 +574,9 @@ void save_config(const _TCHAR* config_path)
 	// filter
 	#ifdef USE_SCREEN_FILTER
 		MyWritePrivateProfileInt(_T("Screen"), _T("FilterType"), config.filter_type, config_path);
-    #endif
-
-    #if defined(__ANDROID__) // Medamap
-        MyWritePrivateProfileInt(_T("Screen"), _T("ShaderType"), config.shader_type, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ShaderDot"), config.shader_dot, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ShaderSuperImpose"), config.shader_superimpose, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ShaderColorBlindness"), config.shader_color_blindness, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenTopMargin"), config.screen_top_margin, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenBottomMargin"), config.screen_bottom_margin, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenVerticalSystemIconSize"), config.screen_vertical_system_iconsize, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenHorizontalSystemIconSize"), config.screen_horizontal_system_iconsize, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenVerticalFileIconSize"), config.screen_vertical_file_iconsize, config_path);
-        MyWritePrivateProfileInt(_T("Screen"), _T("ScreenHorizontalFileIconSize"), config.screen_horizontal_file_iconsize, config_path);
-    #endif
-
+	#endif
+	
 	// sound
-#if defined(__ANDROID__) // Medamap
-    MyWritePrivateProfileInt(_T("Sound"), _T("SoundOn"), config.sound_on, config_path);
-#endif
 	MyWritePrivateProfileInt(_T("Sound"), _T("Frequency"), config.sound_frequency, config_path);
 	MyWritePrivateProfileInt(_T("Sound"), _T("Latency"), config.sound_latency, config_path);
 	MyWritePrivateProfileBool(_T("Sound"), _T("StrictRendering"), config.sound_strict_rendering, config_path);
@@ -660,6 +617,13 @@ void save_config(const _TCHAR* config_path)
 		}
 	#endif
 	
+	// misc
+	#if defined(USE_GENERAL_PARAM)
+		for(int i = 0; i < USE_GENERAL_PARAM; i++) {
+			MyWritePrivateProfileInt(_T("Misc"), create_string(_T("GeneralParam%d"), i + 1), config.general_param[i], config_path);
+		}
+	#endif
+	
 	// win32
 	#ifdef _WIN32
 		MyWritePrivateProfileBool(_T("Win32"), _T("UseTelnet"), config.use_telnet, config_path);
@@ -685,14 +649,14 @@ void save_config(const _TCHAR* config_path)
 		MyWritePrivateProfileInt(_T("Qt"), _T("RenderMajorVersion"), config.render_major_version, config_path);
 		MyWritePrivateProfileInt(_T("Qt"), _T("RenderMinorVersion"), config.render_minor_version, config_path);
 		MyWritePrivateProfileInt(_T("Qt"), _T("RenderType"), config.rendering_type, config_path);
-    #endif
-
-#if defined(__ANDROID__) // Medamap
-    MySavePrivateProfile(config_path);
-#endif
+	#endif
+	// sd card
+	#ifdef USE_SDCARD
+		MyWritePrivateProfileString(_T("SDCard"), _T("SDCardPath"), config.sdcard_path, config_path);
+	#endif
 }
 
-#define STATE_VERSION	7
+#define STATE_VERSION	8
 
 bool process_config_state(void *f, bool loading)
 {
@@ -709,6 +673,9 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#ifdef USE_DIPSWITCH
 		state_fio->StateValue(config.dipswitch);
+	#endif
+	#ifdef USE_OPTION_SWITCH
+		state_fio->StateValue(config.option_switch);
 	#endif
 	#ifdef USE_DEVICE_TYPE
 		state_fio->StateValue(config.device_type);

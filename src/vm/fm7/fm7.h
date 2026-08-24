@@ -4,10 +4,6 @@
 	Author : K.Ohta
 	Date   : 2015.01.01-
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ virtual machine ]
 */
 
@@ -18,6 +14,7 @@
 #define USE_TAPE_PTR
 #define USE_SCANLINE
 #define USE_DIPSWITCH
+#define USE_OPTION_SWITCH
 #define USE_CPU_TYPE 2
 #define USE_SPECIAL_RESET
 #define USE_LED_DEVICE			3
@@ -36,9 +33,7 @@
 #define USE_AUTO_KEY_NUMPAD
 #define USE_SCREEN_FILTER
 #define USE_STATE
-#if !defined(__ANDROID__)
 #define USE_DEBUGGER
-#endif
 #define DATAREC_SOUND
 #define USE_DIG_RESOLUTION
 
@@ -49,6 +44,7 @@
 #define CONFIG_NAME		"fm8"
 #define CAPABLE_Z80
 #define DIPSWITCH_DEFAULT 0x00000000 
+#define OPTION_SWITCH     0x00000000 
 #define USE_BUBBLE 2
 #define BASE_BUBBLE_NUM 0
 #define MAX_DRIVE  4
@@ -62,7 +58,8 @@
 #define DEVICE_NAME		"FUJITSU FM-7"
 #define CONFIG_NAME		"fm7"
 #define CAPABLE_Z80
-#define DIPSWITCH_DEFAULT 0x000000000 
+#define DIPSWITCH_DEFAULT 0x00000000 
+#define OPTION_SWITCH     0x00000000 
 #define MAX_DRIVE  4
 #define CAPABLE_JCOMMCARD 1
 #define USE_GREEN_DISPLAY
@@ -72,7 +69,8 @@
 #define DEVICE_NAME		"FUJITSU FM-NEW7"
 #define CONFIG_NAME		"fmnew7"
 #define CAPABLE_Z80
-#define DIPSWITCH_DEFAULT 0x000000000 
+#define DIPSWITCH_DEFAULT 0x00000000 
+#define OPTION_SWITCH     0x00000000 
 #define MAX_DRIVE  4
 #define CAPABLE_JCOMMCARD 1
 #define USE_GREEN_DISPLAY
@@ -82,11 +80,13 @@
 # if defined(_FM77)
 #define DEVICE_NAME		"FUJITSU FM-77"
 #define CONFIG_NAME		"fm77"
-#define DIPSWITCH_DEFAULT 0x00000001
+#define DIPSWITCH_DEFAULT 0x00000001 
+#define OPTION_SWITCH     0x00000000 
 # else
 #define DEVICE_NAME		"FUJITSU FM-77L2"
 #define CONFIG_NAME		"fm77l2"
-#define DIPSWITCH_DEFAULT 0x00000003 
+#define DIPSWITCH_DEFAULT 0x00000001 
+#define OPTION_SWITCH     0x00000002 
 # endif
 //#define USE_DRIVE_TYPE
 #define _FM77_VARIANTS
@@ -113,7 +113,8 @@
 # ifndef FM77_EXRAM_BANKS
 #  define FM77_EXRAM_BANKS	3
 # endif
-#define DIPSWITCH_DEFAULT 0x00000003 
+#define DIPSWITCH_DEFAULT 0x00000001 
+#define OPTION_SWITCH     0x00000002 
 #define MAX_DRIVE  4
 #define CAPABLE_JCOMMCARD 1
 #define USE_GREEN_DISPLAY
@@ -124,6 +125,7 @@
 #define CONFIG_NAME		"fm77av"
 #define _FM77AV_VARIANTS
 #define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x00000000 
 #define MAX_DRIVE  2
 #define CAPABLE_JCOMMCARD 1
 #define CAPABLE_DICTROM
@@ -137,6 +139,7 @@
 //#define USE_DRIVE_TYPE 2
 #define CAPABLE_KANJI_CLASS2
 #define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x00000000 
 #define MAX_DRIVE  2
 
 #elif defined(_FM77AV20EX)
@@ -149,6 +152,7 @@
 #define CAPABLE_DICTROM
 #define CAPABLE_KANJI_CLASS2
 #define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x00000000 
 #define MAX_DRIVE  4
 
 #elif defined(_FM77AV40)
@@ -164,7 +168,8 @@
 #ifndef FM77_EXRAM_BANKS
 #define FM77_EXRAM_BANKS	12
 #endif
-#define DIPSWITCH_DEFAULT 0x8000000d 
+#define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x0000000c 
 #define MAX_DRIVE  4
 
 #elif defined(_FM77AV40EX)
@@ -180,7 +185,8 @@
 #ifndef FM77_EXRAM_BANKS
 #define FM77_EXRAM_BANKS	12
 #endif
-#define DIPSWITCH_DEFAULT 0x8000000d 
+#define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x0000000c 
 #define MAX_DRIVE  4
 
 #elif defined(_FM77AV40SX)
@@ -196,7 +202,8 @@
 # ifndef FM77_EXRAM_BANKS
 #  define FM77_EXRAM_BANKS	12
 # endif
-#define DIPSWITCH_DEFAULT 0x8000000d 
+#define DIPSWITCH_DEFAULT 0x80000001 
+#define OPTION_SWITCH     0x0000000c 
 #define MAX_DRIVE  4
 
 #endif
@@ -279,12 +286,7 @@
 #else /* Not have 400 line */
 
 #define SCREEN_WIDTH		640
-//adjust for Android
-#if defined(__ANDROID__)
-#define SCREEN_HEIGHT		400
-#else
 #define SCREEN_HEIGHT		200
-#endif
 # if defined(FIXED_FRAMEBUFFER_SIZE)
 #  define SCREEN_FAKE_WIDTH   640
 #  define SCREEN_FAKE_HEIGHT  400

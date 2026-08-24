@@ -4,10 +4,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.08.18 -
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ file i/o ]
 */
 
@@ -87,7 +83,7 @@ FILEIO::~FILEIO(void)
 
 bool FILEIO::IsFileExisting(const _TCHAR *file_path)
 {
-#if defined(_USE_QT) || defined(_USE_SDL) || defined(_Android)
+#if defined(_USE_QT) || defined(_USE_SDL)
 	FILE *f = fopen(file_path, "r");
 	if(f != NULL) {
 		fclose(f);
@@ -107,9 +103,6 @@ bool FILEIO::IsFileExisting(const _TCHAR *file_path)
 
 bool FILEIO::IsFileProtected(const _TCHAR *file_path)
 {
-#if defined(__ANDROID__)
-	return false;
-#else
 #if defined(_USE_QT) || defined(_USE_SDL)
 	struct stat st;
 	if(stat(file_path, &st) == 0) {
@@ -127,12 +120,11 @@ bool FILEIO::IsFileProtected(const _TCHAR *file_path)
 #else
 	return (_taccess(file_path, 2) != 0);
 #endif
-#endif
 }
 
 bool FILEIO::RemoveFile(const _TCHAR *file_path)
 {
-#if defined(_USE_QT) || defined(_USE_SDL)|| defined(_Android)
+#if defined(_USE_QT) || defined(_USE_SDL)
 	return (remove(file_path) == 0);
 #elif defined(_WIN32)
 	return (DeleteFile(file_path) != 0);
@@ -143,7 +135,7 @@ bool FILEIO::RemoveFile(const _TCHAR *file_path)
 
 bool FILEIO::RenameFile(const _TCHAR *existing_file_path, const _TCHAR *new_file_path)
 {
-#if defined(_USE_QT) || defined(_USE_SDL)|| defined(_Android)
+#if defined(_USE_QT) || defined(_USE_SDL)
 	return (rename(existing_file_path, new_file_path) == 0);
 #elif defined(_WIN32)
 	return (MoveFile(existing_file_path, new_file_path) != 0);
@@ -604,7 +596,6 @@ void FILEIO::FputWchar_LE(wchar_t val)
 _TCHAR FILEIO::FgetTchar_LE()
 {
 	switch(sizeof(_TCHAR)) {
-    case 1: return (_TCHAR)FgetUint8();
 	case 2: return (_TCHAR)FgetUint16_LE();
 	case 4: return (_TCHAR)FgetUint32_LE();
 	case 8: return (_TCHAR)FgetUint64_LE();
@@ -615,7 +606,6 @@ _TCHAR FILEIO::FgetTchar_LE()
 void FILEIO::FputTchar_LE(_TCHAR val)
 {
 	switch(sizeof(_TCHAR)) {
-    case 1: FputUint8((uint8_t)val); return;
 	case 2: FputUint16_LE((uint16_t)val); return;
 	case 4: FputUint32_LE((uint32_t)val); return;
 	case 8: FputUint32_LE((uint64_t)val); return;
@@ -822,8 +812,7 @@ void FILEIO::FputWchar_BE(wchar_t val)
 _TCHAR FILEIO::FgetTchar_BE()
 {
 	switch(sizeof(_TCHAR)) {
-    case 1: return (_TCHAR)FgetUint8();
-    case 2: return (_TCHAR)FgetUint16_BE();
+	case 2: return (_TCHAR)FgetUint16_BE();
 	case 4: return (_TCHAR)FgetUint32_BE();
 	case 8: return (_TCHAR)FgetUint64_BE();
 	}
@@ -833,8 +822,7 @@ _TCHAR FILEIO::FgetTchar_BE()
 void FILEIO::FputTchar_BE(_TCHAR val)
 {
 	switch(sizeof(_TCHAR)) {
-    case 1: FputUint8((uint8_t)val); return;
-    case 2: FputUint16_BE((uint16_t)val); return;
+	case 2: FputUint16_BE((uint16_t)val); return;
 	case 4: FputUint32_BE((uint32_t)val); return;
 	case 8: FputUint32_BE((uint64_t)val); return;
 	}
@@ -936,11 +924,7 @@ int FILEIO::Ftprintf(const _TCHAR* format, ...)
 	} else
 #endif
 	if(fp != NULL) {
-#if !defined(__ANDROID__)
 		return my_ftprintf_s(fp, _T("%s"), buffer);
-#else
-        return my_fprintf_s(fp, "%s", buffer);
-#endif
 	}
 	return 0;
 }
@@ -1021,6 +1005,63 @@ void FILEIO::Fflush()
 	if(fp != NULL) {
 		fflush(fp);
 	}
+}
+bool FILEIO::FindFirst(const _TCHAR* path)
+{
+	find_file[0] = _T('\0');
+	my_tcscpy_s(search_path, _MAX_PATH, path);
+#if defined(_WIN32)
+	search_handle = FindFirstFile(search_path, &win32fd);
+	if (search_handle == INVALID_HANDLE_VALUE) {
+		return false;
+	}
+	my_tcscpy_s(find_file, _MAX_PATH, win32fd.cFileName);
+#else
+	dir = opendir(search_path);
+	if(dir == NULL) {
+		return false;
+	}
+	dirent* dp = readdir(dir);
+	if(dp == null)
+	{
+		return false;
+	}
+	my_tcscpy_s(find_file, _MAX_PATH, dp->d_name);
+#endif
+	return true;
+}
+
+bool FILEIO::FindNext()
+{
+#if defined(_WIN32)
+	if(FindNextFile(search_handle, &win32fd) == 0)
+	{
+		return false;
+	}
+	my_tcscpy_s(find_file, _MAX_PATH, win32fd.cFileName);
+#else
+	dirent* dp = readdir(dir);
+	if(dp == null)
+	{
+		return false;
+	}
+	my_tcscpy_s(find_file, _MAX_PATH, dp->d_name);
+#endif
+	return true;
+}
+
+bool FILEIO::FindRrewind()
+{
+	return FindFirst(search_path);
+}
+
+void FILEIO::FindClose()
+{
+#if defined(_WIN32)
+	::FindClose(search_handle);
+#else
+	closedir(dir);
+#endif
 }
 
 bool FILEIO::StateCheckUint32(uint32_t val)

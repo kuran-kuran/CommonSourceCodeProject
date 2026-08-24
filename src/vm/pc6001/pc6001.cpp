@@ -39,6 +39,10 @@
 
 #include "../datarec.h"
 #include "../mcs48.h"
+#ifdef SUPPORT_CMU800
+#include "../cmu800.h"
+#include "../midi.h"
+#endif
 
 #ifdef USE_DEBUGGER
 #include "../debugger.h"
@@ -59,6 +63,19 @@
 
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+#ifdef SUPPORT_CMU800
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+	option_switch = config.option_switch;
+#endif
+
 	support_pc80s31k = FILEIO::IsFileExisting(create_local_path(_T("DISK.ROM")));
 #ifdef _PC6601SR
 	support_sub_cpu = false;
@@ -102,14 +119,32 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	joystick = new JOYSTICK(this, emu);
 	memory = new MEMORY(this, emu);
 	timer = new TIMER(this, emu);
-	
+
+#ifdef SUPPORT_CMU800
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+		cmu800->enable_portbase10(true);
+	}
+	else {
+		cmu800 = NULL;
+	}
+	ctrl = false; 
+#endif
+
 	// set contexts
 	event->set_context_cpu(cpu);
 	event->set_context_sound(psg);
 	event->set_context_sound(noise_seek);
 	event->set_context_sound(noise_head_down);
 	event->set_context_sound(noise_head_up);
-	
+
+#if defined(SUPPORT_CMU800)
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		event->set_context_sound(cmu800);
+	}
+#endif
+
 	pio_sub->set_context_port_b(printer, SIG_PRINTER_DATA, 0xff, 0);
 	pio_sub->set_context_port_c(printer, SIG_PRINTER_STROBE, 0x01, 0);
 	pio_sub->set_context_port_c(memory, SIG_MEMORY_PIO_PORT_C, 0x06, 0);	// CRTKILL,CGSWN
@@ -126,7 +161,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #else
 	voice = new UPD7752(this, emu);
 	event->set_context_sound(voice);
-	// memory->set_context_timer(timer);	// Medamap no member named set_context_timer
+	memory->set_context_timer(timer);
 #endif
 	memory->set_context_cpu(cpu);
 	joystick->set_context_psg(psg);
@@ -232,6 +267,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 //	} else {
 //		io->set_iomap_range_rw(0x90, 0x93, psub);
 	}
+#if defined(SUPPORT_CMU800)
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		io->set_iomap_range_rw(0x10, 0x1c, cmu800);
+	}
+#endif
 	io->set_iomap_alias_w(0xa0, psg, 0);			// PSG ch
 	io->set_iomap_alias_w(0xa1, psg, 1);			// PSG data
 	io->set_iomap_alias_r(0xa2, psg, 1);			// PSG data
@@ -333,6 +373,11 @@ void VM::reset()
 		pio_fdd->write_signal(SIG_I8255_PORT_C, 0, 0xff);
 		pio_pc80s31k->write_signal(SIG_I8255_PORT_C, 0, 0xff);
 	}
+#if defined(SUPPORT_CMU800)
+	if (cmu800) {
+		cmu800->reset();
+	}
+#endif
 }
 
 void VM::run()
@@ -367,7 +412,7 @@ void VM::draw_screen()
 #ifdef _PC6001
 	display->draw_screen();
 #else
-	memory->draw_screen(); // Medamap No member named draw_screen
+	memory->draw_screen();
 #endif
 }
 // ----------------------------------------------------------------------------
@@ -384,6 +429,12 @@ void VM::initialize_sound(int rate, int samples)
 #ifndef _PC6001
 	voice->initialize_sound(rate);
 #endif
+#if defined(SUPPORT_CMU800)
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
+#endif
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -399,11 +450,48 @@ int VM::get_sound_buffer_ptr()
 #ifdef USE_SOUND_VOLUME
 void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 {
-	if(ch-- == 0) {
+	if (ch-- == 0) {
 		psg->set_volume(1, decibel_l, decibel_r);
 #if !defined(_PC6001)
-	} else if(ch-- == 0) {
+	}
+	else if (ch-- == 0) {
 		voice->set_volume(0, decibel_l, decibel_r);
+#endif
+#if defined(SUPPORT_CMU800)
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+			return;
+		}
+	}
+	else if(ch-- == 0) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+			return;
+		}
 #endif
 	} else if(ch-- == 0) {
 		if(support_sub_cpu) {
@@ -432,6 +520,36 @@ void VM::key_down(int code, bool repeat)
 //	if(!support_sub_cpu) {
 //		psub->key_down(code);
 //	}
+	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+#if defined(SUPPORT_CMU800)
+	if (!cmu800) {
+		return;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		if (code == 17) {
+			// left-ctrl and right-ctrl
+			ctrl = true;
+			return;
+		}
+		if (ctrl == true) {
+			switch (code)
+			{
+			case 37: // L
+				cmu800->adjust_tempo(-1);
+				break;
+			case 38: // U
+				cmu800->adjust_tempo(10);
+				break;
+			case 39: // R
+				cmu800->adjust_tempo(1);
+				break;
+			case 40: // D
+				cmu800->adjust_tempo(-10);
+				break;
+			}
+		}
+	}
+#endif
 }
 
 void VM::key_up(int code)
@@ -439,6 +557,11 @@ void VM::key_up(int code)
 //	if(!support_sub_cpu) {
 //		psub->key_up(code);
 //	}
+#if defined(SUPPORT_CMU800)
+	if (code == 17) {
+		ctrl = false;
+	}
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -628,11 +751,9 @@ bool VM::is_tape_inserted(int drv)
 {
 	if(support_sub_cpu) {
 		return drec->is_tape_inserted() || sub->is_tape_inserted();
-// why comment out?
 //	} else {
 //		return psub->is_tape_inserted();
 	}
-    // MedamaP
     return false;
 }
 
@@ -713,9 +834,23 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
 	}
+#if defined(SUPPORT_CMU800)
+	option_switch = config.option_switch;
+#endif
 }
 
 #define STATE_VERSION	8
@@ -727,10 +862,10 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 #if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-        int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
 #else
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
 #endif
 		int len = (int)_tcslen(name);
 		

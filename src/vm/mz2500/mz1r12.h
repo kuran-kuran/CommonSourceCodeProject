@@ -1,6 +1,7 @@
 /*
 	SHARP MZ-80B Emulator 'EmuZ-80B'
 	SHARP MZ-2200 Emulator 'EmuZ-2200'
+	SHARP MZ-2500 Emulator 'EmuZ-2500'
 
 	Author : Takeda.Toshiya
 	Date   : 2013.03.17-

@@ -63,7 +63,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	via->set_context_port_b(pcm, SIG_PCM1BIT_SIGNAL, 0x80, 0);	// PB7 -> Speaker
 	via->set_context_port_b(via, SIG_MEMORY_VIA_PORT_B, 0x80, -1);	// PB7 -> PB6
 	via->set_context_cb2(not_mic, SIG_NOT_INPUT, 1);		// CB2 -> NOT -> MIC
-	via->set_constant_clock(CPU_CLOCKS >> 2);
+	via->set_constant_clock(CPU_CLOCKS);
 	not_mic->set_context_out(drec, SIG_DATAREC_MIC, 1);
 	drec->set_context_ear(not_ear, SIG_NOT_INPUT, 1);		// EAR -> NOT -> CA1,CB1
 	not_ear->set_context_out(via, SIG_SY6522_PORT_CA1, 1);
@@ -299,10 +299,10 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 #if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-        int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
 #else
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
 #endif
 		int len = (int)_tcslen(name);
 		

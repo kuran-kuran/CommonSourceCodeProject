@@ -180,6 +180,11 @@
 #include "hc80/hc80.h"
 #endif
 
+// Hudson HuX-883
+#ifdef _HUX883
+#include "hux883/hux883.h"
+#endif
+
 // TOSHIBA HX-20 + FDD
 #ifdef _HX20
 #include "msx/msx_ex.h"

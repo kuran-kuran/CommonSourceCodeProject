@@ -5,10 +5,6 @@
 	Author : Takeda.Toshiya
 	Date   : 2011.05.06-
 
-  	[for Android] Delete USE_DEBUGGER
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ MC6809 ]
         Notes from K.Ohta <whatisthis.sowhat _at_ gmail.com> at Jan 16, 2015:
               All of undocumented instructions (i.e. ngc, flag16) of MC6809(not HD6309) are written by me.
@@ -36,17 +32,14 @@ void MC6809::initialize()
 	int_state = 0;
 	busreq = false;
 
-#if !defined(__ANDROID__)
 	if(__USE_DEBUGGER) {
 		d_mem_stored = d_mem;
 		d_debugger->set_context_mem(d_mem);
 	}
-#endif
 }
 
 void MC6809::run_one_opecode()
 {
-#if !defined(__ANDROID__)
 	if(__USE_DEBUGGER) {
 		bool now_debugging = d_debugger->now_debugging;
 		if(now_debugging) {
@@ -108,7 +101,6 @@ void MC6809::run_one_opecode()
 			total_icount += first_icount - icount;
 		}
 	} else {
-#endif
 		pPPC = pPC;
 		uint8_t ireg = ROP(PCD);
 		PC++;
@@ -116,14 +108,11 @@ void MC6809::run_one_opecode()
 		icount -= extra_icount;
 		extra_icount = 0;
 		op(ireg);
-#if !defined(__ANDROID__)
 	}
-#endif
 }
 
 void MC6809::debugger_hook()
 {
-#if !defined(__ANDROID__)
 	if(__USE_DEBUGGER) {
 		bool now_debugging = d_debugger->now_debugging;
 		if(now_debugging) {
@@ -166,7 +155,6 @@ void MC6809::debugger_hook()
 			}
 		}
 	}
-#endif
 }
 
 

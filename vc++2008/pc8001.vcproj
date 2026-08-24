@@ -405,6 +405,26 @@
 					</FileConfiguration>
 				</File>
 				<File
+					RelativePath="..\src\win32\osd_midi.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
 					RelativePath="..\src\win32\osd_screen.cpp"
 					>
 					<FileConfiguration
@@ -471,6 +491,26 @@
 				>
 				<File
 					RelativePath="..\src\vm\ay_3_891x.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\cmu800.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -571,6 +611,26 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\i8255.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							PreprocessorDefinitions=""
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.cpp"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -928,6 +988,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\src\vm\cmu800.h"
+					>
+				</File>
+				<File
 					RelativePath="..\src\vm\debugger.h"
 					>
 				</File>
@@ -953,6 +1017,10 @@
 				</File>
 				<File
 					RelativePath="..\src\vm\i8255.h"
+					>
+				</File>
+				<File
+					RelativePath="..\src\vm\midi.h"
 					>
 				</File>
 				<File

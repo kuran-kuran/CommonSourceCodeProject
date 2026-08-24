@@ -18,7 +18,7 @@
 
 #ifdef _X1TURBO_FEATURE
 #define EVENT_AFTER_BLANK	0
-#define KSEN_EN	   ((mode1 & 0x80) != 0)
+#define KSEN_EN	  ((mode1 & 0x80) != 0)
 #define FONT16_EN ((mode1 & 0x05) != 0)
 #endif
 
@@ -557,11 +557,10 @@ void DISPLAY::event_frame()
 #ifdef _X1TURBO_FEATURE
 	int vt_total = ((regs[4] & 0x7f) + 1) * ch_height + (regs[5] & 0x1f);
 	hireso = (vt_total > 400);
-
 //	vt_ofs -= (hireso ? 400 : 202) - (vt_disp * ch_height);
 //	vt_ofs = max(vt_ofs, 0);
-	if (hireso) {
-		if (KSEN_EN) vt_ofs -= 8;
+	if(hireso) {
+		if(KSEN_EN) vt_ofs -= 8;
 	} else {
 		vt_ofs -= 2;
 		if (KSEN_EN) vt_ofs -= 16;
@@ -725,7 +724,6 @@ void DISPLAY::get_cur_pcg(uint32_t addr)
 void DISPLAY::get_cur_code_line()
 {
 #ifdef _X1TURBO_FEATURE
-	// uint32_t ht_clock = hz_total * CPU_CLOCKS / (d_crtc->get_char_clock());
 #define STD_HIREZO_HT_CLOCK (108 * CPU_CLOCKS / (21477270 / 8))
 #define STD_LORESO_HT_CLOCK (112 * CPU_CLOCKS / (14318180 / 8))
 #define NTSC_HT_CLOCK (112 * CPU_CLOCKS / (14318180 / 8))
@@ -746,10 +744,10 @@ void DISPLAY::get_cur_code_line()
 #ifdef _X1TURBO_FEATURE
 	uint8_t knj = vram_k[addr & 0x7ff];
 	// 本来は漢字FONTや16dorANKも読めるのだが...
-	if (knj & 0x80) {
+	if(knj & 0x80) {
 		cur_code = (cur_code & 0xfe) | (cur_line & 1);
 	}
-	if (FONT16_EN) {
+	if(FONT16_EN) {
 		cur_line >>= 1;
 	}
 #endif
@@ -982,7 +980,7 @@ void DISPLAY::draw_text(int yy)
 	uint16_t src = st_addr + hz_disp * y;
 	
 	bool cur_vert_double = true;
-	uint8_t prev_attr = 0, cur_pattern_b=0, cur_pattern_r = 0,cur_pattern_g = 0;
+	uint8_t prev_attr = 0, cur_pattern_b = 0, cur_pattern_r = 0, cur_pattern_g = 0;
 	
 	for(int x = 0; x < hz_disp && x < width; x++) {
 		src &= 0x7ff;
@@ -998,7 +996,7 @@ void DISPLAY::draw_text(int yy)
 		bool reverse = ((attr & 8) != 0);
 		bool blink = ((attr & 0x10) && (cblink & 0x20));
 		reverse = (reverse != blink);
-		cur_vert_double = (attr & 0x40);
+		cur_vert_double = ((attr & 0x40) != 0);
 		
 		// select pcg or ank
 		const uint8_t *pattern_b, *pattern_r, *pattern_g;
@@ -1007,22 +1005,22 @@ void DISPLAY::draw_text(int yy)
 		int max_line = 8;
 		// KSEN blank,underline
 		bool ksen_blank = false;
-		bool ksen_line    = false;
-		if (KSEN_EN) {
-			int underline_start = 16;
+		bool ksen_line  = false;
+		if(KSEN_EN) {
+			int underline_start  = 16;
 			int underline_raster = 18;
-			if (!FONT16_EN) {
-				underline_start >>= 1;
+			if(!FONT16_EN) {
+				underline_start  >>= 1;
 				underline_raster >>= 1; 
 			}
 			ksen_blank = (l >= underline_start);
-			ksen_line    = (l == underline_raster);
+			ksen_line  = (l == underline_raster);
 		}
 #else
 		#define max_line 8
 #endif
 		// load raster if not vertical doubled
-		if (!cur_vert_double) {
+		if(!cur_vert_double) {
 			raster = l;
 		}
 		if(attr & 0x20) {
@@ -1065,10 +1063,11 @@ void DISPLAY::draw_text(int yy)
 		}
 #endif
 		// render character
+//		for(int l = 0; l < ch_height; l++)
 		{
 			uint8_t b, r, g;
 			int line = raster; // cur_vert_double ? raster + (l >> 1) : l;
-
+			
 #ifdef _X1TURBO_FEATURE
 			if(shift == 1) {
 				line >>= 1;
@@ -1111,11 +1110,11 @@ void DISPLAY::draw_text(int yy)
 			uint8_t* d = &text[yy][x << 3];
 			
 #ifdef _X1TURBO_FEATURE
-			// underline mode , mask & draw
+			// underline mode, mask & draw
 			if (ksen_blank) {
-				// アンダーランには、グラフィックの palet 1 の色が表示される
+				// アンダーランには、グラフィックの palette 1 の色が表示される
 				// 仮値をセットして、cg_draw()で参照してグラフィックに置換する
-				d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = ksen_line && (knj & 0x20) ? 8 : 0;
+				d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = (ksen_line && (knj & 0x20)) ? 8 : 0;
 			} else 
 #endif
 			if(attr & 0x80) {
@@ -1136,25 +1135,16 @@ void DISPLAY::draw_text(int yy)
 				d[5] = ((b & 0x04) >> 2) | ((r & 0x04) >> 1) | ((g & 0x04) >> 0);
 				d[6] = ((b & 0x02) >> 1) | ((r & 0x02) >> 0) | ((g & 0x02) << 1);
 				d[7] = ((b & 0x01) >> 0) | ((r & 0x01) << 1) | ((g & 0x01) << 2);
-				cur_pattern_b  = 0; // prev_pattern_b <<= 8;
-				cur_pattern_r  = 0; //prev_pattern_r <<= 8;
-				cur_pattern_g  = 0; //prev_pattern_g <<= 8;
+				cur_pattern_b = 0; // prev_pattern_b <<= 8;
+				cur_pattern_r = 0; // prev_pattern_r <<= 8;
+				cur_pattern_g = 0; // prev_pattern_g <<= 8;
 			}
 		}
 		prev_attr = attr;
 	}
-	// next raster for vertical doubled
-	//if(cur_vert_double && (l&1)) {
-	//		raster++;
-	//}
-#ifdef _X1TURBO_FEATURE
-	//raster &= 0x0f;
-#else
-	//raster &= 0x07;
-#endif
-    if ((cur_vert_double == 0) || (l & 1)) {
+    if((cur_vert_double == 0) || (l & 1)) {
         raster = (raster + 1) % ch_height;
-    }
+	}
 }
 
 void DISPLAY::draw_cg(int line, int plane)
@@ -1219,53 +1209,51 @@ void DISPLAY::draw_cg(int line, int plane)
 		int ofs_r1 = column40 ? (ofs_r0 ^ 0x400) : hireso ? ofs_r0 : (ofs_r0 + 0xc000);
 		int ofs_g1 = column40 ? (ofs_g0 ^ 0x400) : hireso ? ofs_g0 : (ofs_g0 + 0xc000);
 		
-		// アナログモード時の KSEN にどの色がつくかは未調査、,B=1111bで課程
+		// アナログモード時のKSENにどの色がつくかは未調査、B=1111bと仮定
 		if(KSEN_EN) {
 			int underline_raster = FONT16_EN ? 18 : 9;
-			if (l == underline_raster) {
+			if(l == underline_raster) {
 				uint16_t* d = &zcg[plane][line][0];
 				uint8_t* t = &text[line][0]; // underlineの有無をtext[]から拾って移す
-				for (int x = 0; x < hz_disp && x < width; x++) {
-					if (t[0] != 0) {
-						// テキストの仮KSENからグラフィックに移す。
+				for(int x = 0; x < hz_disp && x < width; x++) {
+					if(t[0] != 0) {
+						// テキストの仮KSENからグラフィックに移す
 						d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 3 << 2;
 						t[0] = t[1] = t[2] = t[3] = t[4] = t[5] = t[6] = t[7] = 0;
-					}
-					else {
+					} else {
 						d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 0;
 					}
 					d += 8;
 					t += 8;
 				}
-			}
-			else {
+			} else {
 				uint16_t* d = &zcg[plane][line][0];
-				for (int x = 0; x < hz_disp && x < width; x++) {
+				for(int x = 0; x < hz_disp && x < width; x++) {
 					d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 0;
 					d += 8;
 				}
 			}
-		}
-		else
-		for(int x = 0; x < hz_disp && x < width; x++) {
-			src &= column40 ? 0x3ff : 0x7ff;
-			uint16_t b0 = vram_ptr[ofs_b0 | src];
-			uint16_t r0 = vram_ptr[ofs_r0 | src];
-			uint16_t g0 = vram_ptr[ofs_g0 | src];
-			uint16_t b1 = vram_ptr[ofs_b1 | src];
-			uint16_t r1 = vram_ptr[ofs_r1 | src];
-			uint16_t g1 = vram_ptr[ofs_g1 | src++];
-			uint16_t* d = &zcg[plane][line][x << 3];
-			
-			// MSB <- G0,G1,0,0, R0,R1,0,0, B0,B1,0,0 -> LSB
-			d[0] = ((b0 & 0x80) >> 4) | ((b1 & 0x80) >> 5) | ((r0 & 0x80) >> 0) | ((r1 & 0x80) >> 1) | ((g0 & 0x80) <<  4) | ((g1 & 0x80) <<  3);
-			d[1] = ((b0 & 0x40) >> 3) | ((b1 & 0x40) >> 4) | ((r0 & 0x40) << 1) | ((r1 & 0x40) >> 0) | ((g0 & 0x40) <<  5) | ((g1 & 0x40) <<  4);
-			d[2] = ((b0 & 0x20) >> 2) | ((b1 & 0x20) >> 3) | ((r0 & 0x20) << 2) | ((r1 & 0x20) << 1) | ((g0 & 0x20) <<  6) | ((g1 & 0x20) <<  5);
-			d[3] = ((b0 & 0x10) >> 1) | ((b1 & 0x10) >> 2) | ((r0 & 0x10) << 3) | ((r1 & 0x10) << 2) | ((g0 & 0x10) <<  7) | ((g1 & 0x10) <<  6);
-			d[4] = ((b0 & 0x08) >> 0) | ((b1 & 0x08) >> 1) | ((r0 & 0x08) << 4) | ((r1 & 0x08) << 3) | ((g0 & 0x08) <<  8) | ((g1 & 0x08) <<  7);
-			d[5] = ((b0 & 0x04) << 1) | ((b1 & 0x04) >> 0) | ((r0 & 0x04) << 5) | ((r1 & 0x04) << 4) | ((g0 & 0x04) <<  9) | ((g1 & 0x04) <<  8);
-			d[6] = ((b0 & 0x02) << 2) | ((b1 & 0x02) << 1) | ((r0 & 0x02) << 6) | ((r1 & 0x02) << 5) | ((g0 & 0x02) << 10) | ((g1 & 0x02) <<  9);
-			d[7] = ((b0 & 0x01) << 3) | ((b1 & 0x01) << 2) | ((r0 & 0x01) << 7) | ((r1 & 0x01) << 6) | ((g0 & 0x01) << 11) | ((g1 & 0x01) << 10);
+		} else {
+			for(int x = 0; x < hz_disp && x < width; x++) {
+				src &= column40 ? 0x3ff : 0x7ff;
+				uint16_t b0 = vram_ptr[ofs_b0 | src];
+				uint16_t r0 = vram_ptr[ofs_r0 | src];
+				uint16_t g0 = vram_ptr[ofs_g0 | src];
+				uint16_t b1 = vram_ptr[ofs_b1 | src];
+				uint16_t r1 = vram_ptr[ofs_r1 | src];
+				uint16_t g1 = vram_ptr[ofs_g1 | src++];
+				uint16_t* d = &zcg[plane][line][x << 3];
+				
+				// MSB <- G0,G1,0,0, R0,R1,0,0, B0,B1,0,0 -> LSB
+				d[0] = ((b0 & 0x80) >> 4) | ((b1 & 0x80) >> 5) | ((r0 & 0x80) >> 0) | ((r1 & 0x80) >> 1) | ((g0 & 0x80) <<  4) | ((g1 & 0x80) <<  3);
+				d[1] = ((b0 & 0x40) >> 3) | ((b1 & 0x40) >> 4) | ((r0 & 0x40) << 1) | ((r1 & 0x40) >> 0) | ((g0 & 0x40) <<  5) | ((g1 & 0x40) <<  4);
+				d[2] = ((b0 & 0x20) >> 2) | ((b1 & 0x20) >> 3) | ((r0 & 0x20) << 2) | ((r1 & 0x20) << 1) | ((g0 & 0x20) <<  6) | ((g1 & 0x20) <<  5);
+				d[3] = ((b0 & 0x10) >> 1) | ((b1 & 0x10) >> 2) | ((r0 & 0x10) << 3) | ((r1 & 0x10) << 2) | ((g0 & 0x10) <<  7) | ((g1 & 0x10) <<  6);
+				d[4] = ((b0 & 0x08) >> 0) | ((b1 & 0x08) >> 1) | ((r0 & 0x08) << 4) | ((r1 & 0x08) << 3) | ((g0 & 0x08) <<  8) | ((g1 & 0x08) <<  7);
+				d[5] = ((b0 & 0x04) << 1) | ((b1 & 0x04) >> 0) | ((r0 & 0x04) << 5) | ((r1 & 0x04) << 4) | ((g0 & 0x04) <<  9) | ((g1 & 0x04) <<  8);
+				d[6] = ((b0 & 0x02) << 2) | ((b1 & 0x02) << 1) | ((r0 & 0x02) << 6) | ((r1 & 0x02) << 5) | ((g0 & 0x02) << 10) | ((g1 & 0x02) <<  9);
+				d[7] = ((b0 & 0x01) << 3) | ((b1 & 0x01) << 2) | ((r0 & 0x01) << 7) | ((r1 & 0x01) << 6) | ((g0 & 0x01) << 11) | ((g1 & 0x01) << 10);
+			}
 		}
 #if 1
 		// zpriorityで処理すると、プレーンの取得に遅延がでるので
@@ -1299,14 +1287,14 @@ void DISPLAY::draw_cg(int line, int plane)
 		int ofs_g = ofs + 0x8000;
 		
 #ifdef _X1TURBO_FEATURE
-		if (KSEN_EN) {
+		if(KSEN_EN) {
 			int underline_raster = FONT16_EN ? 18 : 9;
-			if (l == underline_raster) {
+			if(l == underline_raster) {
 				uint8_t* d = &cg[line][0];
 				uint8_t* t = &text[line][0]; // underlineの有無をtext[]から拾って移す
-				for (int x = 0; x < hz_disp && x < width; x++) {
-					if (t[0] != 0) {
-						// テキストの仮KSENからグラフィックに移す。
+				for(int x = 0; x < hz_disp && x < width; x++) {
+					if(t[0] != 0) {
+						// テキストの仮KSENからグラフィックに移す
 						d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 1;
 						t[0] = t[1] = t[2] = t[3] = t[4] = t[5] = t[6] = t[7] = 0;
 					} else {
@@ -1317,7 +1305,7 @@ void DISPLAY::draw_cg(int line, int plane)
 				}
 			} else {
 				uint8_t* d = &cg[line][0];
-				for (int x = 0; x < hz_disp && x < width; x++) {
+				for(int x = 0; x < hz_disp && x < width; x++) {
 					d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 0;
 					d += 8;
 				}

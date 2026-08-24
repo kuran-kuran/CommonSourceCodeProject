@@ -12,6 +12,7 @@
 #include "../device.h"
 #include "../event.h"
 
+#include "../cmu800.h"
 #include "../datarec.h"
 #include "../disk.h"
 #include "../harddisk.h"
@@ -19,6 +20,7 @@
 #include "../i8255.h"
 #include "../io.h"
 #include "../mb8877.h"
+#include "../midi.h"
 #include "../mz1p17.h"
 #include "../noise.h"
 #include "../pcm1bit.h"
@@ -48,6 +50,8 @@
 #include "mouse.h"
 #include "mz1e26.h"
 #include "mz1e30.h"
+#include "mz1e32.h"
+#include "mz1r12.h"
 #include "mz1r13.h"
 #include "mz1r37.h"
 #include "printer.h"
@@ -60,6 +64,12 @@
 
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+	// CMU-800 vs MZ-1E32
+	if((config.option_switch & OPTION_SWITCH_CMU800_MASK) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
+	}
+	option_switch = config.option_switch;
+	
 	// create devices
 	first_device = last_device = NULL;
 	dummy = new DEVICE(this, emu);	// must be 1st device
@@ -79,18 +89,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	fdc->set_context_noise_head_up(new NOISE(this, emu));
 	pcm = new PCM1BIT(this, emu);
 	rtc = new RP5C01(this, emu);	// RP-5C15
-	sasi_host = new SCSI_HOST(this, emu);
-	sasi_hdd = new SASI_HDD(this, emu);
-	sasi_hdd->set_device_name(_T("SASI Hard Disk Drive"));
-	sasi_hdd->scsi_id = 0;
-//	sasi_hdd->bytes_per_sec = 32 * 1024; // 32KB/s
-	sasi_hdd->bytes_per_sec = 3600 / 60 * 256 * 33; // 3600rpm, 256bytes x 33sectors in track (thanks Mr.Sato)
-	for(int i = 0; i < USE_HARD_DISK; i++) {
-		sasi_hdd->set_disk_handler(i, new HARDDISK(emu));
-	}
-	sasi_hdd->set_context_interface(sasi_host);
-	sasi_host->set_context_target(sasi_hdd);
-	w3100a = new W3100A(this, emu);
 	opn = new YM2203(this, emu);
 #ifdef USE_DEBUGGER
 	opn->set_context_debugger(new DEBUGGER(this, emu));
@@ -108,13 +106,52 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	keyboard = new KEYBOARD(this, emu);
 	memory = new MEMORY(this, emu);
 	mouse = new MOUSE(this, emu);
-	mz1e26 = new MZ1E26(this, emu);
-	mz1e30 = new MZ1E30(this, emu);
-	mz1r13 = new MZ1R13(this, emu);
-	mz1r37 = new MZ1R37(this, emu);
 	printer = new PRINTER(this, emu);
 	serial = new SERIAL(this, emu);
 	timer = new TIMER(this, emu);
+	
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	} else {
+		cmu800 = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E26) {
+		mz1e26 = new MZ1E26(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		sasi_host = new SCSI_HOST(this, emu);
+		sasi_hdd = new SASI_HDD(this, emu);
+		sasi_hdd->set_device_name(_T("SASI Hard Disk Drive"));
+		sasi_hdd->scsi_id = 0;
+//		sasi_hdd->bytes_per_sec = 32 * 1024; // 32KB/s
+		sasi_hdd->bytes_per_sec = 3600 / 60 * 256 * 33; // 3600rpm, 256bytes x 33sectors in track (thanks Mr.Sato)
+		for(int i = 0; i < USE_HARD_DISK; i++) {
+			sasi_hdd->set_disk_handler(i, new HARDDISK(emu));
+		}
+		sasi_hdd->set_context_interface(sasi_host);
+		sasi_host->set_context_target(sasi_hdd);
+		mz1e30 = new MZ1E30(this, emu);
+	} else {
+		sasi_hdd = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E32) {
+		mz1e32 = new MZ1E32(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		mz1r12 = new MZ1R12(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
+		mz1r13 = new MZ1R13(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R37) {
+		mz1r37 = new MZ1R37(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_W3100A) {
+		w3100a = new W3100A(this, emu);
+	} else {
+		w3100a = NULL;
+	}
 	
 	// set contexts
 	event->set_context_cpu(cpu, config.boot_mode ? CPU_CLOCKS_LOW : CPU_CLOCKS);
@@ -127,7 +164,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
 	event->set_context_sound(drec->get_context_noise_fast());
-	
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		event->set_context_sound(cmu800);
+	}
+
 	drec->set_context_ear(cmt, SIG_CMT_OUT, 1);
 	drec->set_context_remote(cmt, SIG_CMT_REMOTE, 1);
 	drec->set_context_end(cmt, SIG_CMT_END, 1);
@@ -144,8 +184,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pio_i->set_context_port_c(pcm, SIG_PCM1BIT_SIGNAL, 0x04, 0);
 	rtc->set_context_alarm(interrupt, SIG_INTERRUPT_RP5C15, 1);
 	rtc->set_context_pulse(opn, SIG_YM2203_PORT_B, 8);
-	sasi_host->set_context_irq(mz1e30, SIG_MZ1E30_IRQ, 1);
-	sasi_host->set_context_drq(mz1e30, SIG_MZ1E30_DRQ, 1);
 	opn->set_context_port_a(floppy, SIG_FLOPPY_REVERSE, 0x02, 0);
 	opn->set_context_port_a(crtc, SIG_CRTC_PALLETE, 0x04, 0);
 	opn->set_context_port_a(mouse, SIG_MOUSE_SEL, 0x08, 0);
@@ -170,7 +208,6 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_context_cpu(cpu);
 	memory->set_context_crtc(crtc);
 	mouse->set_context_sio(sio);
-	mz1e30->set_context_host(sasi_host);
 	if(config.printer_type == 0) {  
 		printer->set_context_prn(new PRNFILE(this, emu));
 	} else if(config.printer_type == 1) {
@@ -184,6 +221,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 	serial->set_context_sio(sio);
 	timer->set_context_pit(pit);
+	
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		sasi_host->set_context_irq(mz1e30, SIG_MZ1E30_IRQ, 1);
+		sasi_host->set_context_drq(mz1e30, SIG_MZ1E30_DRQ, 1);
+		mz1e30->set_context_host(sasi_host);
+	}
 	
 	// cpu bus
 	cpu->set_context_mem(memory);
@@ -201,20 +244,37 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	interrupt->set_context_intr(cpu, 2);
 	
 	// i/o bus
-	io->set_iomap_range_rw(0x60, 0x63, w3100a);
+	if(config.option_switch & OPTION_SWITCH_W3100A) {
+		io->set_iomap_range_rw(0x60, 0x63, w3100a);
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E32) {
+		io->set_iomap_range_rw(0x9a, 0x9b, mz1e32);
+	}
 	io->set_iomap_range_rw(0xa0, 0xa3, serial);
-	io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
-	io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);
-	io->set_iomap_range_rw(0xac, 0xad, mz1r37);
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
+		io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R37) {
+		io->set_iomap_range_rw(0xac, 0xad, mz1r37);
+	}
 	io->set_iomap_single_w(0xae, crtc);
 	io->set_iomap_range_rw(0xb0, 0xb3, serial);
 	io->set_iomap_range_rw(0xb4, 0xb5, memory);
 	io->set_iomap_single_w(0xb7, memory);
-	io->set_iomap_range_rw(0xb8, 0xb9, mz1r13);
+	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
+		// MZ-2000”ÅHuBASIC‚Å•ÏŠ·‘‹‚ª•\Ž¦‚Å‚«‚È‚­‚È‚Á‚Ä‚¢‚½‚Ì‚Å0xbb‚ÉC³‚µ‚Ü‚µ‚½
+		io->set_iomap_range_rw(0xb8, 0xbb, mz1r13);
+	}
 	io->set_iomap_range_rw(0xbc, 0xbf, crtc);
 	io->set_iomap_range_w(0xc6, 0xc7, interrupt);
 	io->set_iomap_range_rw(0xc8, 0xc9, opn);
-	io->set_iomap_single_rw(0xca, mz1e26);
+	if(config.option_switch & OPTION_SWITCH_MZ1E26) {
+		io->set_iomap_single_rw(0xca, mz1e26);
+	}
 	io->set_iomap_single_rw(0xcc, calendar);
 	io->set_iomap_single_w(0xcd, serial);
 	io->set_iomap_range_w(0xce, 0xcf, memory);
@@ -226,6 +286,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_rw(0xef, joystick);
 	io->set_iomap_range_w(0xf0, 0xf3, timer);
 	io->set_iomap_range_rw(0xf4, 0xf7, crtc);
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
+	}
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 	
 	if(config.boot_mode == 0) {
@@ -308,6 +371,9 @@ void VM::special_reset()
 //	}
 	memory->special_reset();
 	cpu->special_reset();
+	if(cmu800) {
+		cmu800->reset();
+	}
 }
 
 void VM::run()
@@ -355,6 +421,11 @@ void VM::initialize_sound(int rate, int samples)
 	// init sound gen
 	opn->initialize_sound(rate, 2000000, samples, 0, -8);
 	pcm->initialize_sound(rate, 4096);
+
+	// init CMU-800
+	if(cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -377,14 +448,39 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 	} else if(ch == 2) {
 		pcm->set_volume(0, decibel_l, decibel_r);
 	} else if(ch == 3) {
-		drec->set_volume(0, decibel_l, decibel_r);
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
 	} else if(ch == 4) {
-		drec->set_volume(1, decibel_l, decibel_r);
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
 	} else if(ch == 5) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch == 6) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch == 7) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
+	} else if(ch == 8) {
+		drec->set_volume(0, decibel_l, decibel_r);
+	} else if(ch == 9) {
+		drec->set_volume(1, decibel_l, decibel_r);
+	} else if(ch == 10) {
 		fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
 		fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
-	} else if(ch == 6) {
+	} else if(ch == 11) {
 		drec->get_context_noise_play()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_stop()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_fast()->set_volume(0, decibel_l, decibel_r);
@@ -398,37 +494,54 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 
 void VM::notify_socket_connected(int ch)
 {
-	w3100a->notify_connected(ch);
+	if(w3100a) {
+		w3100a->notify_connected(ch);
+	}
 }
 
 void VM::notify_socket_disconnected(int ch)
 {
-	w3100a->notify_disconnected(ch);
+	if(w3100a) {
+		w3100a->notify_disconnected(ch);
+	}
 }
 
 uint8_t* VM::get_socket_send_buffer(int ch, int* size)
 {
-	return w3100a->get_send_buffer(ch, size);
+	if(w3100a) {
+		return w3100a->get_send_buffer(ch, size);
+	}
+	return NULL;
 }
 
 void VM::inc_socket_send_buffer_ptr(int ch, int size)
 {
-	w3100a->inc_send_buffer_ptr(ch, size);
+	if(w3100a) {
+		w3100a->inc_send_buffer_ptr(ch, size);
+	}
 }
 
 uint8_t* VM::get_socket_recv_buffer0(int ch, int* size0, int* size1)
 {
-	return w3100a->get_recv_buffer0(ch, size0, size1);
+	if(w3100a) {
+		return w3100a->get_recv_buffer0(ch, size0, size1);
+	}
+	return NULL;
 }
 
 uint8_t* VM::get_socket_recv_buffer1(int ch)
 {
-	return w3100a->get_recv_buffer1(ch);
+	if(w3100a) {
+		return w3100a->get_recv_buffer1(ch);
+	}
+	return NULL;
 }
 
 void VM::inc_socket_recv_buffer_ptr(int ch, int size)
 {
-	w3100a->inc_recv_buffer_ptr(ch, size);
+	if(w3100a) {
+		w3100a->inc_recv_buffer_ptr(ch, size);
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -477,21 +590,21 @@ uint32_t VM::is_floppy_disk_accessed()
 
 void VM::open_hard_disk(int drv, const _TCHAR* file_path)
 {
-	if(drv < USE_HARD_DISK) {
+	if(drv < USE_HARD_DISK && sasi_hdd) {
 		sasi_hdd->open(drv, file_path, 256);
 	}
 }
 
 void VM::close_hard_disk(int drv)
 {
-	if(drv < USE_HARD_DISK) {
+	if(drv < USE_HARD_DISK && sasi_hdd) {
 		sasi_hdd->close(drv);
 	}
 }
 
 bool VM::is_hard_disk_inserted(int drv)
 {
-	if(drv < USE_HARD_DISK) {
+	if(drv < USE_HARD_DISK && sasi_hdd) {
 		return sasi_hdd->mounted(drv);
 	}
 	return false;
@@ -501,12 +614,19 @@ uint32_t VM::is_hard_disk_accessed()
 {
 	uint32_t status = 0;
 	
-	for(int drv = 0; drv < USE_HARD_DISK; drv++) {
-		if(sasi_hdd->accessed(drv)) {
-			status |= 1 << drv;
+	if(sasi_hdd) {
+		for(int drv = 0; drv < USE_HARD_DISK; drv++) {
+			if(sasi_hdd->accessed(drv)) {
+				status |= 1 << drv;
+			}
 		}
 	}
 	return status;
+}
+
+bool VM::is_hard_disk_connected(int drv)
+{
+	return (sasi_hdd != NULL);
 }
 
 void VM::play_tape(int drv, const _TCHAR* file_path)
@@ -600,14 +720,76 @@ bool VM::is_frame_skippable()
 	return event->is_frame_skippable();
 }
 
-void VM::update_config()
+void VM::key_down(int code, bool repeat)
 {
-	for(DEVICE* device = first_device; device; device = device->next_device) {
-		device->update_config();
+	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+	if(!cmu800) {
+		return;
+	}
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		if(code == 17) {
+			// left-ctrl and right-ctrl
+			ctrl = true;
+			return;
+		}
+		if(ctrl == true) {
+			switch(code)
+			{
+			case 37: // L
+				cmu800->adjust_tempo(-1);
+				break;
+			case 38: // U
+				cmu800->adjust_tempo(10);
+				break;
+			case 39: // R
+				cmu800->adjust_tempo(1);
+				break;
+			case 40: // D
+				cmu800->adjust_tempo(-10);
+				break;
+			}
+		}
 	}
 }
 
-#define STATE_VERSION	9
+void VM::key_up(int code)
+{
+	if(code == 17) {
+		ctrl = false;
+	}
+}
+
+void VM::update_config()
+{
+	bool boot_mode_changed = (boot_mode != config.boot_mode);
+	monitor_type = config.monitor_type;
+	boot_mode = config.boot_mode;
+	// CMU-800 vs CMU-800 MIDI
+	if (!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= (~(OPTION_SWITCH_CMU800_MIDI | OPTION_SWITCH_MZ1E32));
+	}
+	if (!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= (~(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E32));
+	}
+	// CMU-800 vs MZ-1E32
+	if(!(option_switch & OPTION_SWITCH_MZ1E32) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MASK;
+	}
+	option_switch = config.option_switch;
+	
+	for(DEVICE* device = first_device; device; device = device->next_device) {
+		device->update_config();
+	}
+
+	// if boot mode is changed, perform IPL reset
+	if (boot_mode_changed) {
+		reset();
+	}
+}
+
+#define STATE_VERSION	(12 + 0x01000000) // –{‰Æ‚Í12
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -616,10 +798,10 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 #if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-        int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
 #else
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
 #endif
 		int len = (int)_tcslen(name);
 		

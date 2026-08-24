@@ -15,6 +15,9 @@
 #if defined(_MZ800)
 #include "../z80pio.h"
 #endif
+#if defined(SUPPORT_80COLUMN)
+#include "../hd46505.h"
+#endif
 
 // https://github.com/SHARPENTIERS/EmuZ-700-1500/blob/master/source/src/vm/mz700/memory.cpp
 #if defined(_PAL)
@@ -58,9 +61,7 @@
 #define MEM_BANK_CGROM		(MEM_BANK_CGROM_R | MEM_BANK_CGROM_W)
 #define MEM_BANK_VRAM		0x10
 #endif
-#if defined(_MZ800) || defined(_MZ1500)
 #define MEM_BANK_PCG		0x20
-#endif
 
 #if defined(_MZ800)
 #define MZ700_MODE	(dmd & 8)
@@ -83,11 +84,16 @@
 }
 
 #if defined(_MZ800)
-#define IPL_FILE_NAME	"MZ700IPL.ROM"
-#define EXT_FILE_NAME	"MZ800IPL.ROM"
+#define IPL_FILE_NAME		"MZ700IPL.ROM"
+#define EXT_FILE_NAME		"MZ800IPL.ROM"
+#elif defined(_MZ1500)
+#define IPL_FILE_NAME_1ST	"IPL1500.ROM"
+#define IPL_FILE_NAME_2ND	"IPL.ROM"
+#define EXT_FILE_NAME		"EXT.ROM"
 #else
-#define IPL_FILE_NAME	"IPL.ROM"
-#define EXT_FILE_NAME	"EXT.ROM"
+#define IPL_FILE_NAME_1ST	"IPL700.ROM"
+#define IPL_FILE_NAME_2ND	"IPL.ROM"
+#define EXT_FILE_NAME		"EXT.ROM"
 #endif
 
 void MEMORY::initialize()
@@ -104,34 +110,100 @@ void MEMORY::initialize()
 	memset(pcg, 0, sizeof(pcg));
 #endif
 	memset(font, 0, sizeof(font));
+#if defined(SUPPORT_80COLUMN)
+	memset(vram80, 0, sizeof(vram80));
+	memset(font80, 0, sizeof(font80));
+#endif
 	memset(rdmy, 0xff, sizeof(rdmy));
 	
 	// load rom images
-	FILEIO* fio = new FILEIO();
+#if defined(IPL_FILE_NAME)
 	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME)), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
-#if defined(_MZ800) || defined(_MZ1500)
-	if(fio->Fopen(create_local_path(_T(EXT_FILE_NAME)), FILEIO_READ_BINARY)) {
-		fio->Fread(ext, sizeof(ext), 1);
-		fio->Fclose();
-	}
 #else
-	if((config.dipswitch & 8) && fio->Fopen(create_local_path(_T("MZ1R12.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext, 0x800, 1);
-		fio->Fclose();
-	}
-	if((config.dipswitch & 4) && fio->Fopen(create_local_path(_T("MZ1E14.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext, 0x800, 1);
-		fio->Fclose();
-	}
-	if((config.dipswitch & 2) && fio->Fopen(create_local_path(_T("MZ1E05.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ext + 0x800, 0x1000, 1);
+	FILEIO* fio = new FILEIO();
+	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME_1ST)), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
 #endif
-	if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
+#if defined(IPL_FILE_NAME_2ND)
+	else if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME_2ND)), FILEIO_READ_BINARY)) {
+		fio->Fread(ipl, sizeof(ipl), 1);
+		fio->Fclose();
+	}
+#endif
+#if defined(_MZ800) || defined(_MZ1500)
+	if(fio->Fopen(create_local_path(_T(EXT_FILE_NAME)), FILEIO_READ_BINARY)) {
+		uint32_t rom_size;
+		fio->Fseek(0, FILEIO_SEEK_END);
+		rom_size = fio->Ftell();
+		fio->Fseek(0, FILEIO_SEEK_SET);
+		if(rom_size == 0x1800) {
+			// 6KB: Load to E800h
+			fio->Fread(ext + 0x800, rom_size, 1);
+		} else if(rom_size == 0x2000) {
+			// 8KB: Load to E000h
+			fio->Fread(ext, rom_size, 1);
+		}
+		fio->Fclose();
+	}
+#else
+	if(config.option_switch & OPTION_SWITCH_MZ1E05) {
+		if(fio->Fopen(create_local_path(_T("MZ1E05.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1E05.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x1000, 0x1000, 1);
+			fio->Fclose();
+		}
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E14) {
+		if(fio->Fopen(create_local_path(_T("MZ1E14.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1E14.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x800, 0x800, 1);
+			fio->Fclose();
+		}
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		if(fio->Fopen(create_local_path(_T("MZ1R12.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("MZ-1R12.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x800, 0x800, 1);
+			fio->Fclose();
+		}
+	}
+#if defined(SUPPORT_SFD700)
+	if(config.option_switch & OPTION_SWITCH_SFD700) {
+		if(fio->Fopen(create_local_path(_T("SFD700.ROM" )), FILEIO_READ_BINARY) ||
+		   fio->Fopen(create_local_path(_T("SFD-700.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(ext + 0x1000, 0x800, 1);
+			fio->Fclose();
+			sfd700_loaded = true;
+		}
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
+		if(fio->Fopen(create_local_path(_T("FONT80.ROM")), FILEIO_READ_BINARY)) {
+			fio->Fread(font80, sizeof(font80), 1);
+			fio->Fclose();
+			font80_loaded = true;
+		}
+	}
+#endif
+#endif
+#if defined(_MZ700)
+	if(fio->Fopen(create_local_path(_T("FONT700.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#else defined(_MZ1500)
+	if(fio->Fopen(create_local_path(_T("FONT1500.ROM")), FILEIO_READ_BINARY)) {
+		fio->Fread(font, sizeof(font), 1);
+		fio->Fclose();
+	}
+#endif
+	else if(fio->Fopen(create_local_path(_T("FONT.ROM")), FILEIO_READ_BINARY)) {
 		fio->Fread(font, sizeof(font), 1);
 		fio->Fclose();
 	}
@@ -154,6 +226,10 @@ void MEMORY::initialize()
 	for(int i = 0; i < 8; i++) {
 		palette_pc[i] = RGB_COLOR((i & 2) ? 255 : 0, (i & 4) ? 255 : 0, (i & 1) ? 255 : 0);
 	}
+#endif
+	
+#if defined(SUPPORT_80COLUMN)
+	cblink = 0;
 #endif
 	
 	// register event
@@ -271,6 +347,11 @@ void MEMORY::event_vline(int v, int clock)
 	}
 	set_hblank(false);
 	
+#if defined(SUPPORT_80COLUMN)
+	if(v == 0) {
+		cblink = (cblink + 1) & 0x1f;
+	}
+#endif
 	
 	// draw one line
 	if(v < 200) {
@@ -448,8 +529,8 @@ void MEMORY::write_data8(uint32_t addr, uint32_t data)
 	}
 #else
 	// MZ-700/1500
-#if defined(_MZ1500)
 	if(mem_bank & MEM_BANK_PCG) {
+#if defined(_MZ1500)
 		if(0xd000 <= addr && addr <= 0xefff) {
 			// pcg wait
 			if(!blank_pcg) {
@@ -457,9 +538,8 @@ void MEMORY::write_data8(uint32_t addr, uint32_t data)
 				blank_pcg = true;
 			}
 		}
-	} else
 #endif
-	if(mem_bank & MEM_BANK_MON_H) {
+	} else if(mem_bank & MEM_BANK_MON_H) {
 		if(0xd000 <= addr && addr <= 0xdfff) {
 			// vram wait
 			if(!blank_vram) {
@@ -584,8 +664,8 @@ uint32_t MEMORY::read_data8(uint32_t addr)
 	}
 #else
 	// MZ-700/1500
-#if defined(_MZ1500)
 	if(mem_bank & MEM_BANK_PCG) {
+#if defined(_MZ1500)
 		if(0xd000 <= addr && addr <= 0xefff) {
 			// pcg wait
 			if(!blank_pcg) {
@@ -593,9 +673,8 @@ uint32_t MEMORY::read_data8(uint32_t addr)
 				blank_pcg = true;
 			}
 		}
-	} else
 #endif
-	if(mem_bank & MEM_BANK_MON_H) {
+	} else if(mem_bank & MEM_BANK_MON_H) {
 		if(0xd000 <= addr && addr <= 0xdfff) {
 			// vram wait
 			if(!blank_vram) {
@@ -631,9 +710,38 @@ uint32_t MEMORY::read_data8w(uint32_t addr, int* wait)
 	return read_data8(addr);
 }
 
+#ifdef USE_DEBUGGER
+uint32_t MEMORY::read_debug_data8(uint32_t addr)
+{
+	uint32_t val;
+	bool sav_blank_vram = blank_vram;
+#if defined(_MZ800) || defined(_MZ1500)
+	bool sav_blank_pcg = blank_pcg;
+#endif
+	blank_vram = true;
+#if defined(_MZ800) || defined(_MZ1500)
+	blank_pcg = true;
+#endif
+	val = read_data8(addr);
+	
+	blank_vram = sav_blank_vram;
+#if defined(_MZ800) || defined(_MZ1500)
+	blank_pcg = sav_blank_pcg;
+#endif
+	return val;
+}
+#endif //USE_DEBUGGER
+
 void MEMORY::write_io8(uint32_t addr, uint32_t data)
 {
 	switch(addr & 0xff) {
+#if defined(SUPPORT_80COLUMN)
+	case 0x71:
+		if(d_crtc) {
+			d_crtc->write_vram(data);
+		}
+		break;
+#endif
 #if defined(_MZ800)
 	case 0xcc:
 		wf = data;
@@ -691,14 +799,13 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 #if defined(_MZ800)
 		mem_bank &= ~MEM_BANK_CGROM_R;
 		mem_bank |= MEM_BANK_CGROM_W | MEM_BANK_VRAM;
-#elif defined(_MZ1500)
+#else
 		mem_bank &= ~MEM_BANK_PCG;
 #endif
 		update_map_low();
 		update_map_middle();
 		update_map_high();
 		break;
-#if defined(_MZ800) || defined(_MZ1500)
 	case 0xe5:
 		mem_bank |= MEM_BANK_PCG;
 #if defined(_MZ1500)
@@ -710,7 +817,6 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 		mem_bank &= ~MEM_BANK_PCG;
 		update_map_high();
 		break;
-#endif
 #if defined(_MZ800)
 	case 0xf0:
 		if(data & 0x40) {
@@ -733,10 +839,18 @@ void MEMORY::write_io8(uint32_t addr, uint32_t data)
 	}
 }
 
-#if defined(_MZ800)
+#if defined(_MZ800) || defined(SUPPORT_80COLUMN)
 uint32_t MEMORY::read_io8(uint32_t addr)
 {
 	switch(addr & 0xff) {
+#if defined(SUPPORT_80COLUMN)
+	case 0x70:
+		if(d_crtc) {
+			return d_crtc->read_vram();
+		}
+		break;
+#endif
+#if defined(_MZ800)
 	case 0xce:
 		return (hblank ? 0 : 0x80) | (vblank ? 0 : 0x40) | (hsync ? 0 : 0x20) | (vsync ? 0 : 0x10) | (is_mz800 ? 2 : 0) | (tempo ? 1 : 0) | 0x0c;
 	case 0xe0:
@@ -748,6 +862,7 @@ uint32_t MEMORY::read_io8(uint32_t addr)
 		mem_bank &= ~(MEM_BANK_CGROM | MEM_BANK_VRAM);
 		update_map_middle();
 		break;
+#endif
 	}
 	return 0xff;
 }
@@ -852,8 +967,11 @@ void MEMORY::update_map_high()
 	}
 #else
 	// MZ-700/1500
-#if defined(_MZ1500)
 	if(mem_bank & MEM_BANK_PCG) {
+#if defined(_MZ700)
+		SET_BANK(0xd000, 0xffff, wdmy, rdmy);
+#endif
+#if defined(_MZ1500)
 		if(pcg_bank & 3) {
 			uint8_t *bank = pcg + ((pcg_bank & 3) - 1) * 0x2000;
 			SET_BANK(0xd000, 0xefff, bank, bank);
@@ -862,18 +980,15 @@ void MEMORY::update_map_high()
 			SET_BANK(0xe000, 0xefff, wdmy, font);
 		}
 		SET_BANK(0xf000, 0xffff, wdmy, rdmy);
-	} else {
 #endif
+	} else {
 		if(mem_bank & MEM_BANK_MON_H) {
 			SET_BANK(0xd000, 0xdfff, vram, vram);
-			SET_BANK(0xe000, 0xe7ff, wdmy, rdmy);
-			SET_BANK(0xe800, 0xffff, wdmy, ext );
+			SET_BANK(0xe000, 0xffff, wdmy, ext );
 		} else {
 			SET_BANK(0xd000, 0xffff, ram + 0xd000, ram + 0xd000);
 		}
-#if defined(_MZ1500)
 	}
-#endif
 #endif
 }
 
@@ -923,7 +1038,7 @@ void MEMORY::draw_line(int v)
 {
 	int ptr = 40 * (v >> 3);
 #if defined(_MZ700)
-	bool pcg_active = ((config.dipswitch & 1) && !(pcg_ctrl & 8));
+	bool pcg_active = ((config.dipswitch & DIPSWITCH_PCG700) && !(pcg_ctrl & 8));
 #endif
 	
 	for(int x = 0; x < 320; x += 8) {
@@ -1006,6 +1121,81 @@ void MEMORY::draw_screen()
 	}
 	
 	// copy to real screen
+#if defined(SUPPORT_80COLUMN)
+	if(d_crtc && config.monitor_type == 1) {
+		// K&P 80-column
+		emu->set_vm_screen_size(640, 500, 640, 500, 640, 500);
+		emu->set_vm_screen_lines(250);
+		
+		uint8_t *regs = d_crtc->get_regs();
+		uint16_t src = ((regs[12] << 8) | regs[13]) & 0x7ff;
+		uint16_t cursor = ((regs[14] << 8) | regs[15]) & 0x7ff;
+		int hz = (regs[1] <= 80) ? regs[1] : 80;
+		int vt = (regs[6] <= 25) ? regs[6] : 25;
+		int ht = (regs[9] & 15) + 1;
+		uint8_t bp = regs[10] & 0x60;
+		
+		memset(screen, 0, sizeof(screen));
+		
+		for(int y = 0; y < vt; y++) {
+			for(int x = 0; x < hz; x++) {
+				uint8_t code = vram80[src] & 0x7f;
+				
+				// draw pattern
+				for(int l = 0; l < ht; l++) {
+					uint8_t pat = font80[(code << 4) + l];
+					int yy = y * ht + l;
+					if(yy >= 250) {
+						break;
+					}
+					uint8_t* d = &screen[yy][x << 3];
+					
+					d[0] = (pat & 0x80) ? 7 : 0;
+					d[1] = (pat & 0x40) ? 7 : 0;
+					d[2] = (pat & 0x20) ? 7 : 0;
+					d[3] = (pat & 0x10) ? 7 : 0;
+					d[4] = (pat & 0x08) ? 7 : 0;
+					d[5] = (pat & 0x04) ? 7 : 0;
+					d[6] = (pat & 0x02) ? 7 : 0;
+					d[7] = (pat & 0x01) ? 7 : 0;
+				}
+				// draw cursor
+				if(src == cursor) {
+					int s = regs[10] & 0x1f;
+					int e = regs[11] & 0x1f;
+					if(bp == 0 || (bp == 0x40 && (cblink & 8)) || (bp == 0x60 && (cblink & 0x10))) {
+						for(int l = s; l <= e && l < ht; l++) {
+							int yy = y * ht + l;
+							if(yy >= 250) {
+								break;
+							}
+							uint8_t* d = &screen[yy][x << 3];
+							d[0] = d[1] = d[2] = d[3] = d[4] = d[5] = d[6] = d[7] = 7;
+						}
+					}
+				}
+				src = (src + 1) & 0x7ff;
+			}
+		}
+		for(int y = 0; y < 250; y++) {
+			scrntype_t* dest0 = emu->get_screen_buffer(2 * y);
+			scrntype_t* dest1 = emu->get_screen_buffer(2 * y + 1);
+			uint8_t* src = screen[y];
+			
+			for(int x = 0; x < 640; x++) {
+				dest0[x] = palette_pc[src[x] & 7];
+			}
+			if(!config.scan_line) {
+				my_memcpy(dest1, dest0, 640 * sizeof(scrntype_t));
+			} else {
+				memset(dest1, 0, 640 * sizeof(scrntype_t));
+			}
+		}
+		emu->screen_skip_line(true);
+		return;
+	}
+	emu->set_vm_screen_size(640, 400, 640, 400, 640, 480);
+#endif
 	emu->set_vm_screen_lines(200);
 	
 	for(int y = 0; y < 200; y++) {
@@ -1208,7 +1398,7 @@ void MEMORY::draw_screen()
 }
 #endif
 
-#define STATE_VERSION	4
+#define STATE_VERSION	6
 
 bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 {
@@ -1226,6 +1416,9 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 #endif
 	state_fio->StateArray(ram, sizeof(ram), 1);
 	state_fio->StateArray(vram, sizeof(vram), 1);
+#if defined(SUPPORT_80COLUMN)
+	state_fio->StateArray(vram80, sizeof(vram80), 1);
+#endif
 	state_fio->StateValue(mem_bank);
 #if defined(_MZ700)
 	state_fio->StateValue(pcg_data);
@@ -1262,6 +1455,9 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateValue(blank_vram);
 #if defined(_MZ800) || defined(_MZ1500)
 	state_fio->StateValue(blank_pcg);
+#endif
+#if defined(SUPPORT_80COLUMN)
+	state_fio->StateValue(cblink);
 #endif
 #if defined(_MZ800)
 	state_fio->StateArray(palette_mz800_pc, sizeof(palette_mz800_pc), 1);

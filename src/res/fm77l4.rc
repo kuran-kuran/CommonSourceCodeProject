@@ -185,8 +185,8 @@ BEGIN
         POPUP "Option"
         BEGIN
             MENUITEM "Cycle Steal",             ID_VM_DIPSWITCH0
-            MENUITEM "Extra RAM",               ID_VM_DIPSWITCH1
-            MENUITEM "1MB FDD",                 ID_VM_DIPSWITCH7
+            MENUITEM "Extra RAM",               ID_VM_OPTION_SWITCH1
+            MENUITEM "1MB FDD",                 ID_VM_OPTION_SWITCH7
         END
         POPUP "Mouse"
         BEGIN

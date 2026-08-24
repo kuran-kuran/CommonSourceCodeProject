@@ -4,26 +4,9 @@
 	Author : Takeda.Toshiya
 	Date   : 2013.01.17-
 
- 	[for Android]
-	Modify : @shikarunochi
-	Date   : 2020.06.01-
-
 	[ common ]
 */
-#if defined(__ANDROID__)
-    #include <sys/types.h>
-    #include <sys/stat.h>
-    #include <algorithm>
-    #include <cctype>
-    #include <fcntl.h>
-    #include <fstream>
-    #include <iostream>
-    #include <map>
-    #include <stdio.h>
-	#include <string>
-    #include <string.h>
-    #include "Android/osd.h"
-#endif
+
 #if defined(_USE_QT)
 	#include <string.h>
 	#include <fcntl.h>
@@ -31,7 +14,7 @@
 		#include <unistd.h>
 	#else
 		#include <io.h>
-		#include <direct.h>
+		#include <direct.h>　
 	#endif
 	#include <sys/types.h>
 	#include <sys/stat.h>
@@ -50,10 +33,6 @@
 #include <math.h>
 #include "common.h"
 #include "fileio.h"
-#if defined(__ANDROID__)
-#include "config.h"
-
-#endif
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
 	extern DWORD GetLongPathName(LPCTSTR lpszShortPath, LPTSTR lpszLongPath, DWORD cchBuffer);
@@ -342,13 +321,11 @@ errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, size_t numberOfElements, 
 	return 0;
 }
 
-#if defined(__ANDROID__)
 errno_t DLL_PREFIX my_tcscpy_s(_TCHAR *strDestination, const _TCHAR *strSource)
 {
 	_tcscpy(strDestination, strSource);
 	return 0;
 }
-#endif
 
 errno_t DLL_PREFIX my_strncpy_s(char *strDestination, size_t numberOfElements, const char *strSource, size_t count)
 {
@@ -383,16 +360,11 @@ int DLL_PREFIX my_sprintf_s(char *buffer, size_t sizeOfBuffer, const char *forma
 
 int DLL_PREFIX my_swprintf_s(wchar_t *buffer, size_t sizeOfBuffer, const wchar_t *format, ...)
 {
-#if defined(__ANDROID__)
-    //shikarunochi
-	return 0;
-#else
 	va_list ap;
 	va_start(ap, format);
 	int result = vswprintf(buffer, format, ap);
 	va_end(ap);
 	return result;
-#endif
 }
 
 int DLL_PREFIX my_stprintf_s(_TCHAR *buffer, size_t sizeOfBuffer, const _TCHAR *format, ...)
@@ -419,15 +391,9 @@ int DLL_PREFIX my_vstprintf_s(_TCHAR *buffer, size_t numberOfElements, const _TC
 void DLL_PREFIX *my_memcpy(void *dst, void *src, size_t len)
 {
 	size_t len1;
-#if defined(__ANDROID__)
-	size_t len2;
-	uint32_t s_align = (uint32_t)(((size_t)src) & 0x1f);
-	uint32_t d_align = (uint32_t)(((size_t)dst) & 0x1f);
-#else
-    register size_t len2;
+	register size_t len2;
 	register uint32_t s_align = (uint32_t)(((size_t)src) & 0x1f);
 	register uint32_t d_align = (uint32_t)(((size_t)dst) & 0x1f);
-#endif
 	int i;
 	
 	if(len == 0) return dst;
@@ -758,13 +724,8 @@ void DLL_PREFIX *my_memcpy(void *dst, void *src, size_t len)
 	}
 #else
 	// Using SIMD *with* un-aligned instructions.
-#if defined(__ANDROID__)
-    uint32_t *s32 = (uint32_t *)src;
-    uint32_t *d32 = (uint32_t *)dst;
-#else
-    register uint32_t *s32 = (uint32_t *)src;
+	register uint32_t *s32 = (uint32_t *)src;
 	register uint32_t *d32 = (uint32_t *)dst;
-#endif
 	if(((s_align & 0x07) != 0x0) && ((d_align & 0x07) != 0x0)) { // None align.
 		return memcpy(dst, src, len);
 	}
@@ -817,360 +778,7 @@ void DLL_PREFIX *my_memcpy(void *dst, void *src, size_t len)
 }
 #endif
 
-#if defined (_Android)
-
-class ConfigManager {
-private:
-    std::map<std::string, std::map<std::string, std::string>> configData;
-
-public:
-    void SetConfig(const std::string& section, const std::string& key, const std::string& value) {
-        configData[section][key] = value;
-    }
-
-    std::string GetConfig(const std::string& section, const std::string& key, const std::string& defaultValue = "") {
-        if (configData.find(section) != configData.end() && configData[section].find(key) != configData[section].end()) {
-            return configData[section][key];
-        }
-        return defaultValue;
-    }
-
-    bool SaveToFile(const std::string& filePath) {
-        std::ofstream file(filePath);
-        if (!file.is_open()) {
-            return false;
-        }
-
-        for (const auto& sectionPair : configData) {
-            file << "[" << sectionPair.first << "]\n";
-            for (const auto& keyPair : sectionPair.second) {
-                file << keyPair.first << "=" << keyPair.second << "\n";
-            }
-            file << "\n";
-        }
-
-        file.close();
-        return true;
-    }
-
-    bool LoadFromFile(const std::string& filePath) {
-        std::ifstream file(filePath);
-        if (!file.is_open()) {
-            return false;
-        }
-
-        std::string line, currentSection;
-        while (std::getline(file, line)) {
-            if (line.empty() || line[0] == ';' || line[0] == '#') {
-                continue; // Skip comments and empty lines
-            }
-
-            if (line[0] == '[') {
-                // New section
-                size_t endPos = line.find(']');
-                if (endPos == std::string::npos) {
-                    continue; // Malformed line, skip
-                }
-
-                currentSection = line.substr(1, endPos - 1);
-            } else {
-                size_t equalPos = line.find('=');
-                if (equalPos == std::string::npos) {
-                    continue; // Malformed line, skip
-                }
-
-                std::string key = line.substr(0, equalPos);
-                std::string value = line.substr(equalPos + 1);
-                SetConfig(currentSection, key, value);
-            }
-        }
-
-        file.close();
-        return true;
-    }
-};
-
-ConfigManager* configManager = nullptr;
-
-//#define SUPER_DEBUG_LOG
-
-#if false
-void replaceFilename(const char* lpFileName, char* tmp_path, size_t tmp_size, const char* newBaseName) {
-    const char *baseName = "config.ini";
-    const char *pos;
-
-    // lpFileName から baseName (config.ini) の位置を検索
-    pos = strstr(lpFileName, baseName);
-    //LOGI("pos: %s", pos);
-    if (pos != NULL) {
-        // baseName が見つかった位置の前までのパスをコピー
-        size_t index = pos - lpFileName;
-        strncpy(tmp_path, lpFileName, index);
-        tmp_path[index] = '\0';  // strncpy は NULL 終端しないので、手動で終端する
-        //LOGI("tmp_path: %s", tmp_path);
-
-        // 新しいファイル名を追加
-        snprintf(tmp_path + index, tmp_size - index, "%s%s", newBaseName, pos + strlen(baseName));
-        //LOGI("tmp_path2: %s", tmp_path);
-    } else {
-        // config.ini が見つからなかった場合、元のパスに .tmp を追加
-        snprintf(tmp_path, tmp_size, "%s.tmp", lpFileName);
-        //LOGI("tmp_path3: %s", tmp_path);
-    }
-}
-#endif
-
-BOOL DLL_PREFIX MyWritePrivateProfileString(const char* lpAppName, const char* lpKeyName, const char* lpString, const char* lpFileName) {
-
-    bool result = false;
-    // まだ configManager が new されてないなら new する
-    if (configManager == nullptr) {
-        configManager = new ConfigManager();
-    }
-    configManager->SetConfig(lpAppName, lpKeyName, lpString);
-    result = true;
-
-#if false
-#ifdef SUPER_DEBUG_LOG
-    LOGI("Read Open Start %s", lpFileName);
-#endif
-    FILE* fio_i = fopen(lpFileName, "r");
-#ifdef SUPER_DEBUG_LOG
-    LOGI("Read Open End %s", lpFileName);
-#endif
-    if (fio_i) {
-        char tmp_path[1024];
-        replaceFilename(lpFileName, tmp_path, sizeof(tmp_path), "tempconfig.txt");
-        //printf("New Path: %s\n", tmp_path);
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Write Open Start %s", tmp_path);
-#endif
-        FILE* fio_o = fopen(tmp_path, "w");
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Write Open End %s", tmp_path);
-#endif
-        if (fio_o) {
-            bool in_section = false;
-            char section[1024], line[1024];
-            snprintf(section, sizeof(section), "[%s]", lpAppName);
-            while (fgets(line, sizeof(line), fio_i) != NULL && strlen(line) > 0) {
-                if (line[strlen(line) - 1] == '\n') {
-                    line[strlen(line) - 1] = '\0';
-                }
-                if (!result) {
-                    if (line[0] == '[') {
-                        if (in_section) {
-                            fprintf(fio_o, "%s=%s\n", lpKeyName, lpString);
-                            result = true;
-                        } else if (strcmp(line, section) == 0) {
-                            in_section = true;
-                        }
-                    } else if (in_section && strstr(line, "=")) {
-                        char* equal = strstr(line, "=");
-                        *equal = '\0';
-                        if (strcmp(line, lpKeyName) == 0) {
-                            fprintf(fio_o, "%s=%s\n", lpKeyName, lpString);
-                            result = true;
-                            continue;
-                        }
-                        *equal = '=';
-                    }
-                }
-                fprintf(fio_o, "%s\n", line);
-            }
-            if (!result) {
-                if (!in_section) {
-                    fprintf(fio_o, "[%s]\n", lpAppName);
-                }
-                fprintf(fio_o, "%s=%s\n", lpKeyName, lpString);
-                result = true;
-            }
-#ifdef SUPER_DEBUG_LOG
-            LOGI("Write Close Start %s", tmp_path);
-#endif
-            int fd = fileno(fio_o);
-            fsync(fd);
-            fclose(fio_o);
-#ifdef SUPER_DEBUG_LOG
-            LOGI("Write Close End %s", tmp_path);
-#endif
-        }
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Read Close Start %s", lpFileName);
-#endif
-        fclose(fio_i);
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Read Close End %s", lpFileName);
-#endif
-        if (result) {
-#ifdef SUPER_DEBUG_LOG
-            LOGI("Remove Start %s", lpFileName);
-#endif
-            if (remove(lpFileName) == 0) {
-#ifdef SUPER_DEBUG_LOG
-                LOGI("Remove Succeeded %s", lpFileName);
-#endif
-
-#ifdef SUPER_DEBUG_LOG
-                LOGI("Rename Start from %s to %s", tmp_path, lpFileName);
-#endif
-                if (rename(tmp_path, lpFileName) == 0) {
-#ifdef SUPER_DEBUG_LOG
-                    LOGI("Rename Succeeded from %s to %s", tmp_path, lpFileName);
-#endif
-                } else {
-#ifdef SUPER_DEBUG_LOG
-                    LOGI("Rename Failed from %s to %s", tmp_path, lpFileName);
-#endif
-                    result = false;
-                }
-            } else {
-#ifdef SUPER_DEBUG_LOG
-                LOGI("Remove Failed %s", lpFileName);
-#endif
-                result = false;
-            }
-
-#ifdef SUPER_DEBUG_LOG
-            if (result) {
-                LOGI("Remove and Rename End %s", lpFileName);
-            } else {
-                LOGI("Remove and Rename Failed %s", lpFileName);
-            }
-#endif
-        }
-    } else {
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Write Open Start %s", lpFileName);
-#endif
-        FILE* fio_o = fopen(lpFileName, "w");
-#ifdef SUPER_DEBUG_LOG
-        LOGI("Write Open End %s", lpFileName);
-#endif
-        if (fio_o) {
-            fprintf(fio_o, "[%s]\n", lpAppName);
-            fprintf(fio_o, "%s=%s\n", lpKeyName, lpString);
-#ifdef SUPER_DEBUG_LOG
-            LOGI("Write Close Start %s", lpFileName);
-#endif
-            fclose(fio_o);
-#ifdef SUPER_DEBUG_LOG
-            LOGI("Write Close End %s", lpFileName);
-#endif
-        }
-    }
-#endif
-    return result;
-}
-
-size_t DLL_PREFIX MyGetPrivateProfileString(const char* lpAppName, const char* lpKeyName, const char* lpDefault, char* lpReturnedString, size_t nSize, const char* lpFileName) {
-
-    // まだ configManager が new されてないなら new する
-    if (configManager == nullptr) {
-        configManager = new ConfigManager();
-    }
-
-    // コンフィグマネージャーから値を取得
-    std::string value = configManager->GetConfig(lpAppName, lpKeyName, lpDefault ? lpDefault : "");
-
-    // バッファサイズを超えないように値をコピー
-    strncpy(lpReturnedString, value.c_str(), nSize - 1);
-    // value をコピーした末尾に NULL 終端を追加
-    lpReturnedString[nSize - 1] = '\0';
-
-    return strlen(lpReturnedString);
-
-#if false
-    if (lpDefault != NULL) {
-        strncpy(lpReturnedString, lpDefault, nSize);
-        lpReturnedString[nSize - 1] = '\0';
-    } else {
-        lpReturnedString[0] = '\0';
-    }
-
-    FILE* fio = fopen(lpFileName, "r");
-    if (fio) {
-        bool in_section = false;
-        char section[1024], line[1024];
-        snprintf(section, sizeof(section), "[%s]", lpAppName);
-        while (fgets(line, sizeof(line), fio) != NULL && strlen(line) > 0) {
-            if (line[strlen(line) - 1] == '\n') {
-                line[strlen(line) - 1] = '\0';
-            }
-            if (line[0] == '[') {
-                if (in_section) {
-                    break;
-                } else if (strcmp(line, section) == 0) {
-                    in_section = true;
-                }
-            } else if (in_section) {
-                char* equal = strstr(line, "=");
-                if (equal) {
-                    *equal = '\0';
-                    if (strcmp(line, lpKeyName) == 0) {
-                        strncpy(lpReturnedString, equal + 1, nSize);
-                        lpReturnedString[nSize - 1] = '\0';
-                        break;
-                    }
-                }
-            }
-        }
-        fclose(fio);
-    }
-    return strlen(lpReturnedString);
-#endif
-}
-
-unsigned int DLL_PREFIX MyGetPrivateProfileInt(const char* lpAppName, const char* lpKeyName, int nDefault, const char* lpFileName) {
-    // まだ configManager が new されてないなら new する
-    if (configManager == nullptr) {
-        configManager = new ConfigManager();
-    }
-
-    std::string defaultValue = std::to_string(nDefault);
-    std::string value = configManager->GetConfig(lpAppName, lpKeyName, defaultValue);
-
-    // 文字列を整数に変換
-    int intValue = std::stoi(value, nullptr, 10);
-
-    return static_cast<unsigned int>(intValue);
-#if false
-    char sstr[128];
-    char sval[128];
-    std::string s;
-    memset(sstr, 0, sizeof(sstr));
-    memset(sval, 0, sizeof(sval));
-    snprintf(sval, sizeof(sval), "%d", nDefault);
-    MyGetPrivateProfileString(lpAppName, lpKeyName, sval, sstr, sizeof(sstr), lpFileName);
-    s = sstr;
-
-    int i;
-    if (s.empty()) {
-        i = nDefault;
-    } else {
-        i = static_cast<int>(strtol(s.c_str(), nullptr, 10));
-    }
-    return static_cast<unsigned int>(i);
-#endif
-}
-
-void DLL_PREFIX MySavePrivateProfile(const char* lpFileName) {
-    // まだ configManager が new されてないなら new する
-    if (configManager == nullptr) {
-        configManager = new ConfigManager();
-    }
-    configManager->SaveToFile(lpFileName);
-}
-
-void DLL_PREFIX MyLoadPrivateProfile(const char* lpFileName) {
-    // まだ configManager が new されてないなら new する
-    if (configManager == nullptr) {
-        configManager = new ConfigManager();
-    }
-    configManager->LoadFromFile(lpFileName);
-}
-
-#elif !defined(_WIN32)
+#ifndef _WIN32
 BOOL DLL_PREFIX MyWritePrivateProfileString(LPCTSTR lpAppName, LPCTSTR lpKeyName, LPCTSTR lpString, LPCTSTR lpFileName)
 {
 	BOOL result = FALSE;
@@ -1415,12 +1023,6 @@ const _TCHAR *DLL_PREFIX get_application_path()
 		} else {
 			my_tcscpy_s(app_path, _MAX_PATH, _T(".\\"));
 		}
-#elif defined(__ANDROID__)
-		//sprintf(app_path,"/sdcard/emulator/%sROM%s/",CONFIG_NAME, "");
-		sprintf(app_path,"%s/emulator/%sROM%s/", documentDir, CONFIG_NAME, "");
-        LOGI("Path: %s", app_path);
-
-    	return (const _TCHAR *)app_path;
 #else
 #if defined(Q_OS_WIN)
 		std::string delim = "\\";
@@ -1448,11 +1050,7 @@ const _TCHAR *DLL_PREFIX get_initial_current_path()
 #if defined(_WIN32) && !defined(_USE_QT)
 		GetCurrentDirectory(_MAX_PATH, current_path);
 #else
-#if defined(__ANDROID__)
-        strncpy(current_path, "/", _MAX_PATH);
-#else
-		//getcwd(current_path, _MAX_PATH);
-#endif
+		getcwd(current_path, _MAX_PATH);
 #endif
 		size_t len = _tcslen(current_path);
 		if(current_path[len - 1] != '\\' && current_path[len - 1] != '/') {
@@ -2018,62 +1616,3 @@ const _TCHAR *DLL_PREFIX get_value_and_symbol(symbol_t *first_symbol, const _TCH
 	}
 	return name[output_index];
 }
-
-#if defined(__ANDROID__)
-//変換対応してるのは半角カナだけです。
-void convertUTF8fromSJIS(char *src,char *dest,int length){
-    int srcIndex = 0;
-    int destIndex = 0;
-    while(src[srcIndex] != '\0'){
-        char srcData = src[srcIndex];
-        if(srcData < 127){
-            dest[destIndex++] = src[srcIndex++];
-        }else if(srcData >= 128 && srcData<= 160){
-            dest[destIndex++] = '*';
-            srcIndex++;
-        }else if(srcData >= 161 && srcData<= 223){
-            if(destIndex + 3 >= length){
-                break;
-            }
-            int kanaIndex;
-            uint16_t uft8StartIndex;
-            if(srcData <= 191){ //191�
-                kanaIndex = srcData -161;
-                uft8StartIndex = 0xBDA1;
-            }else {
-                kanaIndex = srcData - (161 + 15 + 16);
-                uft8StartIndex = 0xBE80;
-            }
-            dest[destIndex++] = 0xEF;
-            int16_t kanaData = uft8StartIndex + kanaIndex;
-            dest[destIndex++] = kanaData >> 8;
-            dest[destIndex++] = kanaData & 0x00FF;
-            srcIndex++;
-        }else{
-            dest[destIndex++] = '*';
-            srcIndex++;
-        }
-        if(destIndex >= length){
-            break;
-        }
-    }
-	dest[destIndex] = '\0';
-}
-
-
-/////// dummy
-//for PRINTER
-typedef struct font_s {
-	// common
-	inline bool initialized()
-	{
-		return false;//(hFont != NULL);
-	}
-	_TCHAR family[64];
-	int width, height, rotate;
-	bool bold, italic;
-	// win32 dependent
-	//HFONT hFont;
-} font_t;
-#endif
-

@@ -25,10 +25,6 @@
 
 //#include "compiler.h"
 
-#if defined(__ANDROID__) // Medamap
-#include <cstdio>
-#endif
-
 #include "cpu.h"
 #if defined(USE_FPU)
 #include "instructions/fpu/fp.h"
@@ -60,11 +56,7 @@ cpu_reg2str(void)
 {
 	static char buf[512];
 
-#if defined(__ANDROID__) // Medamap
-    snprintf(buf, sizeof(buf),
-#else
-    _snprintf(buf, sizeof(buf),
-#endif
+	_snprintf(buf, sizeof(buf),
 	    "eax=%08x ecx=%08x edx=%08x ebx=%08x\n"
 	    "esp=%08x ebp=%08x esi=%08x edi=%08x\n"
 	    "eip=%08x prev_eip=%08x\n"
@@ -110,11 +102,7 @@ a20str(void)
 {
 	static char buf[32];
 
-#if defined(__ANDROID__) // Medamap
-    snprintf(buf, sizeof(buf), "a20line=%s\n",
-#else
 	_snprintf(buf, sizeof(buf), "a20line=%s\n",
-#endif
 	    (CPU_STAT_ADRSMASK == 0xffffffff) ? "enable" : "disable");
 	return buf;
 }
@@ -144,6 +132,7 @@ dbg_printf(const char *str, ...)
 	va_start(ap, str);
 	vsnprintf(buf, sizeof(buf), str, ap);
 	va_end(ap);
+	buf[NELEMENTS(buf) - 2] = '\0';
 	strcat(buf, "\n");
 
 	printf("%s", buf);

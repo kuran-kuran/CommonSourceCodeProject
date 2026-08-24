@@ -210,7 +210,7 @@ public:
 			return true;
 		}
 #endif
-#if defined(USE_SHARED_DLL) || defined(USE_FLOPPY_DISK) // Medamap
+#if defined(USE_SHARED_DLL) || defined(USE_FLOPPY_DISK)
 		if(drive_num < (int)array_length(config.correct_disk_timing)) {
 			return config.correct_disk_timing[drive_num];
 		}
@@ -221,7 +221,7 @@ public:
 	bool ignore_crc()
 	{
 #ifndef _ANY2D88
-#if defined(USE_SHARED_DLL) || defined(USE_FLOPPY_DISK) // Medamap
+#if defined(USE_SHARED_DLL) || defined(USE_FLOPPY_DISK)
 		if(drive_num < (int)array_length(config.ignore_disk_crc)) {
 			return config.ignore_disk_crc[drive_num];
 		}

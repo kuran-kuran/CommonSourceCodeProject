@@ -47,10 +47,18 @@
 #include "../mz1p17.h"
 #include "../prnfile.h"
 #include "psg.h"
+#include "mz1500sd.h"
 #endif
 #endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 #include "joystick.h"
+#endif
+#if defined(SUPPORT_80COLUMN)
+#include "../hd46505.h"
+#endif
+#if defined(SUPPORT_CMU800)
+#include "../cmu800.h"
+#include "../midi.h"
 #endif
 
 // ----------------------------------------------------------------------------
@@ -60,11 +68,51 @@
 VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 {
 #if defined(_MZ700)
-	if((config.dipswitch & 4) && (config.dipswitch & 8)) {
-		config.dipswitch &= ~8;
+	// MZ-1E14 vs MZ-1R12
+	if((config.option_switch & OPTION_SWITCH_MZ1E14) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1R12;
 	}
-	dipswitch = config.dipswitch;
-#elif defined(_MZ800)
+#if defined(SUPPORT_SFD700)
+	// MZ-1E05 vs SFD-700
+	if((config.option_switch & OPTION_SWITCH_MZ1E05) && (config.option_switch & OPTION_SWITCH_SFD700)) {
+		config.option_switch &= ~OPTION_SWITCH_SFD700;
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+	config.monitor_type = 0; // select standard monitor
+#endif
+#endif
+	// MZ-1R23 vs MZ-1R24
+	if(!(config.option_switch & OPTION_SWITCH_MZ1R23) && (config.option_switch & OPTION_SWITCH_MZ1R24)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1R24;
+	}
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if(!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
+#if defined(_MZ1500)
+	config.option_switch &= ~OPTION_SWITCH_MZ1E14;
+	// MZ-1R12 vs MZ1500_SD
+	if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1500SD;
+	} else if(!(option_switch & OPTION_SWITCH_MZ1500SD) && (config.option_switch & OPTION_SWITCH_MZ1500SD)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1R12;
+	}
+#endif
+#if !defined(SUPPORT_SFD700)
+	config.option_switch &= ~OPTION_SWITCH_SFD700;
+#endif
+#if defined(_MZ700) || defined(_MZ1500)
+	option_switch = config.option_switch;
+#endif
+#if defined(_MZ800)
 	boot_mode = config.boot_mode;
 #endif
 	
@@ -83,23 +131,11 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	pio = new I8255(this, emu);
 	io = new IO(this, emu);
 	io->space = 0x100;
-	fdc = new MB8877(this, emu);	// mb8876
-	fdc->set_context_noise_seek(new NOISE(this, emu));
-	fdc->set_context_noise_head_down(new NOISE(this, emu));
-	fdc->set_context_noise_head_up(new NOISE(this, emu));
 	pcm = new PCM1BIT(this, emu);
 	cpu = new Z80(this, emu);
-	sio_qd = new Z80SIO(this, emu);
 	
-	cmos = new CMOS(this, emu);
-	emm = new EMM(this, emu);
-	floppy = new FLOPPY(this, emu);
-	kanji = new KANJI(this, emu);
 	keyboard = new KEYBOARD(this, emu);
 	memory = new MEMORY(this, emu);
-	ramfile = new RAMFILE(this, emu);
-	qd = new QUICKDISK(this, emu);
-	qd->set_context_noise_seek(new NOISE(this, emu));
 	
 #if defined(_MZ800) || defined(_MZ1500)
 	and_snd = new AND(this, emu);
@@ -124,16 +160,67 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	psg_l->set_device_name(_T("SN76489AN PSG (Left)"));
 	psg_r = new SN76489AN(this, emu);
 	psg_r->set_device_name(_T("SN76489AN PSG (Right)"));
+	psg = new PSG(this, emu);
+	if(config.option_switch & OPTION_SWITCH_MZ1500SD) {
+		mz1500sd = new MZ1500_SD(this, emu);
+		MZ80K_SD* mz80k_sd = new MZ80K_SD(this, emu);
+		mz1500sd->set_context_mz80k_sd(mz80k_sd);
+	}
 #endif
 	pio_int = new Z80PIO(this, emu);
 	sio_rs = new Z80SIO(this, emu);
-	
-#if defined(_MZ1500)
-	psg = new PSG(this, emu);
 #endif
-#endif
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	joystick = new JOYSTICK(this, emu);
+#endif
+	
+#if defined(SUPPORT_CMU800)
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		cmu800 = new CMU800(this, emu);
+		cmu800->set_context_midi(new MIDI(this, emu));
+	} 	else {
+		cmu800 = NULL;
+	}
+	ctrl = false;
+#endif
+	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
+		fdc = new MB8877(this, emu);	// MB8876
+		fdc->set_context_noise_seek(new NOISE(this, emu));
+		fdc->set_context_noise_head_down(new NOISE(this, emu));
+		fdc->set_context_noise_head_up(new NOISE(this, emu));
+		floppy = new FLOPPY(this, emu);
+	} else {
+		fdc = NULL;
+	}
+#if !defined(_MZ1500)
+	if(config.option_switch & OPTION_SWITCH_MZ1E14)
+#endif
+	{
+		sio_qd = new Z80SIO(this, emu);
+		qd = new QUICKDISK(this, emu);
+		qd->set_context_noise_seek(new NOISE(this, emu));
+	}
+#if !defined(_MZ1500)
+	else {
+		qd = NULL;
+	}
+#endif
+	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD)) {
+		cmos = new CMOS(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R18) {
+		ramfile = new RAMFILE(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R23) {
+		kanji = new KANJI(this, emu);
+	}
+	if(config.option_switch & OPTION_SWITCH_PIO3034) {
+		emm = new EMM(this, emu);
+	}
+#if defined(SUPPORT_80COLUMN)
+	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
+		crtc = new HD46505(this, emu);	// SY6845E
+	}
 #endif
 	
 	// set contexts
@@ -149,45 +236,32 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	event->set_context_sound(drec->get_context_noise_play());
 	event->set_context_sound(drec->get_context_noise_stop());
 	event->set_context_sound(drec->get_context_noise_fast());
-	event->set_context_sound(fdc->get_context_noise_seek());
-	event->set_context_sound(fdc->get_context_noise_head_down());
-	event->set_context_sound(fdc->get_context_noise_head_up());
-	event->set_context_sound(qd->get_context_noise_seek());
-	
+	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
+		event->set_context_sound(fdc->get_context_noise_seek());
+		event->set_context_sound(fdc->get_context_noise_head_down());
+		event->set_context_sound(fdc->get_context_noise_head_up());
+	}
+#if !defined(_MZ1500)
+	if(config.option_switch & OPTION_SWITCH_MZ1E14)
+#endif
+	{
+		event->set_context_sound(qd->get_context_noise_seek());
+	}
+#if defined(SUPPORT_CMU800)
+	if(config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		event->set_context_sound(cmu800);
+	}
+#endif
+
 	// VRAM/PCG wait
 	memory->set_context_cpu(cpu);
 	
 	// memory mapped I/O
 	memory->set_context_pio(pio);
 	memory->set_context_pit(pit);
-#if defined(_MZ700) || defined(_MZ1500)
+#if defined(SUPPORT_JOYSTICK)
 	memory->set_context_joystick(joystick);
 #endif
-	
-	// floppy drives
-	floppy->set_context_cpu(cpu);
-	floppy->set_context_fdc(fdc);
-	fdc->set_context_drq(floppy, SIG_FLOPPY_DRQ, 1);
-	
-	// quick disk
-	sio_qd->set_tx_clock(0, 101562.5);
-	sio_qd->set_rx_clock(0, 101562.5);
-	sio_qd->set_tx_clock(1, 101562.5);
-	sio_qd->set_rx_clock(1, 101562.5);
-	
-	// Z80SIO:RTSA -> QD:WRGA
-	sio_qd->set_context_rts(0, qd, QUICKDISK_SIO_RTSA, 1);
-	// Z80SIO:DTRB -> QD:MTON
-	sio_qd->set_context_dtr(1, qd, QUICKDISK_SIO_DTRB, 1);
-	// Z80SIO:SENDA -> QD:RECV
-	sio_qd->set_context_sync(0, qd, QUICKDISK_SIO_SYNC, 1);
-	sio_qd->set_context_rxdone(0, qd, QUICKDISK_SIO_RXDONE, 1);
-	sio_qd->set_context_send(0, qd, QUICKDISK_SIO_DATA);
-	sio_qd->set_context_break(0, qd, QUICKDISK_SIO_BREAK, 1);
-	// Z80SIO:CTSA <- QD:PROTECT
-	// Z80SIO:DCDA <- QD:INSERT
-	// Z80SIO:DCDB <- QD:HOE
-	qd->set_context_sio(sio_qd);
 	
 #if defined(_MZ1500)
 	// psg mixer
@@ -290,6 +364,41 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	sio_rs->set_rx_clock(1, 1200 * 16);
 #endif
 	
+	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
+		floppy->set_context_cpu(cpu);
+		floppy->set_context_fdc(fdc);
+		fdc->set_context_drq(floppy, SIG_FLOPPY_DRQ, 1);
+	}
+#if !defined(_MZ1500)
+	if(config.option_switch & OPTION_SWITCH_MZ1E14)
+#endif
+	{
+		sio_qd->set_tx_clock(0, 101562.5);
+		sio_qd->set_rx_clock(0, 101562.5);
+		sio_qd->set_tx_clock(1, 101562.5);
+		sio_qd->set_rx_clock(1, 101562.5);
+		
+		// Z80SIO:RTSA -> QD:WRGA
+		sio_qd->set_context_rts(0, qd, QUICKDISK_SIO_RTSA, 1);
+		// Z80SIO:DTRB -> QD:MTON
+		sio_qd->set_context_dtr(1, qd, QUICKDISK_SIO_DTRB, 1);
+		// Z80SIO:SENDA -> QD:RECV
+		sio_qd->set_context_sync(0, qd, QUICKDISK_SIO_SYNC, 1);
+		sio_qd->set_context_rxdone(0, qd, QUICKDISK_SIO_RXDONE, 1);
+		sio_qd->set_context_send(0, qd, QUICKDISK_SIO_DATA);
+		sio_qd->set_context_break(0, qd, QUICKDISK_SIO_BREAK, 1);
+		// Z80SIO:CTSA <- QD:PROTECT
+		// Z80SIO:DCDA <- QD:INSERT
+		// Z80SIO:DCDB <- QD:HOE
+		qd->set_context_sio(sio_qd);
+	}	
+#if defined(SUPPORT_80COLUMN)
+	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
+		crtc->set_vram_ptr(memory->get_vram80(), 0x800);
+		memory->set_context_crtc(crtc);
+	}
+#endif
+	
 	// cpu bus
 	cpu->set_context_mem(memory);
 	cpu->set_context_io(io);
@@ -314,16 +423,29 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	Z80_DAISY_CHAIN(pio_int);
 	Z80_DAISY_CHAIN(sio_rs);
 #endif
-	Z80_DAISY_CHAIN(sio_qd);
+#if !defined(_MZ1500)
+	if(config.option_switch & OPTION_SWITCH_MZ1E14)
+#endif
+	{
+		Z80_DAISY_CHAIN(sio_qd);
+	}
 	
 	// emm
-	io->set_iomap_range_rw(0x00, 0x03, emm);
+	if(config.option_switch & OPTION_SWITCH_PIO3034) {
+		io->set_iomap_range_rw(0x00, 0x03, emm);
+	}
 	// kanji
-	io->set_iomap_range_rw(0xb8, 0xb9, kanji);
+	if(config.option_switch & OPTION_SWITCH_MZ1R23) {
+		io->set_iomap_range_rw(0xb8, 0xb9, kanji);
+	}
 	// ramfile
-	io->set_iomap_range_rw(0xea, 0xeb, ramfile);
+	if(config.option_switch & OPTION_SWITCH_MZ1R18) {
+		io->set_iomap_range_rw(0xea, 0xeb, ramfile);
+	}
 	// cmos
-	io->set_iomap_range_rw(0xf8, 0xfa, cmos);
+	if(config.option_switch & (OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD)) {
+		io->set_iomap_range_rw(0xf8, 0xfa, cmos);
+	}
 	
 #if defined(_MZ800)
 	// 8255/8253
@@ -332,8 +454,10 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 #endif
 	
 	// floppy drives
-	io->set_iomap_range_rw(0xd8, 0xdb, fdc);
-	io->set_iomap_range_w(0xdc, 0xdf, floppy);
+	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
+		io->set_iomap_range_rw(0xd8, 0xdb, fdc);
+		io->set_iomap_range_w(0xdc, 0xdf, floppy);
+	}
 	
 	// memory mapper
 #if defined(_MZ800)
@@ -343,7 +467,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_range_w(0xe0, 0xe6, memory);
 	io->set_iovalue_single_r(0xe8, 0xef); // bit4=0: voice board is missing
 #else
-	io->set_iomap_range_w(0xe0, 0xe4, memory);
+	io->set_iomap_range_w(0xe0, 0xe6, memory);
 #endif
 	
 #if defined(_MZ800)
@@ -363,12 +487,21 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_w(0xe9, psg);
 	io->set_iomap_single_w(0xf2, psg_l);
 	io->set_iomap_single_w(0xf3, psg_r);
+	if(config.option_switch & OPTION_SWITCH_MZ1500SD) {
+		// mz1500_sd
+		io->set_iomap_range_rw(0xa0, 0xa3, mz1500sd);
+	}
 #endif
 	
 	// quick disk
 	static const int z80_sio_addr[4] = {0, 2, 1, 3};
-	for(int i = 0; i < 4; i++) {
-		io->set_iomap_alias_rw(0xf4 + i, sio_qd, z80_sio_addr[i]);
+#if !defined(_MZ1500)
+	if(config.option_switch & OPTION_SWITCH_MZ1E14)
+#endif
+	{
+		for(int i = 0; i < 4; i++) {
+			io->set_iomap_alias_rw(0xf4 + i, sio_qd, z80_sio_addr[i]);
+		}
 	}
 	
 #if defined(_MZ800) || defined(_MZ1500)
@@ -383,16 +516,31 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iovalue_single_r(0xfe, 0xc0);
 #endif
 	
+#if defined(SUPPORT_80COLUMN)
+	if(config.option_switch & OPTION_SWITCH_80COLUMN) {
+		io->set_iomap_single_r(0x70, memory);
+		io->set_iomap_single_w(0x71, memory);
+		io->set_iomap_range_rw(0x72, 0x73, crtc);
+	}
+#endif
+#if defined(SUPPORT_CMU800)
+	if(config.option_switch & OPTION_SWITCH_CMU800) {
+		io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+	}
+#endif
+	
 	// initialize all devices
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->initialize();
 	}
-	for(int drv = 0; drv < MAX_DRIVE; drv++) {
-//		if(config.drive_type) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
-//		} else {
-//			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
-//		}
+	if(config.option_switch & (OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_SFD700)) {
+		for(int drv = 0; drv < MAX_DRIVE; drv++) {
+//			if(config.drive_type) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
+//			} else {
+//				fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+//			}
+		}
 	}
 }
 
@@ -421,6 +569,16 @@ DEVICE* VM::get_device(int id)
 // drive virtual machine
 // ----------------------------------------------------------------------------
 
+#if defined(SUPPORT_SFD700) && defined(SUPPORT_80COLUMN)
+const _TCHAR *VM::device_name()
+{
+	if(memory->sfd700_loaded && memory->font80_loaded) {
+		return _T("Kersten & Partner MZ 7.80");
+	}
+	return _T(DEVICE_NAME);
+}
+#endif
+
 void VM::reset()
 {
 	// reset all devices
@@ -434,6 +592,11 @@ void VM::reset()
 #endif
 #if defined(_MZ1500)
 	pio_int->write_signal(SIG_Z80PIO_PORT_A, 0x02, 0x03);	// BUSY = L, PE = H
+#endif
+#if defined(SUPPORT_CMU800)
+	if(cmu800) {
+		cmu800->reset();
+	}
 #endif
 }
 
@@ -482,6 +645,12 @@ void VM::initialize_sound(int rate, int samples)
 	psg_l->initialize_sound(rate, CPU_CLOCKS, 8000);
 	psg_r->initialize_sound(rate, CPU_CLOCKS, 8000);
 #endif
+#if defined(SUPPORT_CMU800)
+	// init CMU-800
+	if (cmu800) {
+		cmu800->set_sample_rate(rate);
+	}
+#endif
 }
 
 uint16_t* VM::create_sound(int* extra_frames)
@@ -510,6 +679,33 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 #endif
 	if(ch-- == 0) {
 		pcm->set_volume(0, decibel_l, decibel_r);
+#if defined(SUPPORT_CMU800)
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Melody volume
+			cmu800->set_volume(0, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Bass volume
+			cmu800->set_volume(1, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Chord volume
+			cmu800->set_volume(2, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Rhtthm volume
+			cmu800->set_volume(3, decibel_l, decibel_r);
+		}
+	} else if(ch-- == 0) {
+		if(cmu800) {
+			// Master volume
+			cmu800->set_volume(4, decibel_l, decibel_r);
+		}
+#endif
 	} else if(ch-- == 0) {
 		drec->set_volume(0, decibel_l, decibel_r);
 	} else if(ch-- == 0) {
@@ -517,11 +713,15 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 		drec->get_context_noise_stop()->set_volume(0, decibel_l, decibel_r);
 		drec->get_context_noise_fast()->set_volume(0, decibel_l, decibel_r);
 	} else if(ch-- == 0) {
-		fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
-		fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
-		fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
+		if(fdc) {
+			fdc->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
+			fdc->get_context_noise_head_down()->set_volume(0, decibel_l, decibel_r);
+			fdc->get_context_noise_head_up()->set_volume(0, decibel_l, decibel_r);
+		}
 	} else if(ch-- == 0) {
-		qd->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
+		if(qd) {
+			qd->get_context_noise_seek()->set_volume(0, decibel_l, decibel_r);
+		}
 	}
 }
 #endif
@@ -611,70 +811,97 @@ void VM::push_fast_rewind(int drv)
 
 void VM::open_quick_disk(int drv, const _TCHAR* file_path)
 {
-	if(drv == 0) {
+	if(drv == 0 && qd) {
 		qd->open_disk(file_path);
 	}
 }
 
 void VM::close_quick_disk(int drv)
 {
-	if(drv == 0) {
+	if(drv == 0 && qd) {
 		qd->close_disk();
 	}
 }
 
 bool VM::is_quick_disk_inserted(int drv)
 {
-	if(drv == 0) {
+	if(drv == 0 && qd) {
 		return qd->is_disk_inserted();
-	} else {
-		return false;
 	}
+	return false;
 }
 
 uint32_t VM::is_quick_disk_accessed()
 {
-	return qd->read_signal(0);
+	if(qd) {
+		return qd->read_signal(0);
+	}
+	return false;
+}
+
+bool VM::is_quick_disk_connected(int drv)
+{
+	return (qd != NULL);
 }
 
 void VM::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 {
-	fdc->open_disk(drv, file_path, bank);
-	
-	if(fdc->get_media_type(drv) == MEDIA_TYPE_2DD) {
-		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2D) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
-		}
-	} else if(fdc->get_media_type(drv) == MEDIA_TYPE_2D) {
-		if(fdc->get_drive_type(drv) == DRIVE_TYPE_2DD) {
-			fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+	if(fdc) {
+		fdc->open_disk(drv, file_path, bank);
+		
+		if(fdc->get_media_type(drv) == MEDIA_TYPE_2DD) {
+			if(fdc->get_drive_type(drv) == DRIVE_TYPE_2D) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2DD);
+			}
+		} else if(fdc->get_media_type(drv) == MEDIA_TYPE_2D) {
+			if(fdc->get_drive_type(drv) == DRIVE_TYPE_2DD) {
+				fdc->set_drive_type(drv, DRIVE_TYPE_2D);
+			}
 		}
 	}
 }
 
 void VM::close_floppy_disk(int drv)
 {
-	fdc->close_disk(drv);
+	if(fdc) {
+		fdc->close_disk(drv);
+	}
 }
 
 bool VM::is_floppy_disk_inserted(int drv)
 {
-	return fdc->is_disk_inserted(drv);
+	if(fdc) {
+		return fdc->is_disk_inserted(drv);
+	}
+	return false;
 }
 
 void VM::is_floppy_disk_protected(int drv, bool value)
 {
-	fdc->is_disk_protected(drv, value);
+	if(fdc) {
+		fdc->is_disk_protected(drv, value);
+	}
 }
 
 bool VM::is_floppy_disk_protected(int drv)
 {
-	return fdc->is_disk_protected(drv);
+	if(fdc) {
+		return fdc->is_disk_protected(drv);
+	}
+	return false;
 }
 
 uint32_t VM::is_floppy_disk_accessed()
 {
-	return fdc->read_signal(0);
+	if(fdc) {
+		return fdc->read_signal(0);
+	}
+	return false;
+}
+
+bool VM::is_floppy_disk_connected(int drv)
+{
+	return (fdc != NULL);
 }
 
 bool VM::is_frame_skippable()
@@ -682,32 +909,112 @@ bool VM::is_frame_skippable()
 	return event->is_frame_skippable();
 }
 
+void VM::key_down(int code, bool repeat)
+{
+#if defined(SUPPORT_CMU800)
+	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+	if(config.option_switch & OPTION_SWITCH_CMU800) {
+		if(code == 17) {
+			// left-ctrl and right-ctrl
+			ctrl = true;
+			return;
+		}
+		if(ctrl == true) {
+			switch(code)
+			{
+			case 37: // L
+				cmu800->adjust_tempo(-1);
+				break;
+			case 38: // U
+				cmu800->adjust_tempo(10);
+				break;
+			case 39: // R
+				cmu800->adjust_tempo(1);
+				break;
+			case 40: // D
+				cmu800->adjust_tempo(-10);
+				break;
+			}
+		}
+	}
+#endif
+}
+
+void VM::key_up(int code)
+{
+#if defined(SUPPORT_CMU800)
+	if(code == 17) {
+		ctrl = false;
+	}
+#endif
+}
+
 void VM::update_config()
 {
 #if defined(_MZ700)
-	if(!(dipswitch & 4) && (config.dipswitch & 4)) {
-		config.dipswitch &= ~8;
-	} else if(!(dipswitch & 8) && (config.dipswitch & 8)) {
-		config.dipswitch &= ~4;
+	// MZ-1E14 vs MZ-1R12
+	if(!(option_switch & OPTION_SWITCH_MZ1E14) && (config.option_switch & OPTION_SWITCH_MZ1E14)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1R12;
+	} else if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1E14;
 	}
-	dipswitch = config.dipswitch;
+#if defined(SUPPORT_SFD700)
+	// MZ-1E05 vs SFD-700
+	if(!(option_switch & OPTION_SWITCH_MZ1E05) && (config.option_switch & OPTION_SWITCH_MZ1E05)) {
+		config.option_switch &= ~OPTION_SWITCH_SFD700;
+	} else if(!(option_switch & OPTION_SWITCH_SFD700) && (config.option_switch & OPTION_SWITCH_SFD700)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1E05;
+	}
+#endif
+#if defined(SUPPORT_80COLUMN)
+//	if(config.monitor_type == 1 && !(config.option_switch & OPTION_SWITCH_80COLUMN)) {
+	if(config.monitor_type == 1 && !memory->font80_loaded) {
+		config.monitor_type = 0;
+	}
+#endif
+#elif defined(_MZ1500)
+	// MZ-1E05 vs MZ-1R12 vs MZ2000_SD
+	if(!(option_switch & OPTION_SWITCH_MZ1E05) && (config.option_switch & OPTION_SWITCH_MZ1E05)) {
+		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1500SD);
+	} else if(!(option_switch & OPTION_SWITCH_MZ1R12) && (config.option_switch & OPTION_SWITCH_MZ1R12)) {
+		config.option_switch &= ~(OPTION_SWITCH_MZ1E05 | OPTION_SWITCH_MZ1500SD);
+	} else if(!(option_switch & OPTION_SWITCH_MZ1500SD) && (config.option_switch & OPTION_SWITCH_MZ1500SD)) {
+		config.option_switch &= ~(OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1E05);
+	}
+#endif
+	// MZ-1R23 vs MZ-1R24
+	if(!(config.option_switch & OPTION_SWITCH_MZ1R23) && (config.option_switch & OPTION_SWITCH_MZ1R24)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1R24;
+	}
+#if defined(SUPPORT_CMU800)
+	// CMU-800 vs CMU-800 MIDI
+	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800_MIDI;
+	}
+	if(!(option_switch & OPTION_SWITCH_CMU800_MIDI) && (config.option_switch & OPTION_SWITCH_CMU800_MIDI))
+	{
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+#endif
+#if defined(_MZ700) || defined(_MZ1500)
+	option_switch = config.option_switch;
 #endif
 #if defined(_MZ800)
 	if(boot_mode != config.boot_mode) {
 		// boot mode is changed !!!
 		boot_mode = config.boot_mode;
 		reset();
-	} else {
+	} else
 #endif
+	{
 		for(DEVICE* device = first_device; device; device = device->next_device) {
 			device->update_config();
 		}
-#if defined(_MZ800)
 	}
-#endif
 }
 
-#define STATE_VERSION	5
+#define STATE_VERSION	7
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {
@@ -716,10 +1023,10 @@ bool VM::process_state(FILEIO* state_fio, bool loading)
 	}
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 #if defined(__GNUC__) || defined(__clang__) // @shikarunochi
-        int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
+		int offset = ((int)strlen(typeid(*device).name()) > 10) ? 2 : 1;
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + offset); // skip length
 #else
-        const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
+		const _TCHAR *name = char_to_tchar(typeid(*device).name() + 6); // skip "class "
 #endif
 		int len = (int)_tcslen(name);
 		

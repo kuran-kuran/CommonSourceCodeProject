@@ -128,6 +128,14 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Recent",                      ID_RECENT_CART1
     END
+    POPUP "Device"
+    BEGIN
+        POPUP "Display"
+        BEGIN
+            MENUITEM "RF",                      ID_VM_MONITOR_TYPE0
+            MENUITEM "RGB",                     ID_VM_MONITOR_TYPE1
+        END
+    END
     POPUP "Host"
     BEGIN
         MENUITEM "Rec Movie 60fps",             ID_HOST_REC_MOVIE_60FPS

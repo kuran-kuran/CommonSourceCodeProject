@@ -20,10 +20,13 @@
 #define SIG_MEMORY_VBLANK_GRAPH	3
 #define SIG_MEMORY_VRAM_SEL	4
 
+class CRTC;
+
 class MEMORY : public DEVICE
 {
 private:
-	DEVICE *d_cpu, *d_crtc;
+	DEVICE *d_cpu;
+	CRTC *d_crtc;
 	
 	uint8_t* rbank[32];
 	uint8_t* wbank[32];
@@ -75,6 +78,9 @@ public:
 	uint32_t fetch_op(uint32_t addr, int* wait);
 	void write_io8(uint32_t addr, uint32_t data);
 	uint32_t read_io8(uint32_t addr);
+#ifdef USE_DEBUGGER
+	uint32_t read_debug_data8(uint32_t addr);
+#endif
 	void write_signal(int id, uint32_t data, uint32_t mask);
 	bool process_state(FILEIO* state_fio, bool loading);
 	
@@ -83,7 +89,7 @@ public:
 	{
 		d_cpu = device;
 	}
-	void set_context_crtc(DEVICE* device)
+	void set_context_crtc(CRTC* device)
 	{
 		d_crtc = device;
 	}
@@ -103,6 +109,7 @@ public:
 	{
 		return pcg;
 	}
+	void refresh_map();
 };
 
 #endif

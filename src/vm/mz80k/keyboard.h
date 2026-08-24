@@ -5,6 +5,10 @@
 	Author : Takeda.Toshiya
 	Date   : 2010.08.18-
 
+	SHARP MZ-80A Emulator 'EmuZ-80A'
+	Modify : Hideki Suga
+	Date   : 2014.12.10 -
+
 	[ keyboard ]
 */
 

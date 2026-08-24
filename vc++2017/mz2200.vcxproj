@@ -22,7 +22,7 @@
     <ProjectGuid>{19644030-FB96-4EE0-8819-86D8D13C25A7}</ProjectGuid>
     <RootNamespace>mz2200</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -327,6 +327,10 @@
     <ClCompile Include="..\src\emu.cpp" />
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
+    <ClCompile Include="..\src\vm\cmu800.cpp" />
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp" />
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp" />
+    <ClCompile Include="..\src\vm\cmu800tone.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -337,6 +341,7 @@
     <ClCompile Include="..\src\vm\i86.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
+    <ClCompile Include="..\src\vm\midi.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz2500\cmt.cpp" />
     <ClCompile Include="..\src\vm\mz2500\floppy.cpp" />
@@ -345,20 +350,23 @@
     <ClCompile Include="..\src\vm\mz2500\mz1m01.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r12.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz1r13.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\mz2000sd.cpp" />
     <ClCompile Include="..\src\vm\mz2500\mz80b.cpp" />
+    <ClCompile Include="..\src\vm\mz2500\pio3034.cpp" />
     <ClCompile Include="..\src\vm\mz2500\printer.cpp" />
     <ClCompile Include="..\src\vm\mz2500\timer.cpp" />
     <ClCompile Include="..\src\vm\mz700\quickdisk.cpp" />
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
     <ClCompile Include="..\src\vm\prnfile.cpp" />
-    <ClCompile Include="..\src\vm\v30_dasm.cpp" />
     <ClCompile Include="..\src\vm\z80.cpp" />
     <ClCompile Include="..\src\vm\z80pio.cpp" />
     <ClCompile Include="..\src\vm\z80sio.cpp" />
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
+    <ClCompile Include="..\src\win32\osd_midi.cpp" />
     <ClCompile Include="..\src\win32\osd_screen.cpp" />
     <ClCompile Include="..\src\win32\osd_sound.cpp" />
     <ClCompile Include="..\src\win32\winmain.cpp" />
@@ -370,6 +378,10 @@
     <ClInclude Include="..\src\fifo.h" />
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
+    <ClInclude Include="..\src\vm\cmu800.h" />
+    <ClInclude Include="..\src\vm\cmu800envelope.h" />
+    <ClInclude Include="..\src\vm\cmu800rhythm.h" />
+    <ClInclude Include="..\src\vm\cmu800tone.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />
@@ -382,6 +394,7 @@
     <ClInclude Include="..\src\vm\i86.h" />
     <ClInclude Include="..\src\vm\io.h" />
     <ClInclude Include="..\src\vm\mb8877.h" />
+    <ClInclude Include="..\src\vm\midi.h" />
     <ClInclude Include="..\src\vm\mz1p17.h" />
     <ClInclude Include="..\src\vm\mz2500\cmt.h" />
     <ClInclude Include="..\src\vm\mz2500\floppy.h" />
@@ -390,14 +403,16 @@
     <ClInclude Include="..\src\vm\mz2500\mz1m01.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r12.h" />
     <ClInclude Include="..\src\vm\mz2500\mz1r13.h" />
+    <ClInclude Include="..\src\vm\mz2500\mz2000sd.h" />
     <ClInclude Include="..\src\vm\mz2500\mz80b.h" />
+    <ClInclude Include="..\src\vm\mz2500\pio3034.h" />
     <ClInclude Include="..\src\vm\mz2500\printer.h" />
     <ClInclude Include="..\src\vm\mz2500\timer.h" />
     <ClInclude Include="..\src\vm\mz700\quickdisk.h" />
+    <ClInclude Include="..\src\vm\mz80k_sd.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />
     <ClInclude Include="..\src\vm\prnfile.h" />
-    <ClInclude Include="..\src\vm\v30_dasm.h" />
     <ClInclude Include="..\src\vm\vm.h" />
     <ClInclude Include="..\src\vm\vm_template.h" />
     <ClInclude Include="..\src\vm\z80.h" />
@@ -418,6 +433,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

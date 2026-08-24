@@ -52,6 +52,15 @@ private:
 	void set_vsync(bool val);
 	void set_hsync(bool val);
 	
+#ifdef HAS_SY6845E
+	uint8_t *vram_ptr;
+	uint16_t vram_addr, vram_size;
+	int update_clock, update_id;
+	bool update_req, update_flag;
+	
+	void update_transparent();
+#endif
+	
 public:
 	HD46505(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
@@ -59,7 +68,11 @@ public:
 		initialize_output_signals(&outputs_vblank);
 		initialize_output_signals(&outputs_vsync);
 		initialize_output_signals(&outputs_hsync);
+#ifdef HAS_SY6845E
+		set_device_name(_T("SY6845E CRTC"));
+#else
 		set_device_name(_T("HD46505 CRTC"));
+#endif
 	}
 	~HD46505() {}
 	
@@ -107,6 +120,15 @@ public:
 	{
 		return regs;
 	}
+#ifdef HAS_SY6845E
+	void set_vram_ptr(uint8_t *ptr, uint16_t size)
+	{
+		vram_ptr = ptr;
+		vram_size = size;
+	}
+	void write_vram(uint8_t data);
+	uint8_t read_vram();
+#endif
 };
 
 #endif

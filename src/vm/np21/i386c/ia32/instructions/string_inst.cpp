@@ -162,14 +162,16 @@ MOVSB_XbYb_rep(int reptype)
 				MOVSB_XbYb_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -181,10 +183,12 @@ MOVSB_XbYb_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -196,10 +200,12 @@ MOVSB_XbYb_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -210,14 +216,16 @@ MOVSB_XbYb_rep(int reptype)
 				MOVSB_XbYb_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -229,10 +237,12 @@ MOVSB_XbYb_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -244,10 +254,12 @@ MOVSB_XbYb_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -267,14 +279,16 @@ MOVSW_XwYw_rep(int reptype)
 				MOVSW_XwYw_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -286,10 +300,12 @@ MOVSW_XwYw_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -301,10 +317,12 @@ MOVSW_XwYw_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -315,14 +333,16 @@ MOVSW_XwYw_rep(int reptype)
 				MOVSW_XwYw_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -334,10 +354,12 @@ MOVSW_XwYw_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -349,10 +371,12 @@ MOVSW_XwYw_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -372,14 +396,16 @@ MOVSD_XdYd_rep(int reptype)
 				MOVSD_XdYd_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -391,10 +417,12 @@ MOVSD_XdYd_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -406,10 +434,12 @@ MOVSD_XdYd_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -420,14 +450,16 @@ MOVSD_XdYd_rep(int reptype)
 				MOVSD_XdYd_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 1: /* repe */
@@ -439,10 +471,12 @@ MOVSD_XdYd_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		case 2: /* repne */
@@ -454,10 +488,12 @@ MOVSD_XdYd_rep(int reptype)
 	#endif
 					break;
 				}
+	#if !defined(IA32_DONT_BREAK_REP)
 				if (CPU_REMCLOCK <= 0) {
 					CPU_EIP = CPU_PREV_EIP;
 					break;
 				}
+	#endif
 			}
 			break;
 		}
@@ -604,7 +640,7 @@ CMPSB_XbYb_rep(int reptype)
 				CMPSB_XbYb_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -652,7 +688,7 @@ CMPSB_XbYb_rep(int reptype)
 				CMPSB_XbYb_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -709,7 +745,7 @@ CMPSW_XwYw_rep(int reptype)
 				CMPSW_XwYw_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -757,7 +793,7 @@ CMPSW_XwYw_rep(int reptype)
 				CMPSW_XwYw_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -814,7 +850,7 @@ CMPSD_XdYd_rep(int reptype)
 				CMPSD_XdYd_rep16_part;
 				if (--CPU_CX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -862,7 +898,7 @@ CMPSD_XdYd_rep(int reptype)
 				CMPSD_XdYd_rep32_part;
 				if (--CPU_ECX == 0) {
 	#if defined(DEBUG)
-				cpu_debug_rep_cont = 0;
+					cpu_debug_rep_cont = 0;
 	#endif
 					break;
 				}
@@ -1064,14 +1100,16 @@ STOSB_YbAL_rep(int reptype)
 			CPU_DI += STRING_DIR;
 			if (--CPU_CX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	} else {
 		for (;;) {
@@ -1080,14 +1118,16 @@ STOSB_YbAL_rep(int reptype)
 			CPU_EDI += STRING_DIR;
 			if (--CPU_ECX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	}
 }
@@ -1103,14 +1143,16 @@ STOSW_YwAX_rep(int reptype)
 			CPU_DI += STRING_DIRx2;
 			if (--CPU_CX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	} else {
 		for (;;) {
@@ -1119,14 +1161,16 @@ STOSW_YwAX_rep(int reptype)
 			CPU_EDI += STRING_DIRx2;
 			if (--CPU_ECX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	}
 }
@@ -1142,14 +1186,16 @@ STOSD_YdEAX_rep(int reptype)
 			CPU_DI += STRING_DIRx4;
 			if (--CPU_CX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	} else {
 		for (;;) {
@@ -1158,14 +1204,16 @@ STOSD_YdEAX_rep(int reptype)
 			CPU_EDI += STRING_DIRx4;
 			if (--CPU_ECX == 0) {
 #if defined(DEBUG)
-			cpu_debug_rep_cont = 0;
+				cpu_debug_rep_cont = 0;
 #endif
 				break;
 			}
+#if !defined(IA32_DONT_BREAK_REP)
 			if (CPU_REMCLOCK <= 0) {
 				CPU_EIP = CPU_PREV_EIP;
 				break;
 			}
+#endif
 		}
 	}
 }

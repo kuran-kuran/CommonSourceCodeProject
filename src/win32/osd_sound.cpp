@@ -24,12 +24,7 @@ void OSD::initialize_sound(int rate, int samples)
 	PCMWAVEFORMAT pcmwf;
 	DSBUFFERDESC dsbd;
 	WAVEFORMATEX wfex;
-
-#ifdef _UNITY	// MedamaP
-	unity_sound_buffer = NULL;
-	unity_sound_buffer_size = NULL;
-#endif
-
+	
 	if(FAILED(DirectSoundCreate(NULL, &lpds, NULL))) {
 		return;
 	}
@@ -114,6 +109,12 @@ void OSD::update_sound(int* extra_frames)
 			lpdsSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 			sound_started = true;
 			return;
+		} else {
+			DWORD dw = 0;
+			lpdsSecondaryBuffer->GetStatus(&dw);
+			if(!(dw & DSBSTATUS_PLAYING)) {
+				lpdsSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+			}
 		}
 		
 		// check current position
@@ -167,10 +168,6 @@ void OSD::update_sound(int* extra_frames)
 			lpdsSecondaryBuffer->Restore();
 		}
 		if(sound_buffer) {
-#ifdef _UNITY	// MedamaP
-			unity_sound_buffer = sound_buffer;
-			unity_sound_buffer_size = size1;
-#endif
 			if(ptr1) {
 				CopyMemory(ptr1, sound_buffer, size1);
 			}
@@ -178,27 +175,10 @@ void OSD::update_sound(int* extra_frames)
 				CopyMemory(ptr2, sound_buffer + size1, size2);
 			}
 		}
-		else {
-#ifdef _UNITY	// MedamaP
-			unity_sound_buffer = NULL;
-			unity_sound_buffer_size = NULL;
-#endif
-		}
 		lpdsSecondaryBuffer->Unlock(ptr1, size1, ptr2, size2);
 		sound_first_half = !sound_first_half;
 	}
 }
-
-#ifdef _UNITY	// MedamaP
-int16_t* OSD::get_sound_buffer()
-{
-	return (int16_t*)unity_sound_buffer;
-}
-int OSD::get_sound_buffer_size()
-{
-	return unity_sound_buffer_size;
-}
-#endif // !_UNITY
 
 void OSD::mute_sound()
 {

@@ -6,7 +6,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2011.05.16-
 
-	[ floppy ]
+	[ MZ-1E05 ]
 */
 
 #ifndef _FLOPPY_H_
@@ -34,7 +34,7 @@ private:
 public:
 	FLOPPY(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("Floppy I/F"));
+		set_device_name(_T("MZ-1E05 FD I/F"));
 	}
 	~FLOPPY() {}
 	

@@ -328,6 +328,10 @@
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
     <ClCompile Include="..\src\vm\and.cpp" />
+    <ClCompile Include="..\src\vm\cmu800.cpp" />
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp" />
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp" />
+    <ClCompile Include="..\src\vm\cmu800tone.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -335,6 +339,7 @@
     <ClCompile Include="..\src\vm\i8255.cpp" />
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mb8877.cpp" />
+    <ClCompile Include="..\src\vm\midi.cpp" />
     <ClCompile Include="..\src\vm\mz1p17.cpp" />
     <ClCompile Include="..\src\vm\mz700\cmos.cpp" />
     <ClCompile Include="..\src\vm\mz700\emm.cpp" />
@@ -343,10 +348,12 @@
     <ClCompile Include="..\src\vm\mz700\kanji.cpp" />
     <ClCompile Include="..\src\vm\mz700\keyboard.cpp" />
     <ClCompile Include="..\src\vm\mz700\memory.cpp" />
+    <ClCompile Include="..\src\vm\mz700\mz1500sd.cpp" />
     <ClCompile Include="..\src\vm\mz700\mz700.cpp" />
     <ClCompile Include="..\src\vm\mz700\psg.cpp" />
     <ClCompile Include="..\src\vm\mz700\quickdisk.cpp" />
     <ClCompile Include="..\src\vm\mz700\ramfile.cpp" />
+    <ClCompile Include="..\src\vm\mz80k_sd.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\not.cpp" />
     <ClCompile Include="..\src\vm\pcm1bit.cpp" />
@@ -358,6 +365,7 @@
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
+    <ClCompile Include="..\src\win32\osd_midi.cpp" />
     <ClCompile Include="..\src\win32\osd_screen.cpp" />
     <ClCompile Include="..\src\win32\osd_sound.cpp" />
     <ClCompile Include="..\src\win32\winmain.cpp" />
@@ -370,6 +378,10 @@
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
     <ClInclude Include="..\src\vm\and.h" />
+    <ClInclude Include="..\src\vm\cmu800.h" />
+    <ClInclude Include="..\src\vm\cmu800envelope.h" />
+    <ClInclude Include="..\src\vm\cmu800rhythm.h" />
+    <ClInclude Include="..\src\vm\cmu800tone.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />
@@ -379,6 +391,7 @@
     <ClInclude Include="..\src\vm\i8255.h" />
     <ClInclude Include="..\src\vm\io.h" />
     <ClInclude Include="..\src\vm\mb8877.h" />
+    <ClInclude Include="..\src\vm\midi.h" />
     <ClInclude Include="..\src\vm\mz1p17.h" />
     <ClInclude Include="..\src\vm\mz700\cmos.h" />
     <ClInclude Include="..\src\vm\mz700\emm.h" />
@@ -387,10 +400,12 @@
     <ClInclude Include="..\src\vm\mz700\kanji.h" />
     <ClInclude Include="..\src\vm\mz700\keyboard.h" />
     <ClInclude Include="..\src\vm\mz700\memory.h" />
+    <ClInclude Include="..\src\vm\mz700\mz1500sd.h" />
     <ClInclude Include="..\src\vm\mz700\mz700.h" />
     <ClInclude Include="..\src\vm\mz700\psg.h" />
     <ClInclude Include="..\src\vm\mz700\quickdisk.h" />
     <ClInclude Include="..\src\vm\mz700\ramfile.h" />
+    <ClInclude Include="..\src\vm\mz80k_sd.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\not.h" />
     <ClInclude Include="..\src\vm\pcm1bit.h" />
@@ -416,6 +431,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

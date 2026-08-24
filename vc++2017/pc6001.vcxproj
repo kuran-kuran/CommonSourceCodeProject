@@ -328,6 +328,10 @@
     <ClCompile Include="..\src\fifo.cpp" />
     <ClCompile Include="..\src\fileio.cpp" />
     <ClCompile Include="..\src\vm\ay_3_891x.cpp" />
+    <ClCompile Include="..\src\vm\cmu800.cpp" />
+    <ClCompile Include="..\src\vm\cmu800envelope.cpp" />
+    <ClCompile Include="..\src\vm\cmu800rhythm.cpp" />
+    <ClCompile Include="..\src\vm\cmu800tone.cpp" />
     <ClCompile Include="..\src\vm\datarec.cpp" />
     <ClCompile Include="..\src\vm\disk.cpp" />
     <ClCompile Include="..\src\vm\event.cpp" />
@@ -339,6 +343,7 @@
     <ClCompile Include="..\src\vm\io.cpp" />
     <ClCompile Include="..\src\vm\mc6847.cpp" />
     <ClCompile Include="..\src\vm\mcs48.cpp" />
+    <ClCompile Include="..\src\vm\midi.cpp" />
     <ClCompile Include="..\src\vm\noise.cpp" />
     <ClCompile Include="..\src\vm\pc6001\display.cpp" />
     <ClCompile Include="..\src\vm\pc6001\joystick.cpp" />
@@ -354,6 +359,7 @@
     <ClCompile Include="..\src\win32\osd.cpp" />
     <ClCompile Include="..\src\win32\osd_console.cpp" />
     <ClCompile Include="..\src\win32\osd_input.cpp" />
+    <ClCompile Include="..\src\win32\osd_midi.cpp" />
     <ClCompile Include="..\src\win32\osd_screen.cpp" />
     <ClCompile Include="..\src\win32\osd_sound.cpp" />
     <ClCompile Include="..\src\win32\winmain.cpp" />
@@ -366,6 +372,10 @@
     <ClInclude Include="..\src\fileio.h" />
     <ClInclude Include="..\src\res\resource.h" />
     <ClInclude Include="..\src\vm\ay_3_891x.h" />
+    <ClInclude Include="..\src\vm\cmu800.h" />
+    <ClInclude Include="..\src\vm\cmu800envelope.h" />
+    <ClInclude Include="..\src\vm\cmu800rhythm.h" />
+    <ClInclude Include="..\src\vm\Cmu800Tone.h" />
     <ClInclude Include="..\src\vm\datarec.h" />
     <ClInclude Include="..\src\vm\debugger.h" />
     <ClInclude Include="..\src\vm\device.h" />
@@ -383,6 +393,7 @@
     <ClInclude Include="..\src\vm\io.h" />
     <ClInclude Include="..\src\vm\mc6847.h" />
     <ClInclude Include="..\src\vm\mcs48.h" />
+    <ClInclude Include="..\src\vm\midi.h" />
     <ClInclude Include="..\src\vm\noise.h" />
     <ClInclude Include="..\src\vm\pc6001\display.h" />
     <ClInclude Include="..\src\vm\pc6001\joystick.h" />
@@ -412,6 +423,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\src\res;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\res\vista.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
