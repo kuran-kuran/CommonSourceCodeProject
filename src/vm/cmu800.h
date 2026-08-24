@@ -37,6 +37,7 @@ private:
 	int melody_sustain, melody_decay, bass_decay, chord_decay;
 	bool key_on[8];
 	bool use_midi;
+	bool enable_portbase10_mode;
 	uint8_t* b7BD_wave;
 	int8_t* b7BD_data;
 	uint8_t* b6SD_wave;
@@ -87,6 +88,7 @@ public:
 	void adjust_tempo(int delta);
 	void set_sample_rate(uint32_t sample_rate);
 	void enable_midi(bool enabled);
+	void enable_portbase10(bool enabled);
 };
 
 #endif

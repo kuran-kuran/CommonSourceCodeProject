@@ -460,6 +460,7 @@ protected:
 	
 #ifdef SUPPORT_CMU800
 	CMU800* cmu800;
+	bool ctrl;
 #endif
 	
 	PC88* pc88;

@@ -244,6 +244,7 @@ protected:
 	// CMU-800
 #ifdef SUPPORT_CMU800
 	CMU800* cmu800;
+	bool ctrl;
 	int option_switch;
 #endif
 

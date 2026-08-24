@@ -61,7 +61,6 @@ void CMU800::initialize()
 	}
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
-
 	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800_TEMPO]) <= 0) {
 		tempo_new = TEMPO_INI;
 		config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
@@ -545,8 +544,11 @@ bool CMU800::get_wave_data(uint8_t* wave, uint8_t** data_ptr, uint32_t* data_siz
 
 void CMU800::write_io8(uint32_t addr, uint32_t data)
 {
-	unsigned int a = addr & 0xFF;
-	unsigned int d = data & 0xFF;
+	if(enable_portbase10_mode) {
+		addr |= 0x80;
+	}
+	//unsigned int a = addr & 0xFF;
+	//unsigned int d = data & 0xFF;
 	//char temp[256];
 	//sprintf(temp, "Port: %02X, Data: %02X\n", a, d);
 	//OutputDebugStringA(temp);
@@ -765,7 +767,13 @@ void CMU800::set_sample_rate(uint32_t sample_rate)
 void CMU800::enable_midi(bool enabled)
 {
 	use_midi = enabled;
+	enable_portbase10_mode = false;
 	reset();
+}
+
+void CMU800::enable_portbase10(bool enabled)
+{
+	enable_portbase10_mode = enabled;
 }
 
 void CMU800::mix(int32_t* buffer, int cnt)

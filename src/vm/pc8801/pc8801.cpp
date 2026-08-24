@@ -393,6 +393,7 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	} else {
 		cmu800 = NULL;
 	}
+	ctrl = false;
 #endif
 	
 	// set cpu device contexts
@@ -1021,10 +1022,45 @@ void VM::set_sound_device_volume(int ch, int decibel_l, int decibel_r)
 void VM::key_down(int code, bool repeat)
 {
 	pc88->key_down(code, repeat);
+#if defined(SUPPORT_CMU800)
+	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+	if (!cmu800) {
+		return;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		if (code == 17) {
+			// left-ctrl and right-ctrl
+			ctrl = true;
+			return;
+		}
+		if (ctrl == true) {
+			switch (code)
+			{
+			case 37: // L
+				cmu800->adjust_tempo(-1);
+				break;
+			case 38: // U
+				cmu800->adjust_tempo(10);
+				break;
+			case 39: // R
+				cmu800->adjust_tempo(1);
+				break;
+			case 40: // D
+				cmu800->adjust_tempo(-10);
+				break;
+			}
+		}
+	}
+#endif
 }
 
 void VM::key_up(int code)
 {
+#if defined(SUPPORT_CMU800)
+	if (code == 17) {
+		ctrl = false;
+	}
+#endif
 }
 
 bool VM::get_caps_locked()

@@ -124,10 +124,12 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
 		cmu800 = new CMU800(this, emu);
 		cmu800->set_context_midi(new MIDI(this, emu));
+		cmu800->enable_portbase10(true);
 	}
 	else {
 		cmu800 = NULL;
 	}
+	ctrl = false; 
 #endif
 
 	// set contexts
@@ -265,11 +267,9 @@ VM::VM(EMU* parent_emu) : VM_TEMPLATE(parent_emu)
 //	} else {
 //		io->set_iomap_range_rw(0x90, 0x93, psub);
 	}
-//@@ todo
 #if defined(SUPPORT_CMU800)
 	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
-		// コメントアウトしないとSUB CPUが動かない
-		//io->set_iomap_range_rw(0x90, 0x9c, cmu800);
+		io->set_iomap_range_rw(0x10, 0x1c, cmu800);
 	}
 #endif
 	io->set_iomap_alias_w(0xa0, psg, 0);			// PSG ch
@@ -520,6 +520,36 @@ void VM::key_down(int code, bool repeat)
 //	if(!support_sub_cpu) {
 //		psub->key_down(code);
 //	}
+	// CMU-800 adjust tempo shortcut key. (CTRL + CURSOR key)
+#if defined(SUPPORT_CMU800)
+	if (!cmu800) {
+		return;
+	}
+	if (config.option_switch & OPTION_SWITCH_CMU800_MASK) {
+		if (code == 17) {
+			// left-ctrl and right-ctrl
+			ctrl = true;
+			return;
+		}
+		if (ctrl == true) {
+			switch (code)
+			{
+			case 37: // L
+				cmu800->adjust_tempo(-1);
+				break;
+			case 38: // U
+				cmu800->adjust_tempo(10);
+				break;
+			case 39: // R
+				cmu800->adjust_tempo(1);
+				break;
+			case 40: // D
+				cmu800->adjust_tempo(-10);
+				break;
+			}
+		}
+	}
+#endif
 }
 
 void VM::key_up(int code)
@@ -527,6 +557,11 @@ void VM::key_up(int code)
 //	if(!support_sub_cpu) {
 //		psub->key_up(code);
 //	}
+#if defined(SUPPORT_CMU800)
+	if (code == 17) {
+		ctrl = false;
+	}
+#endif
 }
 
 // ----------------------------------------------------------------------------

@@ -210,6 +210,7 @@ protected:
 	
 	// CMU-800
 	CMU800* cmu800;
+	bool ctrl;
 #if defined(SUPPORT_MZ80AFI)
 	// MZ-80AFI
 	MB8877* fdc;
