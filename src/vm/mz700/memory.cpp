@@ -117,13 +117,13 @@ void MEMORY::initialize()
 	memset(rdmy, 0xff, sizeof(rdmy));
 	
 	// load rom images
+	FILEIO* fio = new FILEIO();
 #if defined(IPL_FILE_NAME)
 	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME)), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
 	}
 #else
-	FILEIO* fio = new FILEIO();
 	if(fio->Fopen(create_local_path(_T(IPL_FILE_NAME_1ST)), FILEIO_READ_BINARY)) {
 		fio->Fread(ipl, sizeof(ipl), 1);
 		fio->Fclose();
