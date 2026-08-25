@@ -789,7 +789,7 @@ void VM::update_config()
 	}
 }
 
-#define STATE_VERSION	(12 + 0x01000000) // –{‰Æ‚Í12
+#define STATE_VERSION	12
 
 bool VM::process_state(FILEIO* state_fio, bool loading)
 {

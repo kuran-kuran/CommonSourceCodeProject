@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-const std::int8_t Cmu800Tone::kMelodyTable[4096] = {
+const std::int8_t Cmu800Tone::melody_table[4096] = {
     -4, -4, -4, -3, -3, -3, -3, -3, -3, -3, -3, -3, -2, -2, -2, -2,
     -2, -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -261,7 +261,7 @@ const std::int8_t Cmu800Tone::kMelodyTable[4096] = {
     -6, -5, -5, -5, -5, -5, -5, -5, -5, -4, -4, -4, -4, -4, -4, -4
 };
 
-const std::int8_t Cmu800Tone::kBassTable[4096] = {
+const std::int8_t Cmu800Tone::bass_table[4096] = {
     27, 27, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29,
     29, 30, 30, 30, 30, 30, 30, 30, 31, 31, 31, 31, 31, 31, 31, 32,
     32, 32, 32, 32, 32, 32, 32, 33, 33, 33, 33, 33, 33, 33, 34, 34,
@@ -522,66 +522,80 @@ const std::int8_t Cmu800Tone::kBassTable[4096] = {
 
 
 
-static constexpr std::uint32_t k8253ClockHz = 1269866u;
+static constexpr std::uint32_t clock_8253_hz = 1269866u;
 
-Cmu800Tone::Cmu800Tone() : table_(kMelodyTable) {}
-Cmu800Tone::Cmu800Tone(Wave wave) : table_(kMelodyTable) { SetWave(wave); }
-void Cmu800Tone::SetWave(Wave wave) { table_ = wave == Wave::Bass ? kBassTable : kMelodyTable; }
-
-void Cmu800Tone::Initialize()
+Cmu800Tone::Cmu800Tone() :
+	wave_data(melody_table), phase(0), phase_step(0),
+	sample_rate(default_sample_rate), divider(0)
 {
-    phase_ = 0;
-    phaseStep_ = 0;
-    divider_ = 0;
-    envelope_.Initialize();
 }
 
-void Cmu800Tone::Initialize(std::uint32_t sampleRate)
+Cmu800Tone::Cmu800Tone(wave_type wave) : Cmu800Tone()
 {
-    SetSampleRate(sampleRate);
-    Initialize();
+	set_wave(wave);
 }
 
-void Cmu800Tone::SetSampleRate(std::uint32_t sampleRate)
+void Cmu800Tone::set_wave(wave_type wave)
 {
-    sampleRate_ = sampleRate != 0 ? sampleRate : kSampleRate;
-    envelope_.SetSampleRate(sampleRate_);
-    Set8253(divider_);
+	wave_data = wave == wave_type::bass ? bass_table : melody_table;
 }
 
-void Cmu800Tone::Set8253(std::uint16_t divider)
+void Cmu800Tone::initialize()
 {
-    divider_ = divider;
-    phaseStep_ = divider == 0 ? 0u : static_cast<std::uint32_t>(
-        (static_cast<std::uint64_t>(k8253ClockHz) << 32) /
-        (static_cast<std::uint64_t>(sampleRate_) * divider));
+	phase = 0;
+	phase_step = 0;
+	divider = 0;
+	envelope.initialize();
 }
 
-void Cmu800Tone::SetDecay(std::uint8_t value) { envelope_.SetDecay(value); }
-void Cmu800Tone::SetDecayFactorQ31(std::uint32_t value) { envelope_.SetDecayFactorQ31(value); }
-void Cmu800Tone::EnableSustain(bool enabled) { envelope_.EnableSustain(enabled); }
-void Cmu800Tone::SetSustain(std::uint8_t value) { envelope_.SetSustain(value); }
-void Cmu800Tone::SetGate(bool gateIsOn) { envelope_.SetGate(gateIsOn); }
-void Cmu800Tone::Stop() { envelope_.Stop(); }
-bool Cmu800Tone::IsPlaying() const { return envelope_.IsActive(); }
-
-std::int32_t Cmu800Tone::GetData()
+void Cmu800Tone::initialize(std::uint32_t sample_rate)
 {
-    return GetDataWithVolume(32767);
+	set_sample_rate(sample_rate);
+	initialize();
 }
 
-std::int32_t Cmu800Tone::GetDataWithVolume(std::int32_t volumeQ15)
+void Cmu800Tone::set_sample_rate(std::uint32_t sample_rate)
 {
-    const std::int32_t envelopeQ15 = envelope_.GetVolumeQ15AndAdvance();
-    const std::int32_t clampedExternal = std::min(std::max(volumeQ15, 0), 32767);
-    return GetData((envelopeQ15 * clampedExternal + (1 << 14)) >> 15);
+	this->sample_rate = sample_rate != 0 ? sample_rate : default_sample_rate;
+	envelope.set_sample_rate(this->sample_rate);
+	set_8253(divider);
 }
 
-std::int32_t Cmu800Tone::GetData(std::int32_t volumeQ15)
+void Cmu800Tone::set_8253(std::uint16_t divider)
 {
-    constexpr std::uint32_t kIndexShift = 20u;
-    const std::int32_t sample = table_[phase_ >> kIndexShift];
-    phase_ += phaseStep_;
-    return volumeQ15 <= 0 ? 0 :
-        (sample * std::min(volumeQ15, 32767)) >> 15;
+	this->divider = divider;
+	phase_step = divider == 0 ? 0u : static_cast<std::uint32_t>(
+		(static_cast<std::uint64_t>(clock_8253_hz) << 32) /
+		(static_cast<std::uint64_t>(sample_rate) * divider));
+}
+
+void Cmu800Tone::set_decay(std::uint8_t value) { envelope.set_decay(value); }
+void Cmu800Tone::set_decay_factor_q31(std::uint32_t factor_q31) { envelope.set_decay_factor_q31(factor_q31); }
+void Cmu800Tone::enable_sustain(bool enabled) { envelope.enable_sustain(enabled); }
+void Cmu800Tone::set_sustain(std::uint8_t value) { envelope.set_sustain(value); }
+void Cmu800Tone::set_gate(bool gate_is_on) { envelope.set_gate(gate_is_on); }
+void Cmu800Tone::stop() { envelope.stop(); }
+bool Cmu800Tone::is_playing() const { return envelope.is_active(); }
+
+std::int32_t Cmu800Tone::get_data()
+{
+	return get_data_with_volume(32767);
+}
+
+std::int32_t Cmu800Tone::get_data_with_volume(std::int32_t volume_q15)
+{
+	const std::int32_t envelope_q15 = envelope.get_volume_q15_and_advance();
+	const std::int32_t external_volume_q15 = std::min(std::max(volume_q15, 0), 32767);
+	return get_data((envelope_q15 * external_volume_q15 + (1 << 14)) >> 15);
+}
+
+std::int32_t Cmu800Tone::get_data(std::int32_t volume_q15)
+{
+	constexpr std::uint32_t index_shift = 20u;
+	const std::int32_t sample = wave_data[phase >> index_shift];
+	phase += phase_step;
+	if(volume_q15 <= 0) {
+		return 0;
+	}
+	return (sample * std::min(volume_q15, 32767)) >> 15;
 }
