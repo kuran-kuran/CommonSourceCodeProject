@@ -5,43 +5,39 @@
 
 #include "Cmu800Envelope.h"
 
-// Pico-only, no-envelope wavetable oscillator.  Both tables live in Flash.
 class Cmu800Tone {
 public:
-    static constexpr std::size_t kWaveTableSampleCount = 4096u;
-    static constexpr std::uint32_t kSampleRate = 48000u;
+    static constexpr std::size_t wave_table_sample_count = 4096u;
+    static constexpr std::uint32_t default_sample_rate = 48000u;
 
-    enum class Wave { Melody, Bass };
+    enum class wave_type { melody, bass };
 
     Cmu800Tone();
-    explicit Cmu800Tone(Wave wave);
-    void SetWave(Wave wave);
-    void Initialize();
-    void Initialize(std::uint32_t sampleRate);
-    void SetSampleRate(std::uint32_t sampleRate);
-    void Set8253(std::uint16_t divider);
+    explicit Cmu800Tone(wave_type wave);
+    void set_wave(wave_type wave);
+    void initialize();
+    void initialize(std::uint32_t sample_rate);
+    void set_sample_rate(std::uint32_t sample_rate);
+    void set_8253(std::uint16_t divider);
+    void set_decay(std::uint8_t value);
+    void set_decay_factor_q31(std::uint32_t factor_q31);
+    void enable_sustain(bool enabled);
+    void set_sustain(std::uint8_t value);
+    void set_gate(bool gate_is_on);
+    void stop();
+    bool is_playing() const;
+    std::int32_t get_data();
+    std::int32_t get_data_with_volume(std::int32_t volume_q15);
+    std::int32_t get_data(std::int32_t volume_q15);
 
-    // Same envelope API as Cmu800Tone.  Sustain is intended for Melody only.
-    void SetDecay(std::uint8_t value);
-    void SetDecayFactorQ31(std::uint32_t factorQ31);
-    void EnableSustain(bool enabled);
-    void SetSustain(std::uint8_t value);
-    void SetGate(bool gateIsOn);
-    void Stop();
-    bool IsPlaying() const;
-
-    std::int32_t GetData();
-    std::int32_t GetDataWithVolume(std::int32_t volumeQ15);
-    std::int32_t GetData(std::int32_t volumeQ15);
-
-    static const std::int8_t kMelodyTable[kWaveTableSampleCount];
-    static const std::int8_t kBassTable[kWaveTableSampleCount];
+    static const std::int8_t melody_table[wave_table_sample_count];
+    static const std::int8_t bass_table[wave_table_sample_count];
 
 private:
-    const std::int8_t* table_;
-    std::uint32_t phase_ = 0;
-    std::uint32_t phaseStep_ = 0;
-    std::uint32_t sampleRate_ = kSampleRate;
-    std::uint16_t divider_ = 0;
-    Cmu800Envelope envelope_;
+    const std::int8_t* wave_data;
+    std::uint32_t phase;
+    std::uint32_t phase_step;
+    std::uint32_t sample_rate;
+    std::uint16_t divider;
+    Cmu800Envelope envelope;
 };

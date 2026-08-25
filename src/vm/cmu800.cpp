@@ -88,7 +88,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b7BD_wave, &data_ptr, &data_size);
 		if(result) {
 			b7BD_data = (int8_t*)data_ptr;
-			rhythm[7].SetSample(b7BD_data, data_size);
+			rhythm[7].set_sample(b7BD_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800SnareDrum.wav")), FILEIO_READ_BINARY)) {
@@ -99,7 +99,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b6SD_wave, &data_ptr, &data_size);
 		if(result) {
 			b6SD_data = (int8_t*)data_ptr;
-			rhythm[6].SetSample(b6SD_data, data_size);
+			rhythm[6].set_sample(b6SD_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800LowTom.wav")), FILEIO_READ_BINARY)) {
@@ -110,7 +110,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b5LT_wave, &data_ptr, &data_size);
 		if(result) {
 			b5LT_data = (int8_t*)data_ptr;
-			rhythm[5].SetSample(b5LT_data, data_size);
+			rhythm[5].set_sample(b5LT_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800HighTom.wav")), FILEIO_READ_BINARY)) {
@@ -121,7 +121,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b4HT_wave, &data_ptr, &data_size);
 		if(result) {
 			b4HT_data = (int8_t*)data_ptr;
-			rhythm[4].SetSample(b4HT_data, data_size);
+			rhythm[4].set_sample(b4HT_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800Cymbal.wav")), FILEIO_READ_BINARY)) {
@@ -132,7 +132,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b3CY_wave, &data_ptr, &data_size);
 		if(result) {
 			b3CY_data = (int8_t*)data_ptr;
-			rhythm[3].SetSample(b3CY_data, data_size);
+			rhythm[3].set_sample(b3CY_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800OpenHiHat.wav")), FILEIO_READ_BINARY)) {
@@ -143,7 +143,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b2OH_wave, &data_ptr, &data_size);
 		if(result) {
 			b2OH_data = (int8_t*)data_ptr;
-			rhythm[2].SetSample(b2OH_data, data_size);
+			rhythm[2].set_sample(b2OH_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800ClosedHiHat.wav")), FILEIO_READ_BINARY)) {
@@ -154,7 +154,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b1CH_wave, &data_ptr, &data_size);
 		if(result) {
 			b1CH_data = (int8_t*)data_ptr;
-			rhythm[1].SetSample(b1CH_data, data_size);
+			rhythm[1].set_sample(b1CH_data, data_size);
 		}
 	}
 	if(fio->Fopen(create_local_path(_T("CMU800User.wav")), FILEIO_READ_BINARY)) {
@@ -165,7 +165,7 @@ void CMU800::initialize()
 		bool result = get_wave_data(b0User_wave, &data_ptr, &data_size);
 		if(result) {
 			b0User_data = (int8_t*)data_ptr;
-			rhythm[0].SetSample(b0User_data, data_size);
+			rhythm[0].set_sample(b0User_data, data_size);
 		}
 	}
 	delete fio;
@@ -173,16 +173,16 @@ void CMU800::initialize()
 	uint8_t decayValue = 127;
 	uint8_t sustainValue = 127;
 	for(int ch : melody_channels) {
-		tone[ch].Initialize();
-		tone[ch].SetWave(Cmu800Tone::Wave::Melody);
-		tone[ch].SetDecay(decayValue);  // 0Å`255
-		tone[ch].EnableSustain(true);
-		tone[ch].SetSustain(0);
+		tone[ch].initialize();
+		tone[ch].set_wave(Cmu800Tone::wave_type::melody);
+		tone[ch].set_decay(decayValue);  // 0Å`255
+		tone[ch].enable_sustain(true);
+		tone[ch].set_sustain(0);
 	}
-	tone[0].SetSustain(sustainValue);   // 0Å`255
-	tone[1].Initialize();
-	tone[1].SetWave(Cmu800Tone::Wave::Bass);
-	tone[1].SetDecay(decayValue);       // 0Å`255
+	tone[0].set_sustain(sustainValue);   // 0Å`255
+	tone[1].initialize();
+	tone[1].set_wave(Cmu800Tone::wave_type::bass);
+	tone[1].set_decay(decayValue);       // 0Å`255
 	for (int i = 0; i < 5; ++ i) {
 		volume_l[i] = 1024;
 		volume_r[i] = 1024;
@@ -245,10 +245,10 @@ void CMU800::reset()
 	}
 	before_rhythm = 0xFE;
 	for(int ch = 0; ch < 6; ++ ch) {
-		tone[ch].Stop();
+		tone[ch].stop();
 	}
 	for(int i = 0; i < 8; ++ i) {
-		rhythm[i].Stop();
+		rhythm[i].stop();
 	}
 }
 
@@ -319,7 +319,7 @@ void CMU800::update_config()
 	config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain;
 	if(update) {
 		int value255 = static_cast<uint8_t>((melody_sustain * 255 + 5) / 10);
-		tone[0].SetSustain(value255);
+		tone[0].set_sustain(value255);
 		emu->out_message(_T("CMU-800: Melody Sustain = %d/10"), melody_sustain);
 	}
 	// Melody Decay
@@ -342,7 +342,7 @@ void CMU800::update_config()
 	config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay;
 	if(update) {
 		int value255 = static_cast<uint8_t>((melody_decay * 255 + 5) / 10);
-		tone[0].SetDecay(value255);
+		tone[0].set_decay(value255);
 		emu->out_message(_T("CMU-800: Melody Decay = %d/10"), melody_decay);
 	}
 	// Bass Decay
@@ -365,7 +365,7 @@ void CMU800::update_config()
 	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
 	if(update) {
 		int value255 = static_cast<uint8_t>((bass_decay * 255 + 5) / 10);
-		tone[1].SetDecay(value255);
+		tone[1].set_decay(value255);
 		emu->out_message(_T("CMU-800: Bass Decay = %d/10"), bass_decay);
 	}
 	// Chord Decay
@@ -388,10 +388,10 @@ void CMU800::update_config()
 	config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay;
 	if(update) {
 		int value255 = static_cast<uint8_t>((chord_decay * 255 + 5) / 10);
-		tone[2].SetDecay(value255);
-		tone[3].SetDecay(value255);
-		tone[4].SetDecay(value255);
-		tone[5].SetDecay(value255);
+		tone[2].set_decay(value255);
+		tone[3].set_decay(value255);
+		tone[4].set_decay(value255);
+		tone[5].set_decay(value255);
 		emu->out_message(_T("CMU-800: Chord Decay = %d/10"), chord_decay);
 	}
 }
@@ -489,8 +489,8 @@ void CMU800::note_on_midi(int channel)
 		d_midi->write_signal(SIG_MIDI_OUT, key, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
 	} else {
-		tone[channel].Set8253(val);
-		tone[channel].SetGate(true);
+		tone[channel].set_8253(val);
+		tone[channel].set_gate(true);
 	}
 	note_on_flag[channel] = 1;
 	cv_key[channel] = key;
@@ -660,11 +660,11 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 					} else {
 						// open hihatÇ∆close hihatÇÕìØéûÇ…ÇÕñ¬ÇÁÇ»Ç¢
 						if(i == 1) {
-							rhythm[2].Stop();
+							rhythm[2].stop();
 						} else if(i == 2) {
-							rhythm[1].Stop();
+							rhythm[1].stop();
 						}
-						rhythm[i].Trigger();
+						rhythm[i].trigger();
 					}
 				}
 				bitMask <<= 1;
@@ -687,7 +687,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 						d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
 						d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
 					} else {
-						tone[channel].SetGate(false);
+						tone[channel].set_gate(false);
 					}
 					cv_key[channel] = 0;
 					note_on_flag[channel] = 0;
@@ -757,10 +757,10 @@ void CMU800::adjust_tempo(int delta)
 void CMU800::set_sample_rate(uint32_t sample_rate)
 {
 	for(int i = 0; i < 6; ++ i) {
-		tone[i].SetSampleRate(sample_rate);
+		tone[i].set_sample_rate(sample_rate);
 	}
 	for(int i = 0; i < 8; ++ i) {
-		rhythm[i].SetSampleRate(sample_rate);
+		rhythm[i].set_sample_rate(sample_rate);
 	}
 }
 
@@ -789,7 +789,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		// âπó volumeChannel 1: Bass
 		// âπó volumeChannel 2: Chord
 		for(int channel = 0; channel < 6; ++channel) {
-			if(tone[channel].IsPlaying()) {
+			if(tone[channel].is_playing()) {
 				int volumeChannel;
 				if(channel == 0) {
 					// Melody
@@ -801,7 +801,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 					// Chord 1Å`4
 					volumeChannel = 2;
 				}
-				int32_t sample = tone[channel].GetDataWithVolume(32767);
+				int32_t sample = tone[channel].get_data_with_volume(32767);
 				sample *= 64; // Tone gain up
 				cmu800MixedL += apply_volume(sample, volume_l[volumeChannel]);
 				cmu800MixedR += apply_volume(sample, volume_r[volumeChannel]);
@@ -810,7 +810,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		// âπó ch 3: Rhythm
 		int32_t rhythmMixed = 0;
 		for(int channel = 0; channel < 8; ++ channel) {
-			rhythmMixed += rhythm[channel].GetData(32767);
+			rhythmMixed += rhythm[channel].get_data(32767);
 		}
 		rhythmMixed *= 128; // Rhythm gain up
 		cmu800MixedL += apply_volume(rhythmMixed, volume_l[3]);

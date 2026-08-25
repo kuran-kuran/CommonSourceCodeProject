@@ -7,7 +7,7 @@ namespace {
 // Release time uses a perceptually smoother squared curve: Sustain 1 is
 // approximately 3 ms and Sustain 255 is approximately 1.10 s.  Keeping the
 // precomputed Q31 factors in Flash avoids floating-point exp() on Pico.
-constexpr std::uint32_t kReleaseFactorQ31[256] = {
+constexpr std::uint32_t release_factor_q31_table[256] = {
     0u, 2132622229u, 2132705698u, 2132950571u, 2133341145u, 2133853958u, 2134461078u, 2135133454u,
     2135843714u, 2136568048u, 2137287160u, 2137986439u, 2138655599u, 2139288045u, 2139880132u, 2140430451u,
     2140939204u, 2141407693u, 2141837921u, 2142232296u, 2142593417u, 2142923925u, 2143226408u, 2143503334u,
@@ -44,182 +44,184 @@ constexpr std::uint32_t kReleaseFactorQ31[256] = {
 
 } // namespace
 
-Cmu800Envelope::Cmu800Envelope()
-    : levelQ31_(0),
-      decayFactorQ31_(kDecayMiddleQ31),
-      sustainLevelQ31_(0),
-      releaseFactorQ31_(kDecayMinimumQ31),
-      sampleRate_(48000u),
-      referenceClockAccumulator_(0),
-      sustainEnabled_(false),
-      gateIsOn_(false),
-      stage_(Stage::Inactive)
+Cmu800Envelope::Cmu800Envelope() :
+	level_q31(0),
+	decay_factor_q31(decay_middle_q31),
+	sustain_level_q31(0),
+	release_factor_q31(decay_minimum_q31),
+	sample_rate(48000u),
+	reference_clock_accumulator(0),
+	sustain_enabled(false),
+	gate_is_on(false),
+	stage(stage_type::inactive)
 {
 }
 
-void Cmu800Envelope::Initialize()
+void Cmu800Envelope::initialize()
 {
-    levelQ31_ = 0;
-    referenceClockAccumulator_ = 0;
-    gateIsOn_ = false;
-    stage_ = Stage::Inactive;
+	level_q31 = 0;
+	reference_clock_accumulator = 0;
+	gate_is_on = false;
+	stage = stage_type::inactive;
 }
 
-void Cmu800Envelope::Initialize(std::uint32_t sampleRate)
+void Cmu800Envelope::initialize(std::uint32_t sample_rate)
 {
-    SetSampleRate(sampleRate);
-    Initialize();
+	set_sample_rate(sample_rate);
+	initialize();
 }
 
-void Cmu800Envelope::SetSampleRate(std::uint32_t sampleRate)
+void Cmu800Envelope::set_sample_rate(std::uint32_t sample_rate)
 {
-    sampleRate_ = sampleRate != 0 ? sampleRate : 48000u;
-    referenceClockAccumulator_ = 0;
+	this->sample_rate = sample_rate != 0 ? sample_rate : 48000u;
+	reference_clock_accumulator = 0;
 }
 
-void Cmu800Envelope::SetDecayFactorQ31(std::uint32_t factorQ31)
+void Cmu800Envelope::set_decay_factor_q31(std::uint32_t factor_q31)
 {
-    decayFactorQ31_ = std::min(factorQ31, 0x7fffffffu);
+	decay_factor_q31 = std::min(factor_q31, 0x7fffffffu);
 }
 
-void Cmu800Envelope::SetDecay(std::uint8_t value)
+void Cmu800Envelope::set_decay(std::uint8_t value)
 {
     // This control path runs only when the user changes the Decay setting,
     // never in the 48 kHz audio loop.  Keep the three measured anchor points
     // exact; more measured points can later replace this with a lookup table.
     if(value <= 128u) {
-        const std::uint32_t distance = kDecayMiddleQ31 - kDecayMinimumQ31;
-        const std::uint32_t factor = kDecayMinimumQ31 +
-            static_cast<std::uint32_t>(
-                (static_cast<std::uint64_t>(distance) * value + 64u) / 128u);
-        SetDecayFactorQ31(factor);
-        return;
-    }
+		const std::uint32_t distance = decay_middle_q31 - decay_minimum_q31;
+		const std::uint32_t factor = decay_minimum_q31 +
+			static_cast<std::uint32_t>(
+				(static_cast<std::uint64_t>(distance) * value + 64u) / 128u);
+		set_decay_factor_q31(factor);
+		return;
+	}
 
-    const std::uint32_t distance = kDecayMaximumQ31 - kDecayMiddleQ31;
-    const std::uint32_t factor = kDecayMiddleQ31 +
-        static_cast<std::uint32_t>(
-            (static_cast<std::uint64_t>(distance) * (value - 128u) + 63u) / 127u);
-    SetDecayFactorQ31(factor);
+	const std::uint32_t distance = decay_maximum_q31 - decay_middle_q31;
+	const std::uint32_t factor = decay_middle_q31 +
+		static_cast<std::uint32_t>(
+			(static_cast<std::uint64_t>(distance) * (value - 128u) + 63u) / 127u);
+	set_decay_factor_q31(factor);
 }
 
-void Cmu800Envelope::EnableSustain(bool enabled)
+void Cmu800Envelope::enable_sustain(bool enabled)
 {
-    sustainEnabled_ = enabled;
+	sustain_enabled = enabled;
 }
 
-void Cmu800Envelope::SetSustain(std::uint8_t value)
+void Cmu800Envelope::set_sustain(std::uint8_t value)
 {
     // CMU-800 WebSynth's Melody SUSTAIN is not a level to hold.  It selects
     // the NoteOff release time: 39 ms .. 1.039 s, linearly with the knob.
     // kReleaseFactorQ31 is an existing flash lookup with 3 ms .. 1.10 s and
     // a squared index curve, so map the desired linear time onto that table
     // using integers only.  This keeps Pico's audio loop free of float math.
-    constexpr std::uint32_t kMinimumMs = 39u;
-    constexpr std::uint32_t kRangeMs = 1000u;
-    constexpr std::uint32_t kTableMinimumMs = 3u;
-    constexpr std::uint32_t kTableRangeMs = 1097u;
-    constexpr std::uint32_t kTableMaxIndex = 255u;
-    const std::uint32_t targetMs = kMinimumMs +
-        (kRangeMs * value + 127u) / 255u;
+    constexpr std::uint32_t minimum_ms = 39u;
+    constexpr std::uint32_t range_ms = 1000u;
+    constexpr std::uint32_t table_minimum_ms = 3u;
+    constexpr std::uint32_t table_range_ms = 1097u;
+    constexpr std::uint32_t table_max_index = 255u;
+    const std::uint32_t target_ms = minimum_ms +
+        (range_ms * value + 127u) / 255u;
     const std::uint64_t scaled = static_cast<std::uint64_t>(
-        targetMs - kTableMinimumMs) * kTableMaxIndex * kTableMaxIndex /
-        kTableRangeMs;
-    std::uint32_t tableIndex = 0;
-    while(static_cast<std::uint64_t>(tableIndex + 1u) * (tableIndex + 1u) <=
-           scaled && tableIndex < kTableMaxIndex) {
-        ++tableIndex;
-    }
-    releaseFactorQ31_ = kReleaseFactorQ31[tableIndex];
-    sustainLevelQ31_ = 0;
+        target_ms - table_minimum_ms) * table_max_index * table_max_index /
+        table_range_ms;
+    std::uint32_t table_index = 0;
+    while(static_cast<std::uint64_t>(table_index + 1u) * (table_index + 1u) <=
+        scaled && table_index < table_max_index) {
+		++table_index;
+	}
+	release_factor_q31 = release_factor_q31_table[table_index];
+	sustain_level_q31 = 0;
 }
 
-void Cmu800Envelope::SetGate(bool gateIsOn)
+void Cmu800Envelope::set_gate(bool gate_is_on)
 {
-    if(gateIsOn == gateIsOn_) return;
+    if(gate_is_on == this->gate_is_on) {
+		return;
+	}
 
-    gateIsOn_ = gateIsOn;
-    if(gateIsOn_) {
-        Trigger();
-    } else if(sustainEnabled_ && levelQ31_ != 0) {
-        stage_ = Stage::Release;
-    }
+	this->gate_is_on = gate_is_on;
+	if(this->gate_is_on) {
+		trigger();
+	} else if(sustain_enabled && level_q31 != 0) {
+		stage = stage_type::release;
+	}
 }
 
-void Cmu800Envelope::Trigger()
+void Cmu800Envelope::trigger()
 {
-    levelQ31_ = 0x7fffffffu;
-    referenceClockAccumulator_ = 0;
+    level_q31 = 0x7fffffffu;
+    reference_clock_accumulator = 0;
     // Decay always starts at NoteOn.  Melody Sustain only replaces this
     // decay with Release when its GATE falls; there is no sustain-level hold.
-    stage_ = Stage::OneShotDecay;
+    stage = stage_type::one_shot_decay;
 }
 
-void Cmu800Envelope::Stop()
+void Cmu800Envelope::stop()
 {
-    levelQ31_ = 0;
-    gateIsOn_ = false;
-    stage_ = Stage::Inactive;
+    level_q31 = 0;
+    gate_is_on = false;
+    stage = stage_type::inactive;
 }
 
-bool Cmu800Envelope::IsActive() const
+bool Cmu800Envelope::is_active() const
 {
-    return levelQ31_ != 0;
+    return level_q31 != 0;
 }
 
-void Cmu800Envelope::Advance(std::uint32_t factorQ31)
+void Cmu800Envelope::advance(std::uint32_t factor_q31)
 {
-    levelQ31_ = static_cast<std::uint32_t>(
-        (static_cast<std::uint64_t>(levelQ31_) * factorQ31 +
+    level_q31 = static_cast<std::uint32_t>(
+        (static_cast<std::uint64_t>(level_q31) * factor_q31 +
          (1ull << 30)) >> 31);
 }
 
-void Cmu800Envelope::AdvanceOneReferenceSample()
+void Cmu800Envelope::advance_one_reference_sample()
 {
-    switch(stage_) {
-    case Stage::OneShotDecay:
-        Advance(decayFactorQ31_);
-        break;
+    switch(stage) {
+    case stage_type::one_shot_decay:
+		advance(decay_factor_q31);
+		break;
 
-    case Stage::Release:
-        Advance(releaseFactorQ31_);
-        break;
+    case stage_type::release:
+		advance(release_factor_q31);
+		break;
 
-    case Stage::DecayToSustain:
-        Advance(decayFactorQ31_);
-        if(levelQ31_ <= sustainLevelQ31_) {
-            levelQ31_ = sustainLevelQ31_;
-            stage_ = gateIsOn_ ? Stage::SustainHold : Stage::Release;
-        }
-        break;
+    case stage_type::decay_to_sustain:
+		advance(decay_factor_q31);
+		if(level_q31 <= sustain_level_q31) {
+			level_q31 = sustain_level_q31;
+			stage = gate_is_on ? stage_type::sustain_hold : stage_type::release;
+		}
+		break;
 
-    case Stage::SustainHold:
-    case Stage::Inactive:
-        break;
-    }
+    case stage_type::sustain_hold:
+    case stage_type::inactive:
+		break;
+	}
 }
 
-std::int32_t Cmu800Envelope::GetVolumeQ15AndAdvance()
+std::int32_t Cmu800Envelope::get_volume_q15_and_advance()
 {
-    const std::int32_t volumeQ15 = static_cast<std::int32_t>(levelQ31_ >> 16);
+    const std::int32_t volume_q15 = static_cast<std::int32_t>(level_q31 >> 16);
 
     // The measured factors are defined at 48 kHz.  Advance them on a virtual
     // 48 kHz clock so envelope times remain unchanged at any output rate.
-    referenceClockAccumulator_ += 48000u;
-    while(referenceClockAccumulator_ >= sampleRate_) {
-        referenceClockAccumulator_ -= sampleRate_;
-        AdvanceOneReferenceSample();
-    }
+    reference_clock_accumulator += 48000u;
+    while(reference_clock_accumulator >= sample_rate) {
+		reference_clock_accumulator -= sample_rate;
+		advance_one_reference_sample();
+	}
 
     // WebSynth stops Melody about seven release time constants after NoteOff.
     // The former 1<<12 cutoff was around thirteen time constants, which made
     // key-off tails noticeably longer than the reference.
-    const std::uint32_t silentThreshold = stage_ == Stage::Release ?
+    const std::uint32_t silent_threshold = stage == stage_type::release ?
         500000u : (1u << 12);
-    if(stage_ != Stage::SustainHold && levelQ31_ < silentThreshold) {
-        levelQ31_ = 0;
-        stage_ = Stage::Inactive;
-    }
+    if(stage != stage_type::sustain_hold && level_q31 < silent_threshold) {
+		level_q31 = 0;
+		stage = stage_type::inactive;
+	}
 
-    return volumeQ15;
+    return volume_q15;
 }

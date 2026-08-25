@@ -2,78 +2,82 @@
 
 #include <algorithm>
 
-Cmu800Rhythm::Cmu800Rhythm(const int8_t* sample,
-                           uint32_t sampleCount) :
-    sample_(sample), sampleCount_(sampleCount), positionQ32_(0),
-    stepQ32_(1ull << 32), sampleRate_(48000u), playing_(false)
+Cmu800Rhythm::Cmu800Rhythm(const std::int8_t* sample_data,
+	std::uint32_t sample_count) :
+	sample_data(sample_data), sample_count(sample_count), position_q32(0),
+	step_q32(1ull << 32), sample_rate(48000u), playing(false)
 {
 }
 
-void Cmu800Rhythm::SetSample(const int8_t* sample,
-                             uint32_t sampleCount)
+void Cmu800Rhythm::set_sample(const std::int8_t* sample_data,
+	std::uint32_t sample_count)
 {
-    sample_ = sample;
-    sampleCount_ = sampleCount;
-    Initialize();
+	this->sample_data = sample_data;
+	this->sample_count = sample_count;
+	initialize();
 }
 
-void Cmu800Rhythm::Initialize()
+void Cmu800Rhythm::initialize()
 {
-    positionQ32_ = 0;
-    playing_ = false;
+	position_q32 = 0;
+	playing = false;
 }
 
-void Cmu800Rhythm::Initialize(uint32_t sampleRate)
+void Cmu800Rhythm::initialize(std::uint32_t sample_rate)
 {
-    SetSampleRate(sampleRate);
-    Initialize();
+	set_sample_rate(sample_rate);
+	initialize();
 }
 
-void Cmu800Rhythm::SetSampleRate(uint32_t sampleRate)
+void Cmu800Rhythm::set_sample_rate(std::uint32_t sample_rate)
 {
-    sampleRate_ = sampleRate != 0 ? sampleRate : 48000u;
-    stepQ32_ = (static_cast<uint64_t>(48000u) << 32) / sampleRate_;
+	this->sample_rate = sample_rate != 0 ? sample_rate : 48000u;
+	step_q32 = (static_cast<std::uint64_t>(48000u) << 32) / this->sample_rate;
 }
 
-void Cmu800Rhythm::Trigger()
+void Cmu800Rhythm::trigger()
 {
-    positionQ32_ = 0;
-    playing_ = sample_ != NULL && sampleCount_ != 0;
+	position_q32 = 0;
+	playing = sample_data != NULL && sample_count != 0;
 }
 
-void Cmu800Rhythm::Stop()
+void Cmu800Rhythm::stop()
 {
-    positionQ32_ = 0;
-    playing_ = false;
+	position_q32 = 0;
+	playing = false;
 }
 
-bool Cmu800Rhythm::IsPlaying() const
+bool Cmu800Rhythm::is_playing() const
 {
-    return playing_;
+	return playing;
 }
 
-int32_t Cmu800Rhythm::GetData(int32_t volumeQ15)
+std::int32_t Cmu800Rhythm::get_data(std::int32_t volume_q15)
 {
-    const uint64_t position = positionQ32_ >> 32;
-    if(!playing_ || sample_ == NULL || position >= sampleCount_) {
-        playing_ = false;
-        return 0;
-    }
+	const std::uint64_t position = position_q32 >> 32;
+	if(!playing || sample_data == NULL || position >= sample_count) {
+		playing = false;
+		return 0;
+	}
 
-    const uint32_t index = static_cast<uint32_t>(position);
-    const uint32_t nextIndex =
-        index + 1u < sampleCount_ ? index + 1u : index;
-    const uint32_t fraction =
-        static_cast<uint32_t>((positionQ32_ >> 16) & 0xffffu);
-    const int32_t weighted =
-        static_cast<int32_t>(sample_[index]) *
-            static_cast<int32_t>(65536u - fraction) +
-        static_cast<int32_t>(sample_[nextIndex]) *
-            static_cast<int32_t>(fraction);
-    const int32_t sample = weighted / 65536;
+	const std::uint32_t index = static_cast<std::uint32_t>(position);
+	const std::uint32_t next_index =
+		index + 1u < sample_count ? index + 1u : index;
+	const std::uint32_t fraction =
+		static_cast<std::uint32_t>((position_q32 >> 16) & 0xffffu);
+	const std::int32_t weighted =
+		static_cast<std::int32_t>(sample_data[index]) *
+			static_cast<std::int32_t>(65536u - fraction) +
+		static_cast<std::int32_t>(sample_data[next_index]) *
+			static_cast<std::int32_t>(fraction);
+	const std::int32_t sample = weighted / 65536;
 
-    positionQ32_ += stepQ32_;
-    if((positionQ32_ >> 32) >= sampleCount_) playing_ = false;
-    if(volumeQ15 <= 0) return 0;
-    return (sample * std::min(volumeQ15, 32767)) >> 15;
+	position_q32 += step_q32;
+	if((position_q32 >> 32) >= sample_count) {
+		playing = false;
+	}
+	if(volume_q15 <= 0) {
+		return 0;
+	}
+	return (sample * std::min(volume_q15, 32767)) >> 15;
 }
