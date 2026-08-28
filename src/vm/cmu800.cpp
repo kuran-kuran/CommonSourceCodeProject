@@ -65,6 +65,34 @@ void CMU800::initialize()
 		tempo_new = TEMPO_INI;
 		config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
 	}
+	// Add 1 before saving because 0 is also a valid value for sustain and decay.
+	if ((melody_sustain = config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] - 1) < 0) {
+		melody_sustain = 5;
+		config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain + 1;
+	}
+	if((melody_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY1] - 1) < 0) {
+		melody_decay = 5;
+		config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay + 1;
+	}
+	if((bass_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY2] - 1) < 0) {
+		bass_decay = 5;
+		config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay + 1;
+	}
+	if((chord_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY3] - 1) < 0) {
+		chord_decay = 5;
+		config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay + 1;
+	}
+	int value255 = static_cast<uint8_t>((melody_sustain * 255 + 5) / 10);
+	tone[0].set_sustain(value255);
+	value255 = static_cast<uint8_t>((melody_decay * 255 + 5) / 10);
+	tone[0].set_decay(value255);
+	value255 = static_cast<uint8_t>((bass_decay * 255 + 5) / 10);
+	tone[1].set_decay(value255);
+	value255 = static_cast<uint8_t>((chord_decay * 255 + 5) / 10);
+	tone[2].set_decay(value255);
+	tone[3].set_decay(value255);
+	tone[4].set_decay(value255);
+	tone[5].set_decay(value255);
 	tempo_freq = tempo_new;
 	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
 	emu->out_message(_T("CMU-800: Tempo = %d"), tempo_freq);
@@ -170,27 +198,18 @@ void CMU800::initialize()
 	}
 	delete fio;
 	int melody_channels[] = { 0, 2, 3, 4, 5 };
-	uint8_t decayValue = 127;
-	uint8_t sustainValue = 127;
 	for(int ch : melody_channels) {
 		tone[ch].initialize();
 		tone[ch].set_wave(Cmu800Tone::wave_type::melody);
-		tone[ch].set_decay(decayValue);  // 0～255
 		tone[ch].enable_sustain(true);
 		tone[ch].set_sustain(0);
 	}
-	tone[0].set_sustain(sustainValue);   // 0～255
 	tone[1].initialize();
 	tone[1].set_wave(Cmu800Tone::wave_type::bass);
-	tone[1].set_decay(decayValue);       // 0～255
 	for (int i = 0; i < 5; ++ i) {
 		volume_l[i] = 1024;
 		volume_r[i] = 1024;
 	}
-	melody_sustain = 5;
-	melody_decay = 5;
-	bass_decay = 5;
-	chord_decay = 5;
 }
 
 void CMU800::release()
@@ -301,12 +320,12 @@ void CMU800::update_config()
 	// Melody Sustain
 	bool update = false;
 	if(config.option_switch & OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1) {
-		melody_sustain++;
+		++ melody_sustain;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_INC_1;
 		update = true;
 	}
 	if(config.option_switch & OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1) {
-		melody_sustain--;
+		-- melody_sustain;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_SUSTAIN_DEC_1;
 		update = true;
 	}
@@ -316,7 +335,7 @@ void CMU800::update_config()
 	else if(melody_sustain < 0) {
 		melody_sustain = 0;
 	}
-	config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain;
+	config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain + 1;
 	if(update) {
 		int value255 = static_cast<uint8_t>((melody_sustain * 255 + 5) / 10);
 		tone[0].set_sustain(value255);
@@ -325,12 +344,12 @@ void CMU800::update_config()
 	// Melody Decay
 	update = false;
 	if(config.option_switch & OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1) {
-		melody_decay ++;
+		++ melody_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_INC_1;
 		update = true;
 	}
 	if(config.option_switch & OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1) {
-		melody_decay --;
+		-- melody_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_MELODY_DECAY_DEC_1;
 		update = true;
 	}
@@ -339,7 +358,7 @@ void CMU800::update_config()
 	} else if(melody_decay < 0) {
 		melody_decay = 0;
 	}
-	config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay + 1;
 	if(update) {
 		int value255 = static_cast<uint8_t>((melody_decay * 255 + 5) / 10);
 		tone[0].set_decay(value255);
@@ -348,12 +367,12 @@ void CMU800::update_config()
 	// Bass Decay
 	update = false;
 	if(config.option_switch & OPTION_SWITCH_CMU800_BASS_DECAY_INC_1) {
-		bass_decay ++;
+		++ bass_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_INC_1;
 		update = true;
 	}
 	if(config.option_switch & OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1) {
-		bass_decay --;
+		-- bass_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1;
 		update = true;
 	}
@@ -362,7 +381,7 @@ void CMU800::update_config()
 	} else if(bass_decay < 0) {
 		bass_decay = 0;
 	}
-	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay + 1;
 	if(update) {
 		int value255 = static_cast<uint8_t>((bass_decay * 255 + 5) / 10);
 		tone[1].set_decay(value255);
@@ -371,12 +390,12 @@ void CMU800::update_config()
 	// Chord Decay
 	update = false;
 	if(config.option_switch & OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1) {
-		chord_decay ++;
+		++ chord_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_INC_1;
 		update = true;
 	}
 	if(config.option_switch & OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1) {
-		chord_decay --;
+		-- chord_decay;
 		config.option_switch &= ~OPTION_SWITCH_CMU800_CHORD_DECAY_DEC_1;
 		update = true;
 	}
@@ -385,7 +404,7 @@ void CMU800::update_config()
 	} else if(chord_decay < 0) {
 		chord_decay = 0;
 	}
-	config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay + 1;
 	if(update) {
 		int value255 = static_cast<uint8_t>((chord_decay * 255 + 5) / 10);
 		tone[2].set_decay(value255);
@@ -429,7 +448,7 @@ void CMU800::reset_midi()
 			d_midi->write_signal(SIG_MIDI_OUT, 0x78, 0xFF);
 			d_midi->write_signal(SIG_MIDI_OUT, 0, 0xFF);
 		}
-		// 全チャンネルクラビネットに変更
+		// Set all channels to Clavinet.
 		d_midi->write_signal(SIG_MIDI_OUT, 0xC0, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0x07, 0xFF);
 		d_midi->write_signal(SIG_MIDI_OUT, 0xC1, 0xFF);
@@ -457,7 +476,7 @@ void CMU800::note_on_midi8253(int channel)
 
 void CMU800::note_on_midi(int channel)
 {
-	// 8253設定値からcvを求める
+	// Calculate CV from the 8253 counter value.
 	int val = counter[channel];
 	int back = -1;
 	for(int i = 0; i < array_length(counterTable); ++ i) {
@@ -480,7 +499,7 @@ void CMU800::note_on_midi(int channel)
 	}
 	// note on
 	uint8_t key = cv + 24;
-	// cvを112以内に抑える。下げるときは一度に1オクターブ下げる
+	// Keep CV at or below 112 by lowering it one octave at a time.
 	while(key > 112) {
 		key -= 12;
 	}
@@ -496,7 +515,7 @@ void CMU800::note_on_midi(int channel)
 	cv_key[channel] = key;
 }
 
-// waveからdataの位置とサイズを取得する
+// Get the data position and size from the WAV image.
 bool CMU800::get_wave_data(uint8_t* wave, uint8_t** data_ptr, uint32_t* data_size)
 {
 	uint8_t* p = wave;
@@ -569,7 +588,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				if(note_on_flag[port_number] == 1) {
 					if(before_counter[port_number] != counter[port_number]) {
 						key_on[port_number] = true;
-						// 0x90h、Volocity 0でのnote off (Volocity 0で消音するとスラー、タイになるらしい)
+						// Note off using 0x90 with velocity 0 (said to preserve slurs and ties).
 						if(use_midi) {
 							d_midi->write_signal(SIG_MIDI_OUT, 0x90 + port_number, 0xFF);
 							d_midi->write_signal(SIG_MIDI_OUT, cv_key[port_number], 0xFF);
@@ -600,7 +619,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				if(note_on_flag[port_number] == 1) {
 					if(before_counter[port_number] != counter[port_number]) {
 						key_on[port_number] = true;
-						// 0x90h、Volocity 0でのnote off (Volocity 0で消音するとスラー、タイになるらしい)
+						// Note off using 0x90 with velocity 0 (said to preserve slurs and ties).
 						if(use_midi) {
 							d_midi->write_signal(SIG_MIDI_OUT, 0x90 + port_number, 0xFF);
 							d_midi->write_signal(SIG_MIDI_OUT, cv_key[port_number], 0xFF);
@@ -640,9 +659,9 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		// b1 CH (close hihat)
 		// b0 Reserve (not use)
 		{
-			// open hihatとclose hihatが同時に鳴った場合はclose hihatが勝つ
+			// Closed hi-hat takes priority when both hi-hats are triggered together.
 			if((data & 0x06) == 0) {
-				// open hihatを消す
+				// Cancel the open hi-hat trigger.
 				data |= 0b00000100;
 			}
 			uint8_t bitMask = 0x01; //0b00000010;
@@ -658,7 +677,7 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 							d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
 						}
 					} else {
-						// open hihatとclose hihatは同時には鳴らない
+						// The open and closed hi-hats cannot sound simultaneously.
 						if(i == 1) {
 							rhythm[2].stop();
 						} else if(i == 2) {
@@ -694,10 +713,10 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 				}
 				else if(note_on == true && note_on_flag[channel] == 0) {
 					if(cv == 0) {
-						// bugfireさんのプレイヤーは既に8253設定済みでcvが0なのですぐに音を鳴らす
+						// BugFire's player has already configured the 8253 and leaves CV at 0, so start the note immediately.
 						note_on_midi(channel);
 					} else {
-						// CMU-800シーケンサーはまだ8253の設定が終わっていないので8253設定時に音を鳴らすためのフラグをセット
+						// The CMU-800 sequencer has not configured the 8253 yet, so defer the note until the counter is set.
 						key_on[channel] = true;
 					}
 				}
@@ -785,9 +804,9 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		int32_t cmu800MixedL = 0;
 		int32_t cmu800MixedR = 0;
 		// Tone
-		// 音量volumeChannel 0: Melody
-		// 音量volumeChannel 1: Bass
-		// 音量volumeChannel 2: Chord
+		// volumeChannel 0: Melody
+		// volumeChannel 1: Bass
+		// volumeChannel 2: Chord
 		for(int channel = 0; channel < 6; ++channel) {
 			if(tone[channel].is_playing()) {
 				int volumeChannel;
@@ -798,7 +817,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 					// Bass
 					volumeChannel = 1;
 				} else {
-					// Chord 1～4
+					// Chord 1-4
 					volumeChannel = 2;
 				}
 				int32_t sample = tone[channel].get_data_with_volume(32767);
@@ -807,7 +826,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 				cmu800MixedR += apply_volume(sample, volume_r[volumeChannel]);
 			}
 		}
-		// 音量ch 3: Rhythm
+		// Volume channel 3: Rhythm
 		int32_t rhythmMixed = 0;
 		for(int channel = 0; channel < 8; ++ channel) {
 			rhythmMixed += rhythm[channel].get_data(32767);
@@ -815,7 +834,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 		rhythmMixed *= 128; // Rhythm gain up
 		cmu800MixedL += apply_volume(rhythmMixed, volume_l[3]);
 		cmu800MixedR += apply_volume(rhythmMixed, volume_r[3]);
-		// 音量ch 4: Master
+		// Volume channel 4: Master
 		cmu800MixedL = apply_volume(cmu800MixedL, volume_l[4]);
 		cmu800MixedR = apply_volume(cmu800MixedR, volume_r[4]);
 		*buffer ++ += cmu800MixedL;
@@ -823,7 +842,7 @@ void CMU800::mix(int32_t* buffer, int cnt)
 	}
 }
 
-// 音量ch 0: Merody
+// Volume channel 0: Melody
 //        1: Bass
 //        2: Chord
 //        3: Rhythm

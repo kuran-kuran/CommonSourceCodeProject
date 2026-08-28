@@ -65,7 +65,9 @@ public:
 	{
 		set_device_name(_T("CMU-800 (MIDI)"));
 	}
-	~CMU800() {}
+	~CMU800()
+	{
+	}
 	
 	// common functions
 	void reset();

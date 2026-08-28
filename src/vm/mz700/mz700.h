@@ -98,7 +98,7 @@
 #define USE_SOUND_VOLUME	7
 #endif
 #if defined(SUPPORT_CMU800)
-#define USE_GENERAL_PARAM	6
+#define USE_GENERAL_PARAM	5
 #define USE_MIDI
 #endif
 #if defined(_MZ1500)

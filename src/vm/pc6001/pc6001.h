@@ -85,7 +85,7 @@
 // device informations for win32
 #if defined(SUPPORT_CMU800)
 #define USE_OPTION_SWITCH
-#define USE_GENERAL_PARAM	1
+#define USE_GENERAL_PARAM	5
 #endif
 #define USE_CART		1
 #if defined(_PC6601) || defined(_PC6601SR)

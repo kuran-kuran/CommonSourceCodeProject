@@ -203,7 +203,7 @@
 #define USE_COMPACT_DISC	1
 #endif
 #if defined(SUPPORT_CMU800)
-#define USE_GENERAL_PARAM	1
+#define USE_GENERAL_PARAM	5
 #define USE_MIDI
 #define SOUND_VOLUME_CMU800 5
 #else

@@ -51,7 +51,7 @@
 // device informations for win32
 #define USE_DIPSWITCH
 #define USE_OPTION_SWITCH
-#define USE_GENERAL_PARAM	1
+#define USE_GENERAL_PARAM	5
 #define USE_TAPE		1
 #define USE_KEY_LOCKED
 #define USE_AUTO_KEY		5

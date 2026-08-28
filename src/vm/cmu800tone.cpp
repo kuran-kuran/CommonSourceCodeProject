@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-const std::int8_t Cmu800Tone::melody_table[4096] = {
+const int8_t Cmu800Tone::melody_table[4096] = {
     -4, -4, -4, -3, -3, -3, -3, -3, -3, -3, -3, -3, -2, -2, -2, -2,
     -2, -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -261,7 +261,7 @@ const std::int8_t Cmu800Tone::melody_table[4096] = {
     -6, -5, -5, -5, -5, -5, -5, -5, -5, -4, -4, -4, -4, -4, -4, -4
 };
 
-const std::int8_t Cmu800Tone::bass_table[4096] = {
+const int8_t Cmu800Tone::bass_table[4096] = {
     27, 27, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29,
     29, 30, 30, 30, 30, 30, 30, 30, 31, 31, 31, 31, 31, 31, 31, 32,
     32, 32, 32, 32, 32, 32, 32, 33, 33, 33, 33, 33, 33, 33, 34, 34,
@@ -522,17 +522,12 @@ const std::int8_t Cmu800Tone::bass_table[4096] = {
 
 
 
-static constexpr std::uint32_t clock_8253_hz = 1269866u;
+static constexpr uint32_t clock_8253_hz = 1269866u;
 
 Cmu800Tone::Cmu800Tone() :
 	wave_data(melody_table), phase(0), phase_step(0),
 	sample_rate(default_sample_rate), divider(0)
 {
-}
-
-Cmu800Tone::Cmu800Tone(wave_type wave) : Cmu800Tone()
-{
-	set_wave(wave);
 }
 
 void Cmu800Tone::set_wave(wave_type wave)
@@ -548,51 +543,62 @@ void Cmu800Tone::initialize()
 	envelope.initialize();
 }
 
-void Cmu800Tone::initialize(std::uint32_t sample_rate)
-{
-	set_sample_rate(sample_rate);
-	initialize();
-}
-
-void Cmu800Tone::set_sample_rate(std::uint32_t sample_rate)
+void Cmu800Tone::set_sample_rate(uint32_t sample_rate)
 {
 	this->sample_rate = sample_rate != 0 ? sample_rate : default_sample_rate;
 	envelope.set_sample_rate(this->sample_rate);
 	set_8253(divider);
 }
 
-void Cmu800Tone::set_8253(std::uint16_t divider)
+void Cmu800Tone::set_8253(uint16_t divider)
 {
 	this->divider = divider;
-	phase_step = divider == 0 ? 0u : static_cast<std::uint32_t>(
-		(static_cast<std::uint64_t>(clock_8253_hz) << 32) /
-		(static_cast<std::uint64_t>(sample_rate) * divider));
+	phase_step = divider == 0 ? 0u : static_cast<uint32_t>(
+		(static_cast<uint64_t>(clock_8253_hz) << 32) /
+		(static_cast<uint64_t>(sample_rate) * divider));
 }
 
-void Cmu800Tone::set_decay(std::uint8_t value) { envelope.set_decay(value); }
-void Cmu800Tone::set_decay_factor_q31(std::uint32_t factor_q31) { envelope.set_decay_factor_q31(factor_q31); }
-void Cmu800Tone::enable_sustain(bool enabled) { envelope.enable_sustain(enabled); }
-void Cmu800Tone::set_sustain(std::uint8_t value) { envelope.set_sustain(value); }
-void Cmu800Tone::set_gate(bool gate_is_on) { envelope.set_gate(gate_is_on); }
-void Cmu800Tone::stop() { envelope.stop(); }
-bool Cmu800Tone::is_playing() const { return envelope.is_active(); }
-
-std::int32_t Cmu800Tone::get_data()
+void Cmu800Tone::set_decay(uint8_t value)
 {
-	return get_data_with_volume(32767);
+	envelope.set_decay(value);
 }
 
-std::int32_t Cmu800Tone::get_data_with_volume(std::int32_t volume_q15)
+void Cmu800Tone::enable_sustain(bool enabled)
 {
-	const std::int32_t envelope_q15 = envelope.get_volume_q15_and_advance();
-	const std::int32_t external_volume_q15 = std::min(std::max(volume_q15, 0), 32767);
+	envelope.enable_sustain(enabled);
+}
+
+void Cmu800Tone::set_sustain(uint8_t value)
+{
+	envelope.set_sustain(value);
+}
+
+void Cmu800Tone::set_gate(bool gate_is_on)
+{
+	envelope.set_gate(gate_is_on);
+}
+
+void Cmu800Tone::stop()
+{
+	envelope.stop();
+}
+
+bool Cmu800Tone::is_playing() const
+{
+	return envelope.is_active();
+}
+
+int32_t Cmu800Tone::get_data_with_volume(int32_t volume_q15)
+{
+	const int32_t envelope_q15 = envelope.get_volume_q15_and_advance();
+	const int32_t external_volume_q15 = std::min(std::max(volume_q15, 0), 32767);
 	return get_data((envelope_q15 * external_volume_q15 + (1 << 14)) >> 15);
 }
 
-std::int32_t Cmu800Tone::get_data(std::int32_t volume_q15)
+int32_t Cmu800Tone::get_data(int32_t volume_q15)
 {
-	constexpr std::uint32_t index_shift = 20u;
-	const std::int32_t sample = wave_data[phase >> index_shift];
+	constexpr uint32_t index_shift = 20u;
+	const int32_t sample = wave_data[phase >> index_shift];
 	phase += phase_step;
 	if(volume_q15 <= 0) {
 		return 0;
