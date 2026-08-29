@@ -61,30 +61,33 @@ void CMU800::initialize()
 	}
 	memset(regs, 0, sizeof(regs));
 	is_reset = false;
-	if((tempo_new = config.general_param[GENERAL_PARAM_CMU800_TEMPO]) <= 0) {
-		tempo_new = TEMPO_INI;
-		config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
-	}
-	// Add 1 before saving because 0 is also a valid value for sustain and decay.
-	if ((melody_sustain = config.general_param[GENERAL_PARAM_CMU800_SUSTAIN]) <= 0) {
-		melody_sustain = 5;
-		config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain;
-	}
-	if((melody_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY1]) <= 0) {
-		melody_decay = 5;
-		config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay;
-	}
-	if((bass_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY2]) <= 0) {
-		bass_decay = 5;
-		config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
-	}
-	if((chord_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY3]) <= 0) {
-		chord_decay = 5;
-		config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay;
-	}
+	tempo_new = config.general_param[GENERAL_PARAM_CMU800_TEMPO];
+	tempo_new = (tempo_new == 0) ? TEMPO_INI :
+		(tempo_new < TEMPO_MIN) ? TEMPO_MIN :
+		(tempo_new > TEMPO_MAX) ? TEMPO_MAX : tempo_new;
+	config.general_param[GENERAL_PARAM_CMU800_TEMPO] = tempo_new;
+	melody_sustain = config.general_param[GENERAL_PARAM_CMU800_SUSTAIN];
+	melody_sustain = (melody_sustain == 0) ? 5 :
+		(melody_sustain < 1) ? 1 :
+		(melody_sustain > 10) ? 10 : melody_sustain;
+	config.general_param[GENERAL_PARAM_CMU800_SUSTAIN] = melody_sustain;
+	melody_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY1];
+	melody_decay = (melody_decay == 0) ? 5 :
+		(melody_decay < 1) ? 1 :
+		(melody_decay > 10) ? 10 : melody_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY1] = melody_decay;
+	bass_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY2];
+	bass_decay = (bass_decay == 0) ? 5 :
+		(bass_decay < 1) ? 1 :
+		(bass_decay > 10) ? 10 : bass_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
+	chord_decay = config.general_param[GENERAL_PARAM_CMU800_DECAY3];
+	chord_decay = (chord_decay == 0) ? 5 :
+		(chord_decay < 1) ? 1 :
+		(chord_decay > 10) ? 10 : chord_decay;
+	config.general_param[GENERAL_PARAM_CMU800_DECAY3] = chord_decay;
 	tempo_freq = tempo_new;
 	register_event(this, EVENT_TEMPO, 1000000.0 / (tempo_freq * 80 / 100), true, &tempo_id);
-	int value255 = static_cast<uint8_t>(((bass_decay - 1) * 255 + 4) / 9);
 	emu->out_message(_T("CMU-800: Tempo=%d, Sustain=%d, Decay=%d/%d/%d"), tempo_freq, melody_sustain, melody_decay, bass_decay, chord_decay);
 	b7BD_wave = NULL;
 	b6SD_wave = NULL;
@@ -193,7 +196,7 @@ void CMU800::initialize()
 		tone[ch].set_wave(Cmu800Tone::wave_type::melody);
 		tone[ch].enable_sustain(true);
 		if (ch == 0) {
-			value255 = static_cast<uint8_t>(((melody_sustain - 1) * 255 + 4) / 9);
+			int value255 = static_cast<uint8_t>(((melody_sustain - 1) * 255 + 4) / 9);
 			tone[ch].set_sustain(value255);
 		} else {
 			// Enable a very small amount of sustain for channels other than ch0 as well.
@@ -206,7 +209,7 @@ void CMU800::initialize()
 		volume_l[i] = 1024;
 		volume_r[i] = 1024;
 	}
-	value255 = static_cast<uint8_t>(((melody_decay - 1) * 255 + 4) / 9);
+	int value255 = static_cast<uint8_t>(((melody_decay - 1) * 255 + 4) / 9);
 	tone[0].set_decay(value255);
 	value255 = static_cast<uint8_t>(((bass_decay - 1) * 255 + 4) / 9);
 	tone[1].set_decay(value255);
