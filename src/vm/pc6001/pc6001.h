@@ -23,7 +23,7 @@
 #define CPU_CLOCKS		3993600
 #define HAS_AY_3_8910
 #define TIMER_PERIOD	(8192. / CPU_CLOCKS * 1000000)
-// mk2��mk2SR��memory_draw.cpp�������ăr���h�ł��Ȃ��̂ł��܂���SUPPORT_CMU800�������ƌ����Ă���̂��킩��Ȃ�
+// mk2とmk2SRがmemory_draw.cppが無くてビルドできないのでいまいちSUPPORT_CMU800がちゃんと効いているのかわからない 
 #define SUPPORT_CMU800
 #elif defined(_PC6001MK2)
 #define DEVICE_NAME		"NEC PC-6001mkII"
