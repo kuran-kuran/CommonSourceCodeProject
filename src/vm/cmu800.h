@@ -62,6 +62,8 @@ private:
 	bool get_wave_data(uint8_t* wave, uint8_t** data_ptr, uint32_t* data_size);
 public:
 	CMU800(VM_TEMPLATE* parent_vm, EMU* parent_emu) : DEVICE(parent_vm, parent_emu)
+	,d_midi(NULL)
+	,enable_portbase10_mode(false)
 	{
 		set_device_name(_T("CMU-800 (MIDI)"));
 	}

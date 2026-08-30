@@ -371,7 +371,7 @@ void CMU800::update_config()
 		config.option_switch &= ~OPTION_SWITCH_CMU800_BASS_DECAY_DEC_1;
 		update = true;
 	}
-	chord_decay = (bass_decay < 1) ? 1 : (bass_decay > 10) ? 10 : bass_decay;
+	bass_decay = (bass_decay < 1) ? 1 : (bass_decay > 10) ? 10 : bass_decay;
 	config.general_param[GENERAL_PARAM_CMU800_DECAY2] = bass_decay;
 	if(update) {
 		int value255 = static_cast<uint8_t>(((bass_decay - 1) * 255 + 4) / 9);
@@ -472,7 +472,9 @@ void CMU800::note_on_midi(int channel)
 			break;
 		}
 	}
-	if(back != -1) {
+	if(back == 0) {
+		cv = 0;
+	} else if(back != -1) {
 		int front = back - 1;
 		int x = counterTable[front] - val;
 		int y = counterTable[back] - val;
@@ -483,6 +485,8 @@ void CMU800::note_on_midi(int channel)
 		{
 			cv = back;
 		}
+	} else {
+		cv = 112;
 	}
 	// note on
 	uint8_t key = cv + 24;
@@ -685,30 +689,31 @@ void CMU800::write_io8(uint32_t addr, uint32_t data)
 		// b1-3 = channel (0-7)
 		{
 			int channel = ((data >> 1) & 7);
-			if(((before_tone[channel] & 1) == 1) && ((data & 1) == 0)) {
-				if(note_on == false && note_on_flag[channel] == 1) {
-					// note off
-					if(use_midi) {
-						d_midi->write_signal(SIG_MIDI_OUT, 0x80 + channel, 0xFF);
-						d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
-						d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
-					} else {
-						tone[channel].set_gate(false);
+			if(channel < 6) {
+				if(((before_tone[channel] & 1) == 1) && ((data & 1) == 0)) {
+					if (note_on == false && note_on_flag[channel] == 1) {
+						// note off
+						if(use_midi) {
+							d_midi->write_signal(SIG_MIDI_OUT, 0x80 + channel, 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, cv_key[channel], 0xFF);
+							d_midi->write_signal(SIG_MIDI_OUT, 0x7F, 0xFF);
+						} else {
+							tone[channel].set_gate(false);
+						}
+						cv_key[channel] = 0;
+						note_on_flag[channel] = 0;
+					} else if (note_on == true && note_on_flag[channel] == 0) {
+						if(cv == 0) {
+							// BugFire's player has already configured the 8253 and leaves CV at 0, so start the note immediately.
+							note_on_midi(channel);
+						} else {
+							// The CMU-800 sequencer has not configured the 8253 yet, so defer the note until the counter is set.
+							key_on[channel] = true;
+						}
 					}
-					cv_key[channel] = 0;
-					note_on_flag[channel] = 0;
 				}
-				else if(note_on == true && note_on_flag[channel] == 0) {
-					if(cv == 0) {
-						// BugFire's player has already configured the 8253 and leaves CV at 0, so start the note immediately.
-						note_on_midi(channel);
-					} else {
-						// The CMU-800 sequencer has not configured the 8253 yet, so defer the note until the counter is set.
-						key_on[channel] = true;
-					}
-				}
+				before_tone[channel] = data & 0xFF;
 			}
-			before_tone[channel] = data & 0xFF;
 			is_reset = false;
 			break;
 		}
@@ -773,7 +778,6 @@ void CMU800::set_sample_rate(uint32_t sample_rate)
 void CMU800::enable_midi(bool enabled)
 {
 	use_midi = enabled;
-	enable_portbase10_mode = false;
 	reset();
 }
 
@@ -854,6 +858,7 @@ bool CMU800::process_state(FILEIO* state_fio, bool loading)
 	state_fio->StateArray(regs, sizeof(regs), 1);
 	state_fio->StateArray(toggle, sizeof(toggle), 1);
 	state_fio->StateArray(counter, sizeof(counter), 1);
+	state_fio->StateArray(before_counter, sizeof(before_counter), 1);
 	state_fio->StateValue(cv);
 	state_fio->StateValue(note_on);
 	state_fio->StateArray(cv_key, sizeof(cv_key), 1);
